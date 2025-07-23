@@ -1,0 +1,392 @@
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { PrismaService } from "prisma/prisma.service";
+import { v4 as uuidv4 } from 'uuid';
+import { CreateEmployerDto } from "./dto/CreateEmployer.dto";
+import { UpdateEmployerDto } from "./dto/UpdateEmployer.dto";
+import { Prisma } from "@prisma/client";
+
+@Injectable()
+
+export class EmployerService {
+    private readonly uploadPath = 'uploads/students';
+    private readonly maxFileSize = 5 * 1024 * 1024; // 5MB
+    private readonly allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    constructor(private prisma: PrismaService) {
+        this.ensureUploadDirectory();
+    }
+
+    private async ensureUploadDirectory() {
+        try {
+            await fs.access(this.uploadPath);
+        } catch {
+            await fs.mkdir(this.uploadPath, { recursive: true });
+        }
+    }
+
+    private async savePhotoFile(photo: Buffer, mimetype: string): Promise<string> {
+        if (!this.allowedMimeTypes.includes(mimetype)) {
+            throw new BadRequestException('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
+        }
+        if (photo.length > this.maxFileSize) {
+            throw new BadRequestException('File size too large. Maximum 5MB allowed.');
+        }
+        const fileExtension = mimetype.split('/')[1];
+        const fileName = `${uuidv4()}.${fileExtension}`;
+        const filePath = path.join(this.uploadPath, fileName);
+
+        await fs.writeFile(filePath, photo);
+        return fileName;
+    }
+
+    private async deletePhotoFile(fileName: string | null) {
+        if (!fileName) return;
+
+        try {
+            const filePath = path.join(this.uploadPath, fileName);
+            await fs.unlink(filePath);
+            console.log(`✅ Photo file deleted: ${filePath}`);
+        } catch (error) {
+            console.error("❌ Error deleting photo file:", error);
+        }
+    }
+
+    async deleteEmployer(id: number): Promise<void> {
+        const employer = await this.prisma.employer.findUnique({ where: { employerId: id } });
+        if (!employer) {
+            throw new Error("Employer not found");
+        }
+
+        // Delete from database
+        await this.prisma.employer.delete({ where: { employerId: id } });
+
+        // Delete associated photo
+        await this.deletePhotoFile(employer.photoFileName);
+    }
+
+
+    async CreateStudent(dto: CreateEmployerDto, photo?: Express.Multer.File) {
+        const {
+            firstName, lastName, dateOfBirth, gender, address,
+            fatherName, motherName,
+            code, health, dateCreate, dateModif,
+            lieuOfBirth, bloodType, etatCivil, cid, nationality, observation,
+            numNumerisation, dateInscription, okBlock, type, phone,
+        } = dto;
+
+        let photoFileName: string | null = null;
+        if (photo) {
+            photoFileName = await this.savePhotoFile(photo.buffer, photo.mimetype);
+        }
+
+        try {
+            const employer = await this.prisma.employer.create({
+                data: {
+                    firstName,
+                    lastName,
+                    dateOfBirth: new Date(dateOfBirth),
+                    gender,
+                    address,
+                    code,
+                    health,
+                    fatherName,
+                    motherName,
+                    dateCreate: dateCreate ? new Date(dateCreate) : new Date(),
+                    dateModif: dateModif ? new Date(dateModif) : new Date(),
+                    lieuOfBirth,
+                    bloodType,
+                    phone,
+                    etatCivil,
+                    cid,
+                    nationality,
+                    observation,
+                    numNumerisation,
+                    dateInscription: dateInscription ? new Date(dateInscription) : new Date(),
+                    okBlock: okBlock === false,
+                    photoFileName,
+                    type,
+                },
+            });
+
+            //console.log('CreateStudent DTO:', dto);
+            return {
+                employer,
+                employerId: employer.employerId,
+                photoUrl: photoFileName ? `/api/employer/photo/${photoFileName}` : null,
+            };
+        } catch (error) {
+            if (photoFileName) {
+                await this.deletePhotoFile(photoFileName);
+            }
+
+            // 👇 Add specific Prisma error handling here:
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2002') {
+                    throw new BadRequestException('Ce code existe déjà. Veuillez en choisir un autre.');
+                }
+            }
+
+            // Default error if it's not a known Prisma error
+            throw new InternalServerErrorException('Une erreur interne est survenue.');
+
+        }
+    }
+
+
+    async UpdateEmployer(id: number, dto: UpdateEmployerDto, photo?: Express.Multer.File) {
+        const existing = await this.prisma.employer.findUnique({
+            where: { employerId: id },
+        });
+
+        if (!existing) {
+            throw new Error('Employer not found');
+        }
+
+        let photoFileName = existing.photoFileName;
+
+        if (photo) {
+            if (photoFileName) {
+                await this.deletePhotoFile(photoFileName); // delete old
+            }
+            photoFileName = await this.savePhotoFile(photo.buffer, photo.mimetype);
+        }
+
+        try {
+            const updated = await this.prisma.employer.update({
+                where: { employerId: id },
+                data: {
+                    firstName: dto.firstName,
+                    lastName: dto.lastName,
+                    dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
+                    gender: dto.gender,
+                    address: dto.address,
+                    fatherName: dto.fatherName,
+                    motherName: dto.motherName,
+                    code: dto.code,
+                    health: dto.health,
+                    dateCreate: dto.dateCreate ? new Date(dto.dateCreate) : undefined,
+                    dateModif: dto.dateModif ? new Date(dto.dateModif) : new Date(),
+                    lieuOfBirth: dto.lieuOfBirth,
+                    bloodType: dto.bloodType,
+                    phone: dto.phone,
+                    etatCivil: dto.etatCivil,
+                    cid: dto.cid,
+                    nationality: dto.nationality,
+                    observation: dto.observation,
+                    numNumerisation: dto.numNumerisation,
+                    dateInscription: dto.dateInscription ? new Date(dto.dateInscription) : undefined,
+                    okBlock: dto.okBlock ?? false,
+                    type: dto.type,
+                    photoFileName: photoFileName,
+                },
+            });
+            console.log('DTO received on backend:', dto.okBlock, typeof dto.okBlock);
+            return {
+                employer: updated,
+                photoUrl: photoFileName ? `/api/employer/photo/${photoFileName}` : null,
+
+            };
+        } catch (error) {
+            if (photo && photoFileName) {
+                await this.deletePhotoFile(photoFileName); // delete if error
+            }
+            throw error;
+        }
+    }
+
+    async GetEmployer(page: number = 1, limit: number = 10, type?: string) {
+        const skip = (page - 1) * limit;
+        const whereClause = type ? { type } : {};
+
+        const [employers, total] = await this.prisma.$transaction([
+            this.prisma.employer.findMany({
+                skip,
+                take: limit,
+                where: whereClause,
+                select: {
+                    employerId: true,
+                    firstName: true,
+                    lastName: true,
+                    code: true,
+                    dateInscription: true,
+                    dateOfBirth: true,
+                    type: true,
+                    cid: true,
+                    photoFileName: true,
+                    okBlock: true,
+                }
+            }),
+            this.prisma.employer.count({ where: whereClause }),
+        ]);
+
+        const employersWithPhotoUrl = employers.map((employer) => ({
+            ...employer,
+            photoUrl: employer.photoFileName ? `/api/employer/photo/${employer.photoFileName}` : null,
+        }));
+
+        return {
+            employers: employersWithPhotoUrl,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    async SearchEmployerByName(page: number = 1, limit: number = 10, name?: string) {
+        const skip = (page - 1) * limit;
+
+        const whereClause: Prisma.EmployerWhereInput = name
+            ? {
+                OR: [
+                    {
+                        firstName: {
+                            contains: name,
+                            mode: 'insensitive',
+                        },
+                    },
+                    {
+                        lastName: {
+                            contains: name,
+                            mode: 'insensitive',
+                        },
+                    },
+                ] as Prisma.EmployerWhereInput[],
+            }
+            : {};
+
+        const [employers, total] = await this.prisma.$transaction([
+            this.prisma.employer.findMany({
+                skip,
+                take: limit,
+                where: whereClause,
+                select: {
+                    employerId: true,
+                    firstName: true,
+                    lastName: true,
+                    code: true,
+                    dateInscription: true,
+                    dateOfBirth: true,
+                    type: true,
+                    cid: true,
+                    photoFileName: true,
+                    okBlock: true,
+                },
+                // orderBy: {
+                //     firstName: 'asc',
+                // },
+            }),
+            this.prisma.employer.count({ where: whereClause }),
+        ]);
+
+        const employersWithPhotoUrl = employers.map((employer) => ({
+            ...employer,
+            photoUrl: employer.photoFileName
+                ? `/api/employer/photo/${employer.photoFileName}`
+                : null,
+        }));
+
+        return {
+            employers: employersWithPhotoUrl,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    async GetEmployerById(id: number) {
+        const employer = await this.prisma.employer.findUnique({
+            where: { employerId: id },
+            select: {
+                employerId: true,
+                firstName: true,
+                lastName: true,
+                dateOfBirth: true,
+                lieuOfBirth: true,
+                gender: true,
+                address: true,
+                fatherName: true,
+                motherName: true,
+                code: true,
+                health: true,
+                dateCreate: true,
+                dateModif: true,
+                bloodType: true,
+                etatCivil: true,
+                cid: true,
+                nationality: true,
+                observation: true,
+                numNumerisation: true,
+                dateInscription: true,
+                okBlock: true,
+                type: true,
+                photoFileName: true,
+            }
+        });
+
+        if (!employer) {
+            throw new NotFoundException('employer not found');
+        }
+
+        return {
+            ...employer,
+            photoUrl: employer.photoFileName ? `/api/employer/photo/${employer.photoFileName}` : null,
+        };
+    }
+
+    async GetEmployerWithName(name: string, page: number, limit: number) {
+        const skip = (page - 1) * limit;
+        const [employers, total] = await this.prisma.$transaction([
+            this.prisma.employer.findMany({
+                where: {
+                    OR: [
+                        { lastName: { contains: name, mode: 'insensitive' } },
+                        { firstName: { contains: name, mode: 'insensitive' } },
+                    ],
+                },
+                skip,
+                take: limit,
+                select: {
+                    employerId: true,
+                    firstName: true,
+                    lastName: true,
+                    code: true,
+                    photoFileName: true,
+                    type: true,
+                    gender: true,
+                    okBlock: true,
+                },
+            }),
+            this.prisma.employer.count({
+                where: {
+                    OR: [
+                        { lastName: { contains: name, mode: 'insensitive' } },
+                        { firstName: { contains: name, mode: 'insensitive' } },
+                    ],
+                },
+            }),
+        ]);
+
+        const employersWithPhotoUrl = employers.map((employer) => ({
+            ...employer,
+            photoUrl: employer.photoFileName ? `/api/employer/photo/${employer.photoFileName}` : null,
+        }));
+
+        return {
+            employers: employersWithPhotoUrl,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    async getPhotoFile(fileName: string): Promise<Buffer> {
+        const filePath = path.join(this.uploadPath, fileName);
+        try {
+            return await fs.readFile(filePath);
+        } catch (error) {
+            throw new NotFoundException('Photo not found');
+        }
+    }
+}

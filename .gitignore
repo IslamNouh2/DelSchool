@@ -1,0 +1,32 @@
+# ========================
+# Frontend (Next.js)
+# ========================
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env
+frontend/.DS_Store
+
+# ========================
+# Backend (NestJS + Prisma)
+# ========================
+backend/node_modules/
+backend/dist/
+backend/.env
+backend/.DS_Store
+backend/prisma/migrations/**/README.md
+backend/prisma/dev.db
+
+# ========================
+# Common
+# ========================
+node_modules/
+*.log
+*.tsbuildinfo
+.env
+.DS_Store
+.idea/
+.vscode/
+*.swp
+Thumbs.db

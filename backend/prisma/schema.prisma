@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  username String @unique
+  password String
+  role     Role
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model Student {
+  studentId       Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  gender          String
+  address         String?
+  parentId        Int
+  code            String   @unique
+  health          String?
+  dateCreate      DateTime @default(now())
+  dateModif       DateTime @updatedAt
+  lieuOfBirth     String?
+  bloodType       String?
+  etatCivil       String?
+  cid             String?
+  nationality     String?
+  observation     String?
+  numNumerisation String?
+  dateInscription DateTime
+  okBlock         Boolean  @default(false)
+
+  // Change from photo Bytes? to photoFileName String?
+  photoFileName String? // Store filename instead of binary data
+
+  // Relations
+  parent Parent @relation(fields: [parentId], references: [parentId], onDelete: Cascade)
+
+  studentLocals StudentLocal[]
+
+  @@map("students")
+}
+
+model Parent {
+  parentId     Int     @id @default(autoincrement())
+  father       String?
+  mother       String?
+  fatherJob    String?
+  motherJob    String?
+  fatherNumber String?
+  motherNumber String?
+
+  // Relations
+  students Student[]
+
+  @@map("parents")
+}
+
+model Local {
+  localId    Int       @id @default(autoincrement())
+  name       String
+  code       String
+  dateCreate DateTime?
+  dateModif  DateTime?
+  NumClass   Int?
+
+  classes       classes[]
+  subject_local subject_local[]
+  studentLocals StudentLocal[]
+}
+
+model classes {
+  classId    Int       @id @default(autoincrement())
+  ClassName  String
+  code       String
+  dateCreate DateTime?
+  dateModif  DateTime?
+  NumStudent Int
+  localId    Int
+  okBlock    String    @default("N")
+
+  TeacherCalsses TeaherClass[]
+  local          Local         @relation(fields: [localId], references: [localId])
+}
+
+model subject {
+  subjectId   Int       @id @default(autoincrement())
+  subjectName String
+  totalGrads  Float
+  parentId    Int
+  BG          Int
+  BD          Int
+  level       Int?
+  dateCreate  DateTime?
+  dateModif   DateTime?
+  okBlock     Boolean   @default(false)
+
+  parent          subject?         @relation("SubjectToParent", fields: [parentId], references: [subjectId])
+  children        subject[]        @relation("SubjectToParent")
+  subject_local   subject_local[]
+  Teachersubjects TeacherSubject[]
+}
+
+model parameter {
+  paramId   Int     @id @default(autoincrement())
+  paramName String  @unique
+  okActive  Boolean @default(false)
+}
+
+model subject_local {
+  subjectLocalId Int       @id @default(autoincrement())
+  subjectId      Int
+  localId        Int
+  cloture        Boolean   @default(false)
+  dateCreate     DateTime?
+  dateModif      DateTime?
+
+  subject subject @relation(fields: [subjectId], references: [subjectId])
+  local   Local   @relation(fields: [localId], references: [localId])
+
+  @@unique([subjectId, localId])
+}
+
+model StudentLocal {
+  id           Int     @id @default(autoincrement())
+  studentId    Int
+  localId      Int
+  academicYear String // e.g., "2024-2025"
+  isCurrent    Boolean @default(false) // Optional helper field
+
+  Student Student @relation(fields: [studentId], references: [studentId])
+  local   Local   @relation(fields: [localId], references: [localId])
+
+  @@unique([studentId, academicYear]) // One local per student per year
+}
+
+model Employer {
+  employerId      Int       @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  lieuOfBirth     String?
+  gender          String
+  address         String?
+  fatherName      String?
+  motherName      String?
+  code            String    @unique
+  health          String?
+  dateCreate      DateTime?
+  dateModif       DateTime?
+  bloodType       String?
+  etatCivil       String?
+  cid             String?
+  phone           String?
+  nationality     String?
+  observation     String?
+  numNumerisation String?
+  dateInscription DateTime?
+  okBlock         Boolean   @default(false)
+  type            String
+
+  // Change from photo Bytes? to photoFileName String?
+  photoFileName String? // Store filename instead of binary data
+
+  TeacherCalsses  TeaherClass[]
+  Teachersubjects TeacherSubject[]
+
+  @@map("employers")
+}
+
+model TeaherClass {
+  id           Int     @id @default(autoincrement())
+  employerId   Int
+  classId      Int
+  academicYear String // e.g., "2024-2025"
+  isCurrent    Boolean @default(false) // Optional helper field
+
+  Employer Employer @relation(fields: [employerId], references: [employerId])
+  Class    classes  @relation(fields: [classId], references: [classId])
+
+  @@unique([employerId, academicYear]) // One local per student per year
+}
+
+model TeacherSubject {
+  id           Int     @id @default(autoincrement())
+  employerId   Int
+  subjectId    Int
+  academicYear String // e.g., "2024-2025"
+  isCurrent    Boolean @default(false) // Optional helper field
+
+  Employer Employer @relation(fields: [employerId], references: [employerId])
+  subject  subject  @relation(fields: [subjectId], references: [subjectId])
+
+  @@unique([employerId, academicYear]) // One local per student per year
+}
