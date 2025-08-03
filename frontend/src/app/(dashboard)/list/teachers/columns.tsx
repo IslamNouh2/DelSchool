@@ -23,7 +23,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import Image from "next/image";
+import Image from "next/image"; 
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import api from "@/lib/api";

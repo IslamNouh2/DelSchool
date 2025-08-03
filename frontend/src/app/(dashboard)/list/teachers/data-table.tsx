@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -36,10 +36,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Download, RefreshCw, Search } from "lucide-react";
+import { Download, RefreshCw, Search, X } from "lucide-react";
 import EmployerDialog from "@/components/forms/employerForm";
 import { Input } from "@/components/ui/input"
 import api from "@/lib/api";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface Employer {
     employerId: number;
@@ -67,7 +68,7 @@ interface Employer {
     photoFileName: String;
 }
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData extends Employer = Employer, TValue = unknown> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
     loading?: boolean;
@@ -80,9 +81,10 @@ interface DataTableProps<TData, TValue> {
     onPageChange?: (page: number) => void;
     onPageSizeChange?: (pageSize: number) => void;
     onFilterChange?: (value: string) => void;
+    onTypeFilterChange?: (type: string | undefined) => void;
 }
 
-export function EmployerDataTable<TData, TValue>({
+export function EmployerDataTable<TData extends Employer = Employer, TValue = unknown>({
     columns,
     data = [],
     loading = false,
@@ -95,26 +97,36 @@ export function EmployerDataTable<TData, TValue>({
     onPageChange,
     onPageSizeChange,
     onFilterChange,
+    onTypeFilterChange,
 }: DataTableProps<TData, TValue>) {
 
     const [sorting, setSorting] = React.useState<SortingState>([])
+    
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []
     );
     const [globalFilter, setGlobalFilter] = React.useState("");
+    const [open, setOpen] = useState(false);
     const [columnVisibility, setColumnVisibility] =
         React.useState<VisibilityState>({
             code: true,
             address: false,
-            numNumerisation : false,
+            numNumerisation: false,
         });
     const [rowSelection, setRowSelection] = React.useState({})
-    const [selectedType, setSelectedType] = useState<string | undefined>(undefined);
+    const debouncedGlobalFilter = useDebouncedValue(globalFilter, 500);
+    // Get unique types from data for filter options
+    const uniqueTypes = React.useMemo(() => {
+        const types = data.map((item: any) => (item as any)?.type).filter(Boolean);
+        return [...new Set(types)] as string[];
+    }, [data]);
 
 
     const table = useReactTable({
         data,
         columns,
+        getRowId: row => row.employerId.toString(),
+        enableRowSelection: true,
         manualPagination: true,
         manualFiltering: true,
         pageCount: Math.ceil(totalCount / pageSize),
@@ -125,19 +137,20 @@ export function EmployerDataTable<TData, TValue>({
         getFilteredRowModel: getFilteredRowModel(),
         onGlobalFilterChange: setGlobalFilter,
         onColumnVisibilityChange: setColumnVisibility,
-        onRowSelectionChange: setRowSelection,
         state: {
             sorting,
             columnFilters,
-            globalFilter,
             columnVisibility,
             rowSelection,
+            globalFilter: debouncedGlobalFilter, 
             pagination: {
                 pageIndex: currentPage - 1,
                 pageSize: pageSize,
             },
 
         },
+
+        onRowSelectionChange: setRowSelection,
         onColumnFiltersChange: setColumnFilters,
         onPaginationChange: (updater) => {
             const newState =
@@ -151,10 +164,17 @@ export function EmployerDataTable<TData, TValue>({
             const newPage = newState.pageIndex + 1;
             onPageChange?.(newPage);
         },
+
+
     });
 
-    
+    useEffect(() => {
+        table.getColumn("fullName")?.setFilterValue(debouncedGlobalFilter);
+        onFilterChange?.(debouncedGlobalFilter);
+    }, [debouncedGlobalFilter]);
 
+    // Get current type filter value
+    const typeFilterValue = (table.getColumn("type")?.getFilterValue() as string) || "";
 
     return (
         <div className="space-y-4">
@@ -165,49 +185,80 @@ export function EmployerDataTable<TData, TValue>({
                     {onRefresh && (
                         <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
                             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                            Rafraîchir
                         </Button>
                     )}
                     {onExport && (
                         <Button variant="outline" size="sm" onClick={onExport}>
                             <Download className="h-4 w-4 mr-2" />
-                            Exporter
                         </Button>
                     )}
-                    {onAddNew && <EmployerDialog type="create" onSuccess={onAddNew} />}
+                    {onAddNew &&
+                        <EmployerDialog
+                            open={open}
+                            onOpenChange={setOpen}
+                            type="create"
+                            onSuccess={onAddNew} />
+                    }
                 </div>
             </div>
 
-            {/* Page Info */}
-            <div className="flex items-center py-4">
-                <Select value={selectedType} onValueChange={(value) => {
-                    setSelectedType(value === "all" ? undefined : value);
-                    table.getColumn("type")?.setFilterValue(value === "all" ? undefined : value);
-                }}>
-                    <SelectTrigger className="ml-4 w-[150px]">
-                        <SelectValue placeholder="Filter by Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="Teacher">Teacher</SelectItem>
-                        <SelectItem value="Admin">Admin</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                </Select>
+            {/* Filters Row */}
+            <div className="flex items-center gap-4 py-4">
+                {/* Search Input */}
                 <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
-                        placeholder="Search Nom..."
-                        value={table.getColumn("fullName")?.getFilterValue() as string || ""}
+                        placeholder="Search Name..."
+                        value={globalFilter}
                         onChange={(event) => {
                             const val = event.target.value;
-                            table.getColumn("fullName")?.setFilterValue(val);
-                            onFilterChange?.(val);
+                            setGlobalFilter(val);
                         }}
                         className="pl-8 max-w-sm"
                     />
                 </div>
+
+                {/* Type Filter */}
+                {table.getColumn("type") && (
+                    <div className="flex items-center space-x-2">
+                        <Select
+                            value={typeFilterValue}
+                            onValueChange={(value) => {
+                                const filterValue = value === "all" ? "" : value;
+                                table.getColumn("type")?.setFilterValue(filterValue || undefined);
+                                onTypeFilterChange?.(filterValue || undefined);
+                            }}
+                        >
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter by type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Types</SelectItem>
+                                {uniqueTypes.map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                        {type}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {typeFilterValue && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    table.getColumn("type")?.setFilterValue(undefined);
+                                    onTypeFilterChange?.(undefined);
+                                }}
+                                className="h-8 px-2 lg:px-3"
+                            >
+                                Reset
+                                <X className="ml-2 h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                )}
+
+                {/* Column Visibility */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
@@ -238,19 +289,56 @@ export function EmployerDataTable<TData, TValue>({
                 </DropdownMenu>
             </div>
 
+            {/* Active Filters Display */}
+            {(typeFilterValue || (table.getColumn("fullName")?.getFilterValue() as string)) && (
+                <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">Active filters:</span>
+                    {typeFilterValue && (
+                        <div className="flex items-center space-x-1 rounded-md border px-3 py-1">
+                            <span className="text-sm">Type: {typeFilterValue}</span>
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    table.getColumn("type")?.setFilterValue(undefined);
+                                    onTypeFilterChange?.(undefined);
+                                }}
+                                className="h-4 w-4 p-0 hover:bg-transparent"
+                            >
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    )}
+                    {(table.getColumn("fullName")?.getFilterValue() as string) && (
+                        <div className="flex items-center space-x-1 rounded-md border px-3 py-1">
+                            <span className="text-sm">Name: {table.getColumn("fullName")?.getFilterValue() as string}</span>
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    table.getColumn("fullName")?.setFilterValue("");
+                                    onFilterChange?.("");
+                                }}
+                                className="h-4 w-4 p-0 hover:bg-transparent"
+                            >
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Table with Scrollable Container */}
             <div className="rounded-xl shadow-md border">
                 <div className="overflow-auto h-[500px]">
                     <table className="min-w-full relative">
-                        <TableHeader className="sticky top-0 z-20 bg-white" style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+                        <TableHeader className="sticky top-0 z-20 bg-lamaPurpleLight rounded-md" style={{ position: 'sticky', top: 0, zIndex: 20 }}>
                             {table.getHeaderGroups().map((headerGroup) => (
                                 <TableRow key={headerGroup.id} className="hover:bg-white" style={{ backgroundColor: 'white' }}>
                                     {headerGroup.headers.map((header) => (
                                         <TableHead
                                             key={header.id}
-                                            className="bg-white border-b font-medium text-gray-900"
+                                            className="bg-lamaPurpleLight rounded-lg border-b font-medium text-gray-900"
                                             style={{
-                                                backgroundColor: 'white',
+                                                backgroundColor: 'bg-lamaPurpleLight',
                                                 position: 'sticky',
                                                 top: 0,
                                                 zIndex: 20

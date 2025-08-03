@@ -5,7 +5,7 @@ import { SubjectController } from './subject.controller';
 import { PrismaModule } from 'prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule], // 👈 make PrismaService available
+  imports: [PrismaModule], 
   controllers: [SubjectController],
   providers: [SubjectService],
 })

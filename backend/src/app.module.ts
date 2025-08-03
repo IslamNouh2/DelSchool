@@ -9,6 +9,10 @@ import { SubjectLocalModule } from './subject-local/subject-local.module';
 import { ClassModule } from './class/class.module';
 import { StudentModule } from './student/student.module';
 import { EmployerModule } from './teacher/employer.module';
+import { TeacherSubjectModule } from './teacher-subject/teacher-subject.module';
+import { TeacherClassModule } from './teacher-class/teacher-class.module';
+import { TimetableModule } from './timetable/timetable.module';
+import { TimeSlotModule } from './time-slot/time-slot.module';
 
 @Module({
   imports: [
@@ -22,7 +26,11 @@ import { EmployerModule } from './teacher/employer.module';
     SubjectLocalModule,
     ClassModule,
     StudentModule,
-    EmployerModule
+    EmployerModule,
+    TeacherSubjectModule,
+    TeacherClassModule,
+    TimetableModule,
+    TimeSlotModule
   ],
   
 })

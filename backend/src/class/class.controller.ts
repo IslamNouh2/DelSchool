@@ -12,7 +12,7 @@ import { Role } from 'src/auth/dto/register.dto';
 @Controller('class')
 export class ClassController {
   constructor(private readonly classService: ClassService) { }
-
+  
   @Get()
   async getClasses(
     @Query('page') page = '1',

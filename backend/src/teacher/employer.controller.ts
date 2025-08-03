@@ -33,13 +33,15 @@ export class EmployerController {
     ) { }
 
     @Get('search-by-name')
-    async searchByName(@Query() query: EmployerNameSearchDto) {
-        const page = parseInt(query.page ?? '1');
-        const limit = parseInt(query.limit ?? '10');
-        const name = query.name;
-
-        return this.employerService.SearchEmployerByName(page, limit, name);
+    async searchEmployers(
+        @Query("page") page: number = 1,
+        @Query("limit") limit: number = 10,
+        @Query("name") name?: string,
+        @Query("type") type?: string
+    ) {
+        return this.employerService.SearchEmployerByName(page, limit, name, type);
     }
+
 
     @Get('list')
     async getEmployer(
@@ -68,7 +70,7 @@ export class EmployerController {
         @Body() dto: CreateEmployerDto,
         @UploadedFile() photo?: Express.Multer.File
     ) {
-        return this.employerService.CreateStudent(dto, photo);
+        return this.employerService.CreateEmployer(dto, photo);
     }
 
     @Put(':id')

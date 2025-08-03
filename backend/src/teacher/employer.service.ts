@@ -10,7 +10,7 @@ import { Prisma } from "@prisma/client";
 @Injectable()
 
 export class EmployerService {
-    private readonly uploadPath = 'uploads/students';
+    private readonly uploadPath = 'uploads/employers';
     private readonly maxFileSize = 5 * 1024 * 1024; // 5MB
     private readonly allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -67,11 +67,11 @@ export class EmployerService {
     }
 
 
-    async CreateStudent(dto: CreateEmployerDto, photo?: Express.Multer.File) {
+    async CreateEmployer(dto: CreateEmployerDto, photo?: Express.Multer.File) {
         const {
             firstName, lastName, dateOfBirth, gender, address,
             fatherName, motherName,
-            code, health, dateCreate, dateModif,
+            health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality, observation,
             numNumerisation, dateInscription, okBlock, type, phone,
         } = dto;
@@ -81,6 +81,40 @@ export class EmployerService {
             photoFileName = await this.savePhotoFile(photo.buffer, photo.mimetype);
         }
 
+        // ✅ 1. Determine type abbreviation
+        const typeMap: Record<string, string> = {
+            teacher: "TCH",
+            admin: "ADM",
+            employer: "EMP",
+        };
+
+        const typeCode = typeMap[type.toLowerCase()] || "UNK";
+
+        // ✅ 2. Find the highest existing code with that prefix
+        const prefix = `EMP-${typeCode}`;
+        const latest = await this.prisma.employer.findFirst({
+            where: {
+                code: {
+                    startsWith: prefix,
+                },
+            },
+            orderBy: {
+                code: "desc",
+            },
+        });
+
+        // ✅ 3. Determine next code number
+        let nextNumber = 1;
+        if (latest?.code) {
+            const parts = latest.code.split("-");
+            const lastNumber = parseInt(parts[2], 10);
+            if (!isNaN(lastNumber)) {
+                nextNumber = lastNumber + 1;
+            }
+        }
+
+        const newCode = `${prefix}-${String(nextNumber).padStart(3, "0")}`;
+
         try {
             const employer = await this.prisma.employer.create({
                 data: {
@@ -89,7 +123,7 @@ export class EmployerService {
                     dateOfBirth: new Date(dateOfBirth),
                     gender,
                     address,
-                    code,
+                    code: newCode, // ✅ Use generated code here
                     health,
                     fatherName,
                     motherName,
@@ -110,7 +144,6 @@ export class EmployerService {
                 },
             });
 
-            //console.log('CreateStudent DTO:', dto);
             return {
                 employer,
                 employerId: employer.employerId,
@@ -121,18 +154,16 @@ export class EmployerService {
                 await this.deletePhotoFile(photoFileName);
             }
 
-            // 👇 Add specific Prisma error handling here:
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
                     throw new BadRequestException('Ce code existe déjà. Veuillez en choisir un autre.');
                 }
             }
 
-            // Default error if it's not a known Prisma error
             throw new InternalServerErrorException('Une erreur interne est survenue.');
-
         }
     }
+
 
 
     async UpdateEmployer(id: number, dto: UpdateEmployerDto, photo?: Express.Multer.File) {
@@ -234,27 +265,44 @@ export class EmployerService {
         };
     }
 
-    async SearchEmployerByName(page: number = 1, limit: number = 10, name?: string) {
+    async SearchEmployerByName(
+        page: number = 1,
+        limit: number = 10,
+        name?: string,
+        type?: string
+    ) {
         const skip = (page - 1) * limit;
 
-        const whereClause: Prisma.EmployerWhereInput = name
+        const nameFilter: Prisma.EmployerWhereInput | undefined = name
             ? {
                 OR: [
                     {
                         firstName: {
                             contains: name,
-                            mode: 'insensitive',
+                            mode: "insensitive",
                         },
                     },
                     {
                         lastName: {
                             contains: name,
-                            mode: 'insensitive',
+                            mode: "insensitive",
                         },
                     },
-                ] as Prisma.EmployerWhereInput[],
+                ],
             }
-            : {};
+            : undefined;
+
+        const typeFilter: Prisma.EmployerWhereInput | undefined = type
+            ? {
+                type: {
+                    equals: type,
+                },
+            }
+            : undefined;
+
+        const whereClause: Prisma.EmployerWhereInput = {
+            AND: [nameFilter, typeFilter].filter(Boolean) as Prisma.EmployerWhereInput[],
+        };
 
         const [employers, total] = await this.prisma.$transaction([
             this.prisma.employer.findMany({
@@ -273,9 +321,6 @@ export class EmployerService {
                     photoFileName: true,
                     okBlock: true,
                 },
-                // orderBy: {
-                //     firstName: 'asc',
-                // },
             }),
             this.prisma.employer.count({ where: whereClause }),
         ]);
@@ -294,6 +339,7 @@ export class EmployerService {
             totalPages: Math.ceil(total / limit),
         };
     }
+
 
     async GetEmployerById(id: number) {
         const employer = await this.prisma.employer.findUnique({

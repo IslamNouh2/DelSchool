@@ -20,7 +20,8 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/dto/register.dto';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
-@UseGuards(JwtAuthGuard,RolesGuard)
+
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('subject')
 export class SubjectController {
   constructor(private readonly subjectsService: SubjectService) { }

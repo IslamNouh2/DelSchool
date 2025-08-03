@@ -93,6 +93,8 @@ model classes {
   okBlock    String    @default("N")
 
   TeacherCalsses TeaherClass[]
+  Timetables Timetable[]
+  
   local          Local         @relation(fields: [localId], references: [localId])
 }
 
@@ -112,6 +114,7 @@ model subject {
   children        subject[]        @relation("SubjectToParent")
   subject_local   subject_local[]
   Teachersubjects TeacherSubject[]
+  Timetables Timetable[]
 }
 
 model parameter {
@@ -177,6 +180,7 @@ model Employer {
 
   TeacherCalsses  TeaherClass[]
   Teachersubjects TeacherSubject[]
+  Timetables Timetable[]
 
   @@map("employers")
 }
@@ -185,24 +189,51 @@ model TeaherClass {
   id           Int     @id @default(autoincrement())
   employerId   Int
   classId      Int
-  academicYear String // e.g., "2024-2025"
   isCurrent    Boolean @default(false) // Optional helper field
 
   Employer Employer @relation(fields: [employerId], references: [employerId])
   Class    classes  @relation(fields: [classId], references: [classId])
 
-  @@unique([employerId, academicYear]) // One local per student per year
+  @@unique([employerId]) // One local per student per year
 }
 
 model TeacherSubject {
   id           Int     @id @default(autoincrement())
   employerId   Int
   subjectId    Int
-  academicYear String // e.g., "2024-2025"
   isCurrent    Boolean @default(false) // Optional helper field
 
   Employer Employer @relation(fields: [employerId], references: [employerId])
   subject  subject  @relation(fields: [subjectId], references: [subjectId])
 
-  @@unique([employerId, academicYear]) // One local per student per year
+  @@unique([employerId, subjectId])  // One local per student per year
+}
+
+
+model TimeSlot {
+  id        Int      @id @default(autoincrement())
+  label     String
+  startTime DateTime
+  endTime   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Timetables Timetable[]
+}
+
+model Timetable {
+  id           Int      @id @default(autoincrement())
+  day          String   // e.g. "Monday"
+  classId      Int
+  subjectId    Int
+  timeSlotId   Int
+  employerId   Int
+  academicYear String
+
+  Class      classes   @relation(fields: [classId], references: [classId])
+  subject    subject   @relation(fields: [subjectId], references: [subjectId])
+  timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id])
+  teacher    Employer  @relation(fields: [employerId], references: [employerId])
+
+  @@unique([day, timeSlotId, classId, academicYear])
 }

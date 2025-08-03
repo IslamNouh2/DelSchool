@@ -8,7 +8,7 @@ import { columns } from "./columns";
 import EmployerDialog from "@/components/forms/employerForm";
 import { fetchUser } from "@/lib/getRoleFromToken";
 
-interface Employers {
+interface Employer {
     employerId: number;
     firstName: string;
     lastName: string;
@@ -22,7 +22,7 @@ interface Employers {
 }
 
 interface TeacherResponse {
-    employers: Employers[];
+    employers: Employer[];
     total: number;
     page: number;
     totalPages: number;
@@ -32,15 +32,16 @@ export default function TeacherList() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const [employers, setEmployers] = useState<Employers[]>([]);
+    const [employers, setEmployers] = useState<Employer[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [nameFilter, setNameFilter] = useState("");
 
-    const [editData, setEditData] = useState<Employers | null>(null);
+    const [editData, setEditData] = useState<Employer | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
     const [role, setRole] = useState<string | null>(null);
     useEffect(() => {
@@ -50,19 +51,12 @@ export default function TeacherList() {
         };
         loadUser();
     }, []);
-    // useEffect(() => {
-    //     (async () => {
-    //         console.log("Calling fetchUser");
-    //         const user = await fetchUser();
-    //         console.log("Fetched user:", user);
-    //     })();
-    // }, []);
-
+    const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
     const fetchEmployers = async (page = 1, name = nameFilter, limit = pageSize) => {
         try {
             setLoading(true);
             const res = await api.get<TeacherResponse>("/employer/search-by-name", {
-                params: { page, limit, name },
+                params: { page, limit, name, type: typeFilter, },
                 withCredentials: true,
             });
             const { employers, total } = res.data;
@@ -104,13 +98,15 @@ export default function TeacherList() {
     };
 
     useEffect(() => {
-        fetchEmployers();
-    }, [pageSize]);
+        fetchEmployers(1, nameFilter, pageSize);
+    }, [typeFilter]);
+
+
 
     return (
         <div className="bg-white p-4 flex-1 m-4 rounded-md mt-0">
             <div className="container mx-auto py-4">
-                <EmployerDataTable
+                <EmployerDataTable<Employer, any>
                     columns={columns({
                         currentPage,
                         totalCount,
@@ -136,8 +132,20 @@ export default function TeacherList() {
                         setNameFilter(name);
                         fetchEmployers(1, name);
                     }}
+                    onTypeFilterChange={(val) => {
+                        setTypeFilter(val);
+                        fetchEmployers(1, nameFilter, pageSize); // re-fetch with new type
+                    }}
                 />
             </div>
+
+            <EmployerDialog
+                type="create"
+                open={createDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+                onSuccess={handleCreateSuccess}
+                hideButton={true}
+            />
 
             {/* Edit Dialog - Render only when needed */}
             {editData && (

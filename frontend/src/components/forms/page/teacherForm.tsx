@@ -3,9 +3,39 @@ import BigCalender from "@/components/BigCalender"
 import Performance from "@/components/Performance"
 import Image from "next/image"
 import Link from "next/link"
+import { format } from 'date-fns';
 
 
-const SingleStudentPage = () => {
+interface Props {
+    employer: {
+        employerId: number;
+        firstName: string;
+        lastName: string;
+        dateOfBirth: Date;
+        lieuOfBirth: string;
+        gender: string;
+        address: string;
+        fatherName: string;
+        motherName: string;
+        code: string;
+        health: string;
+        dateCreate: Date;
+        dateModif: Date;
+        bloodType: string;
+        etatCivil: string;
+        cid: string;
+        phone: string;
+        nationality: string;
+        observation: string;
+        numNumerisation: string;
+        dateInscription: Date;
+        okBlock: Boolean;
+        type: string;
+        photoFileName: string;
+    }
+}
+
+const TeacherEmployer = ({ employer }: Props) => {
     return (
         <div className='flex-1 p-4 flex flex-col gap-4 xl:flex-row'>
             {/* LEFT */}
@@ -16,21 +46,23 @@ const SingleStudentPage = () => {
                     <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
                         <div className="w-1/3">
                             <Image
-                                src=""
+                                src="/view.png"
                                 alt="/" width={144} height={144}
                                 className="w-36 h-36 rounded-full object-cover" />
                         </div>
                         <div className="w-3/3 flex flex-col justify-between gap-4">
-                            <h3 className="text-xl font-semibold">Lorem ipsum</h3>
-                            <p className="text-sm text-gray-400">Lorem ipsum dolor sit amet, consectetur adipiscing elit. S.</p>
+                            <h3 className="text-xl font-semibold">{employer.firstName} {employer.lastName}</h3>
+                            <p className="text-sm text-gray-400">{employer.address}</p>
                             <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/blood.png" alt="/" width={14} height={14} />
-                                    <span>O+</span>
+                                    <span>{employer.bloodType}</span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/date.png" alt="/" width={14} height={14} />
-                                    <span>16/02/2024</span>
+                                    <span>
+                                        {employer.dateOfBirth ? format(employer.dateOfBirth, 'MMM d, yyyy') : 'Date not available'}
+                                    </span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/mail.png" alt="/" width={14} height={14} />
@@ -38,7 +70,7 @@ const SingleStudentPage = () => {
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/phone.png" alt="/" width={14} height={14} />
-                                    <span>+213662094729</span>
+                                    <span>{employer.phone}</span>
                                 </div>
                             </div>
                         </div>
@@ -78,8 +110,8 @@ const SingleStudentPage = () => {
                 </div>
                 {/* BOTTOM */}
                 <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
-                    <h1>Student&apos;s Calender</h1>
-                    <BigCalender userType="student" userId={2} />
+                    <h1>Teacher&apos;s Calender</h1>
+                    <BigCalender />
                 </div>
             </div>
             {/* RIGHT */}
@@ -87,10 +119,10 @@ const SingleStudentPage = () => {
                 <div className="bg-white p-4 rounded-md ">
                     <h1 className="font-semibold text-xl">ShortCut</h1>
                     <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-400">
-                        <Link className="p-3 rounded-md bg-lamaPurpleLight hover:bg-lamaPurple" href="/"> Student&apos;s Calender </Link>
-                        <Link className="p-3 rounded-md bg-lamaSkyLight hover:bg-lamaSky" href="/"> Student&apos;s Class </Link>
-                        <Link className="p-3 rounded-md bg-lamaYellowLight hover:bg-lamaYellow" href="/"> Student&apos;s Lesson </Link>
-                        <Link className="p-3 rounded-md bg-lamaPurpleLight hover:bg-lamaPurple" href="/"> Student&apos;s Student </Link>
+                        <Link className="p-3 rounded-md bg-lamaPurpleLight hover:bg-lamaPurple" href="/"> Teacher&apos;s Calender </Link>
+                        <Link className="p-3 rounded-md bg-lamaSkyLight hover:bg-lamaSky" href="/"> Teacher&apos;s Class </Link>
+                        <Link className="p-3 rounded-md bg-lamaYellowLight hover:bg-lamaYellow" href="/"> Teacher&apos;s Lesson </Link>
+                        <Link className="p-3 rounded-md bg-lamaPurpleLight hover:bg-lamaPurple" href="/"> Teacher&apos;s Student </Link>
                     </div>
                 </div>
                 <Performance />
@@ -100,4 +132,4 @@ const SingleStudentPage = () => {
     )
 }
 
-export default SingleStudentPage
+export default TeacherEmployer
