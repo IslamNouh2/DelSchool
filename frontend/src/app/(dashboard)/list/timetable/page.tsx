@@ -18,7 +18,7 @@ import TimetableCalendar from "@/components/Timetable";
 export default function Page() {
     return (
         <div className="p-4">
-            <h1 className="text-2xl font-semibold mb-4">School Timetable</h1>
+            {/* <h1 className="text-2xl font-semibold mb-4">School Timetable</h1> */}
             <TimetableCalendar />
         </div>
     );

@@ -63,6 +63,14 @@ export class TeacherSubjectService {
         });
     }
 
+    // teacher-subject.service.ts
+    async getTeacherBySubject(subjectId: number) {
+        return this.prisma.teacherSubject.findMany({
+            where: { subjectId: Number(subjectId)},
+            include: { Employer: true },
+        });
+    }
+
     async removeSubjectFromTeacher(employerId: number, subjectId: number) {
         try {
             const result = await this.prisma.$transaction(async (tx) => {

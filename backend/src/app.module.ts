@@ -13,6 +13,7 @@ import { TeacherSubjectModule } from './teacher-subject/teacher-subject.module';
 import { TeacherClassModule } from './teacher-class/teacher-class.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { TimeSlotModule } from './time-slot/time-slot.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { TimeSlotModule } from './time-slot/time-slot.module';
     TeacherSubjectModule,
     TeacherClassModule,
     TimetableModule,
-    TimeSlotModule
+    TimeSlotModule,
+    AttendanceModule
   ],
   
 })

@@ -39,14 +39,22 @@ export class SubjectController {
 
   @Roles(Role.TEACHER, Role.ADMIN)
   @Get()
-  findAll(
+  async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('orderBy') orderByField: string = 'dateCreate',
+    @Query('name') name?: string,        // ✅ search by name
+    @Query('status') status?: string,    // ✅ filter by active / blocked
   ) {
-    return this.subjectsService.findAll(page, limit, orderByField);
+    return this.subjectsService.findAll(page, limit, orderByField, name, status);
+  }
+  @Roles(Role.TEACHER, Role.ADMIN)
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.subjectsService.findOne(id);
   }
 
+  @Roles(Role.TEACHER, Role.ADMIN)
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,

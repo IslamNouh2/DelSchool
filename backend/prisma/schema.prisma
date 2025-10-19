@@ -50,6 +50,7 @@ model Student {
   parent Parent @relation(fields: [parentId], references: [parentId], onDelete: Cascade)
 
   studentLocals StudentLocal[]
+  studentAttendance StudentAttendance[]
 
   @@map("students")
 }
@@ -80,6 +81,7 @@ model Local {
   classes       classes[]
   subject_local subject_local[]
   studentLocals StudentLocal[]
+  
 }
 
 model classes {
@@ -94,6 +96,7 @@ model classes {
 
   TeacherCalsses TeaherClass[]
   Timetables Timetable[]
+  studentAttendance StudentAttendance[] 
   
   local          Local         @relation(fields: [localId], references: [localId])
 }
@@ -181,6 +184,7 @@ model Employer {
   TeacherCalsses  TeaherClass[]
   Teachersubjects TeacherSubject[]
   Timetables Timetable[]
+  employerAttendance EmployerAttendance[] 
 
   @@map("employers")
 }
@@ -211,10 +215,10 @@ model TeacherSubject {
 
 
 model TimeSlot {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   label     String
-  startTime DateTime
-  endTime   DateTime
+  startTime String
+  endTime   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -236,4 +240,41 @@ model Timetable {
   teacher    Employer  @relation(fields: [employerId], references: [employerId])
 
   @@unique([day, timeSlotId, classId, academicYear])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model StudentAttendance {
+  id            Int       @id @default(autoincrement())
+  studentId     Int
+  classId       Int
+  date          DateTime  @default(now())
+  status        AttendanceStatus @default(ABSENT)
+  remarks       String?
+  academicYear  String
+
+  student Student @relation(fields: [studentId], references: [studentId])
+  class   classes   @relation(fields: [classId], references: [classId])
+
+  @@unique([studentId, date, academicYear])
+}
+
+model EmployerAttendance {
+  id            Int       @id @default(autoincrement())
+  employerId    Int
+  date          DateTime  @default(now())
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  status        AttendanceStatus @default(ABSENT)
+  remarks       String?
+  academicYear  String
+
+  employer Employer @relation(fields: [employerId], references: [employerId])
+
+  @@unique([employerId, date, academicYear])
 }

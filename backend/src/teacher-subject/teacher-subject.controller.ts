@@ -16,6 +16,11 @@ export class TeacherSubjectController {
     return this.teacherSubjectService.getSubjectsByTeacher(employerId);
   }
 
+  @Get('subject/:subjectId')
+  getTeacherBySubject(@Param('subjectId') subjectId: string) {
+    return this.teacherSubjectService.getTeacherBySubject(+subjectId);
+  }
+
 
   @Delete(':employerId/:subjectId')
   removeSubjectFromTeacher(

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from "@nestjs/common";
 import { CreateTimetableDto } from "./dto/create-timetable.dto";
 import { TimetableService } from "./timetable.service";
 import { UpdateTimetableDto } from "./dto/update-timetable.dto";
@@ -7,10 +7,11 @@ import { UpdateTimetableDto } from "./dto/update-timetable.dto";
 export class TimetableController {
   constructor(private readonly service: TimetableService) { }
 
-  @Post('bulk')
-  create(@Body() dto: CreateTimetableDto) {
+  @Post()
+  async create(@Body() dto: CreateTimetableDto) {
     return this.service.create(dto);
   }
+
 
   @Get()
   getAll() {
@@ -33,20 +34,14 @@ export class TimetableController {
   }
 
   @Get('check')
-  async getByUniqueFields(
+  async checkDuplicate(
     @Query('day') day: string,
-    @Query('classId') classId: string,
-    @Query('timeSlotId') timeSlotId: string,
-    @Query('academicYear') academicYear: string
+    @Query('classId', ParseIntPipe) classId: number,
+    @Query('timeSlotId', ParseIntPipe) timeSlotId: number,
+    @Query('academicYear') academicYear: string,
   ) {
-    return this.service.findByUniqueFields(
-      day,
-      Number(classId),
-      Number(timeSlotId),
-      academicYear
-    );
+    return this.service.checkDuplicate(day, classId, timeSlotId, academicYear);
   }
-
 
   @Put(':id')
   update(@Param('id') id: number, @Body() dto: UpdateTimetableDto) {

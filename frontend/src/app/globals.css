@@ -11,109 +11,159 @@
     0px 0px 0px 1px rgba(25, 28, 33, 0.08);
 }
 
-.react-calendar{
-  width: 100% !important;
-  border: none !important;
-  font-family: "Inter", sans-serif !important;
+/* Fix react-big-calendar header visibility */
+
+
+
+/* === DAY HEADER STYLING === */
+.rbc-time-view .rbc-time-header {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center;
+  background-color: #f8fafc !important;
+  border-bottom: 2px solid #e5e7eb !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
 }
 
-.react-calendar__navigation__label__labelText {
-  font-weight: 600;
+/* .rbc-toolbar {
+  display: none;
+} */
+
+.rbc-time-view .rbc-time-header-content {
+
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
 }
 
-.react-calendar__tile--active {
-  background-color: #c3ebfa !important;
-  color: black !important;
+.rbc-header {
+  background-color: #f8fafc !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  color: #1e293b !important;
+  text-align: center !important;
+  padding: 8px 4px !important;
+  border-right: 1px solid #e5e7eb !important;
+  text-transform: capitalize !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-.rbc-btn-group:first-child {
-  display: none !important;
-}
-
-.rbc-toolbar-label {
-  text-align: right !important;
-  padding: 0px 20px !important;
-}
-
-.rbc-btn-group:last-child {
-  font-size: 13px !important;
-}
-
-.rbc-btn-group:last-child button {
-  border: none !important;
-  background-color: #f1f0ff !important;
-  margin-left: 2px !important;
-}
-
-.rbc-toolbar button.rbc-active {
-  background-color: #dbdafe !important;
-  box-shadow: none !important;
+.rbc-header:last-child {
+  border-right: none !important;
 }
 
 .rbc-time-view {
-  border-color: #eee !important;
+  border-collapse: collapse !important;
 }
 
 .rbc-time-header {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.rbc-time-header-gutter {
+  background-color: #f8fafc !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  color: #1e293b !important;
+  padding: 8px 12px !important;
+  text-align: left !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+.rbc-allday-cell {
   display: none !important;
+  /* removes the empty 'All Day' row */
 }
 
-.rbc-time-content {
-  border: none !important;
-}
-
+/* === TIME COLUMN STYLING === */
 .rbc-time-gutter.rbc-time-column {
   font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #6b7280 !important;
+  background-color: #f9fafb !important;
+  border-right: 1px solid #e5e7eb !important;
+  padding-left: 12px !important;
+  text-align: left !important;
 }
 
-.rbc-time-gutter.rbc-time-column .rbc-timeslot-group {
-  padding: 0px 20px !important;
+/* === GRID LINES IMPROVEMENT === */
+.rbc-time-view .rbc-time-content {
+  border-top: 1px solid #e5e7eb !important;
 }
 
-.rbc-timeslot-group {
-  background-color: #f7fdff !important;
+.rbc-time-view .rbc-time-content>*+*>* {
+  border-left: 1px solid #e5e7eb !important;
 }
 
-.rbc-day-slot {
-  font-size: 14px !important;
+.rbc-time-view .rbc-timeslot-group {
+  border-bottom: 1px solid #e5e7eb !important;
 }
 
+.rbc-time-view .rbc-time-slot {
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+/* === EVENT STYLING === */
 .rbc-event {
+  border-radius: 6px !important;
+  padding: 6px 8px !important;
+  font-weight: 500 !important;
+  color: #111827 !important;
   border: none !important;
-  color: black !important;
-  padding: 10px !important;
-  margin: 10px !important;
-  width: 99% !important;
+  text-align: center !important;
+  margin: 1px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  font-size: 0.85rem !important;
+  line-height: 1.2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 40px !important;
 }
 
 .rbc-event:nth-child(1) {
   background-color: #e2f8ff !important;
 }
+
 .rbc-event:nth-child(2) {
   background-color: #fefce8 !important;
 }
+
 .rbc-event:nth-child(3) {
   background-color: #f2f1ff !important;
 }
+
 .rbc-event:nth-child(4) {
   background-color: #fdf2fb !important;
 }
+
 .rbc-event:nth-child(5) {
   background-color: #e2f8ff !important;
 }
+
 .rbc-event:nth-child(6) {
   background-color: #fefce8 !important;
 }
+
 .rbc-event:nth-child(7) {
   background-color: #f2f1ff !important;
 }
+
 .rbc-event:nth-child(8) {
   background-color: #fdf2fb !important;
-}
-
-.rbc-event-label{
-  color: gray !important;
-  margin-bottom: 5px;
 }
 
 @layer base {
@@ -143,7 +193,24 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem
-  }
+  ;
+    --sidebar-background:
+    0 0% 98%;
+    --sidebar-foreground:
+    240 5.3% 26.1%;
+    --sidebar-primary:
+    240 5.9% 10%;
+    --sidebar-primary-foreground:
+    0 0% 98%;
+    --sidebar-accent:
+    240 4.8% 95.9%;
+    --sidebar-accent-foreground:
+    240 5.9% 10%;
+    --sidebar-border:
+    220 13% 91%;
+    --sidebar-ring:
+    217.2 91.2% 59.8%}
+
   .dark {
     --background: 224 71.4% 4.1%;
     --foreground: 210 20% 98%;
@@ -169,7 +236,23 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%
-  }
+  ;
+    --sidebar-background:
+    240 5.9% 10%;
+    --sidebar-foreground:
+    240 4.8% 95.9%;
+    --sidebar-primary:
+    224.3 76.3% 48%;
+    --sidebar-primary-foreground:
+    0 0% 100%;
+    --sidebar-accent:
+    240 3.7% 15.9%;
+    --sidebar-accent-foreground:
+    240 4.8% 95.9%;
+    --sidebar-border:
+    240 3.7% 15.9%;
+    --sidebar-ring:
+    217.2 91.2% 59.8%}
 }
 
 /* For sticky headers and footers */
@@ -179,6 +262,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     overflow: hidden;

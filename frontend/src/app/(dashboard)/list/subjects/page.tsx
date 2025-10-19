@@ -1,38 +1,30 @@
-"use client"
+"use client";
 
-import DataTable from "@/components/DataTable";
-import FormModal from "@/components/FormModal";
-import PaginationBar from "@/components/PaginationBar";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Pagination } from "@/components/ui/pagination";
-import { toast } from "@/hooks/use-toast";
-import { role, subjectsData } from "@/lib/data";
-import api from "@/lib/api";
-import debounce from "lodash.debounce";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import debounce from "lodash.debounce";
+import { toast } from "@/hooks/use-toast";
+import api from "@/lib/api";
+import { fetchUser } from "@/lib/getRoleFromToken";
+import { DataTable } from "@/components/DataTable";
+import { columns } from "./columns";
+import SubjectForm from "@/components/forms/SubjectForm";
 
-type Subject = {
+interface Subject {
     subjectId: number;
     subjectName: string;
     totalGrads: number;
-
+    parentId: number;
+    okBlock?: boolean;
+    parentName: string;
 }
-const subjectColumns = [
-    { header: 'Subject Name', accessor: 'subjectName' },
-    { header: 'Total Point', accessor: 'totalGrads' },
-];
 
+interface SubjectResponse {
+    subject: Subject[];
+    total: number;
+    page: number;
+    totalPages: number;
+}
 
 const sortMap: Record<string, string> = {
     top: "dateCreate",
@@ -40,186 +32,153 @@ const sortMap: Record<string, string> = {
     right: "subjectName",
 };
 
-
-const SubjectList = () => {
-
-    const [subject, setSubject] = useState<Subject[]>([]);
-    const [totalPages, setTotalPages] = useState(1);
-    const [loading, setLoading] = useState(true);
-    const searchParams = useSearchParams();
-    const pageParam = parseInt(searchParams.get("page") || "1", 10);
-    const [currentPage, setCurrentPage] = useState(pageParam);
+export default function SubjectList() {
     const router = useRouter();
-    const [position, setPosition] = useState("top");
+    const searchParams = useSearchParams();
 
+    const [subjectsData, setSubjectsData] = useState<Subject[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [pageSize, setPageSize] = useState(10);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [nameFilter, setNameFilter] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+    const [loading, setLoading] = useState(false);
+    const [role, setRole] = useState<string | null>(null);
+    const [position, setPosition] = useState("top");
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [editData, setEditData] = useState<Subject | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    // Load role
+    useEffect(() => {
+        const loadUser = async () => {
+            const user = await fetchUser();
+            if (user) setRole(user.role);
+        };
+        loadUser();
+    }, []);
 
     const fetchSubject = useCallback(
-        debounce(async (page: number, sortBy: string = "dateCreate") => {
-            try {
-                const url = `/subject?page=${page}&sortBy=${sortBy}`;
-                const response = await api.get(url, { withCredentials: true });
-                console.log("Full API response:", response.data);
-                //console.log(url);
-                const subjectArray = Array.isArray(response.data.subject) ? response.data.subject : [];
-                setSubject(subjectArray);
-                setTotalPages(response.data.totalPages || 1);
-            } catch (err) {
-                console.error("❌ Failed to fetch Subject:", err);
-                setSubject([]);
-            }
-            finally {
-                setLoading(false)
-            }
-        }, 500),
-        []
+        debounce(
+            async (
+                page = 1,
+                name = nameFilter,
+                limit = pageSize,
+                status = statusFilter
+            ) => {
+                try {
+                    setLoading(true);
+                    const res = await api.get("/subject", {
+                        params: { page, limit, name, status },
+                        withCredentials: true,
+                    });
+
+                    const { subjects, total } = res.data;
+                    setSubjectsData(subjects);
+                    setTotalCount(total);
+                    setCurrentPage(page);
+                } catch (err) {
+                    console.error("❌ Failed to fetch Subject:", err);
+                } finally {
+                    setLoading(false);
+                }
+            },
+            400
+        ),
+        [nameFilter, statusFilter, pageSize]
     );
 
-    const handleSuccess = () => {
+    useEffect(() => {
+        const pageParam = parseInt(searchParams.get("page") || "1", 10);
+        setCurrentPage(pageParam);
+        fetchSubject(pageParam);
+    }, [searchParams, position, fetchSubject]);
+
+    const handleEdit = async (id: number) => {
+        try {
+            setLoading(true);
+
+            // 🔹 Fetch the subject by its ID
+            const res = await api.get(`/subject/${id}`, { withCredentials: true });
+
+            if (res.data) {
+                // 🔹 Set the data to state so it fills the edit form
+                setEditData(res.data);
+                setDialogOpen(true);
+            }
+        } catch (err) {
+            console.error("❌ Error loading subject:", err);
+            toast({
+                variant: "destructive",
+                description: "Failed to load subject data.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateSuccess = () => fetchSubject(currentPage);
+
+    const handleEditSuccess = () => {
+        setDialogOpen(false);
+        setEditData(null);
         fetchSubject(currentPage);
     };
 
-
-    useEffect(() => {
-        fetchSubject(currentPage, sortMap[position]);
-        //console.log(sortMap[position]);
-        //return () => fetchSubject.cancel();
-    }, [currentPage, position, fetchSubject]);
-
-
-    useEffect(() => {
-        setCurrentPage(pageParam)
-    }, [pageParam]);
-
-    const handlePageChange = (newPage: number) => {
-        setCurrentPage(newPage);
-        router.push(`subject?page=${newPage}`);
-    };
-
-    const handleDelete = async (id: number) => {
-
-
-        try {
-            await api.delete(`/subject/${id}`, { withCredentials: true });
-            fetchSubject(currentPage);
-            toast({ description: "Successfully deleted Subject" });
-        } catch (error) {
-            console.log("❌ Failed to delete Subject:", error);
-            toast({
-                variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: "Failed to delete Subject.",
-            })
-        }
-    }
-
-    const renderRow = (item: Subject, index: number) => (
-        <tr
-            key={item.subjectId}
-            className="border-b border-gray-200 even:bg-slate-50 hover:bg-lamaPurpleLight text-sm"
-        >
-            <td className="p-4">{index + 1}</td>
-            <td className="p-2 pl-4">{item.subjectName}</td>
-            <td className="p-2 pl-4">{item.totalGrads}</td>
-            <td className="p-2 pl-4">
-                <div className="flex items-center gap-2">
-                    <FormModal
-                        table="subject"
-                        type="update"
-                        data={item}
-                        onSuccess={handleSuccess}
-                    >
-                        <Button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-                            <Image src="/update.png" alt="Update" width={16} height={16} />
-                        </Button>
-                    </FormModal>
-                    {role === "admin" && (
-                        <AlertDialog >
-                            <AlertDialogTrigger asChild>
-                                <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
-                                    <Image src="/delete.png" alt="Delete" width={16} height={16} />
-                                </button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete your
-                                        account and remove your data from our servers.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel >Annule</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(item.subjectId)}>Ok</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-
-
-                    )}
-                </div>
-            </td>
-        </tr>
-    );
-
     return (
-        <div className=''>
-
-            <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-                {/* TOP */}
-                <div className="flex items-center justify-between">
-                    <h1 className="hidden md:block text-lg font-semibold">All Subjects</h1>
-                    <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                        {/* <TableSearch onSearchChange={} /> */}
-                        <div className="flex items-center gap-4 self-end">
-                            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-                                <Image src="/filter.png" alt="" width={14} height={14} />
-                            </button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className="w-8 h-8 flex items-center justify-center rounded-full bg-delRed-500">
-                                        <Image src="/sort.png" alt="Sort" width={14} height={14} />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-50">
-                                    <DropdownMenuRadioGroup
-                                        value={position}
-                                        onValueChange={setPosition}
-                                    >
-                                        <DropdownMenuRadioItem value="top">Date Creation</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="bottom">Code</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="right">Nom</DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            {role === "admin" && (
-                                <FormModal table="subject" type="create" onSuccess={handleSuccess} />
-                            )}
-                        </div>
-                    </div>
-                </div>
-                {loading ? (
-                    <div className="text-center py-10 text-gray-500">Loading...</div>
-                ) : (
-                    <>
-                        {/* Table */}
-                        <DataTable
-                            columns={subjectColumns}
-                            data={subject}
-                            renderRow={renderRow}
+        <div className="bg-white p-4 flex-1 m-4 rounded-md mt-0" >
+            <div className="container mx-auto py-4" >
+                <DataTable
+                    title="Subjects"
+                    columns={
+                        columns({
+                            currentPage,
+                            totalCount,
+                            pageSize,
+                            onRefresh: (page) => fetchSubject(page),
+                            onEdit: handleEdit,
+                            role,
+                        })}
+                    data={subjectsData}
+                    loading={loading}
+                    currentPage={currentPage}
+                    totalCount={totalCount}
+                    pageSize={pageSize}
+                    onAddNew={handleCreateSuccess}
+                    onRefresh={() => fetchSubject(currentPage)}
+                    onPageChange={(page) => fetchSubject(page)}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        fetchSubject(1, nameFilter, size);
+                    }}
+                    onFilterChange={(name) => setNameFilter(name)}
+                    onStatusFilterChange={(status) => setStatusFilter(status)}
+                    filterKey="subjectName"
+                    statusKey="okBlock"
+                    renderCreateDialog={
+                        < SubjectForm
+                            open={createDialogOpen}
+                            onOpenChange={setCreateDialogOpen}
+                            onSuccess={handleCreateSuccess}
                         />
-                        {/* PAGINATION */}
-                        <PaginationBar
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}
-                        />
-                    </>
-                )}
-
-
+                    }
+                />
             </div>
-        </div>
-    )
-}
 
-export default SubjectList
+            {editData && (
+                <SubjectForm
+                    type="update"
+                    data={editData}
+                    open={dialogOpen}
+                    onOpenChange={setDialogOpen}
+                    onSuccess={() => {
+                        setDialogOpen(false);
+                        setEditData(null);
+                        fetchSubject(currentPage); // refresh list
+                    }}
+                    hideButton={true}
+                />
+            )}
+        </div>
+    );
+}   

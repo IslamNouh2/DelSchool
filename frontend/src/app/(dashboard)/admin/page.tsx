@@ -125,10 +125,10 @@ const AdminPage = () => {
             {/* USER CARDS */}
             <div className="p-4">
                 <div className="flex gap-4 justify-between flex-wrap">
-                    <UserCard type="Student" count={counts.studentCount} />
-                    <UserCard type="Teacher" count={counts.teacherCount} />
-                    <UserCard type="Parent" count={counts.parentCount} />
-                    <UserCard type="Staff" count={counts.staffCount} />
+                    {/* <UserCard userType="student" count={counts.studentCount} />
+                    <UserCard userType="teacher" count={counts.teacherCount} />
+                    <UserCard userType="parent" count={counts.parentCount} />
+                    <UserCard userType="staff" count={counts.staffCount} /> */}
                 </div>
             </div>
 

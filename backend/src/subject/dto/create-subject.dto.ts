@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsInt, Min, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsInt, Min, MaxLength, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateSubjectDto {
@@ -16,4 +16,9 @@ export class CreateSubjectDto {
     @IsOptional()
     @IsInt()
     parentId?: number;
+
+    @ApiProperty({ example: false, required: false })
+    @IsOptional()
+    @IsBoolean()
+    okBlock?: boolean;
 }

@@ -1,103 +1,152 @@
-"use client";
+"use client"
 
+import * as React from "react"
+import { useEffect, useState } from "react"
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarGroup,
-    SidebarGroupLabel,
-    SidebarGroupContent,
-    SidebarMenu,
-    SidebarMenuItem,
-    SidebarMenuButton,
-    SidebarMenuSub,
-    SidebarMenuSubItem,
-    SidebarProvider,
-    useSidebar,
-} from "@/components/ui/sidebar";
+  AudioWaveform,
+  BookOpen,
+  Bot,
+  Command,
+  Frame,
+  GalleryVerticalEnd,
+  Map,
+  PieChart,
+  Settings2,
+  SquareTerminal,
+  User2,
+} from "lucide-react"
 
+import { NavMain } from "@/components/nav-main"
+import { NavProjects } from "@/components/nav-projects"
+import { NavUser } from "@/components/nav-user"
+import { TeamSwitcher } from "@/components/team-switcher"
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+} from "@/components/ui/sidebar"
 
-import { ChevronRight, PanelLeftOpen, PanelLeftClose } from "lucide-react";
-import Link from "next/link";
-import { items } from "@/lib/data";
-import React, { useEffect } from "react";
+// Static display data
+const staticData = {
+  user: {
+    name: "shadcn",
+    email: "m@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  },
+  teams: [
+    {
+      name: "DelSchool",
+      logo: GalleryVerticalEnd,
+      plan: "Enterprise",
+    },
+  ],
+  projects: [
+    {
+      name: "Design Engineering",
+      url: "#",
+      icon: Frame,
+    },
+    {
+      name: "Sales & Marketing",
+      url: "#",
+      icon: PieChart,
+    },
+    {
+      name: "Travel",
+      url: "#",
+      icon: Map,
+    },
+  ],
+}
 
-export function AppSidebar() {
-    const [open, setOpen] = React.useState(true);
-    const { isMobile } = useSidebar?.() || { isMobile: false };
+type DecodedToken = {
+  role?: string
+}
 
-    // Close sidebar when clicking on mobile menu items
-    const handleItemClick = () => {
-        if (isMobile) {
-            setOpen(false);
+function getTokenFromCookie(): string | null {
+  if (typeof document === "undefined") return null
+  const match = document.cookie.match(new RegExp('(^| )access_token=([^;]+)'))
+  return match ? match[2] : null
+}
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [role, setRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("user_role")
+    if (storedRole) {
+      setRole(storedRole)
+      return
+    }
+    const token = getTokenFromCookie()
+    if (!token) return
+    // Lazy import to avoid bundling cost unless needed
+    import("jwt-decode").then(({ jwtDecode }) => {
+      try {
+        const decoded = jwtDecode<DecodedToken>(token)
+        const normalizedRole = decoded.role ? decoded.role.toLowerCase() : null
+        if (normalizedRole) {
+          setRole(normalizedRole)
+          localStorage.setItem("user_role", normalizedRole)
         }
-    };
+      } catch (_e) {
+        // ignore invalid token
+      }
+    })
+  }, [])
 
-    return (
-        <SidebarProvider open={open} onOpenChange={setOpen}>
-            {/* Toggle Button */}
-            <button
-                onClick={() => setOpen(!open)}
-                className={`fixed z-50 p-2 rounded-md transition-all ${open ? 'left-64' : 'left-4'
-                    } top-4 bg-gray-100 dark:bg-gray-800`}
-            >
-                {open ? (
-                    <PanelLeftClose className="h-5 w-5" />
-                ) : (
-                    <PanelLeftOpen className="h-5 w-5" />
-                )}
-                <span className="sr-only">Toggle Sidebar</span>
-            </button>
+  const navItems = React.useMemo(() => {
+    // Default minimal while role loads
+    if (!role) {
+      return [
+        { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
+      ]
+    }
 
-            <Sidebar
-                className={`h-screen w-64 fixed z-50 bg-white shadow-md transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"
-                    } ${isMobile ? "absolute" : "relative"}`}
-            >
-                <SidebarContent>
-                    <SidebarGroup>
-                        <SidebarGroupLabel>Menu</SidebarGroupLabel>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {items.map((item) => (
-                                    <Collapsible key={item.title}>
-                                        <SidebarMenuItem>
-                                            <CollapsibleTrigger asChild>
-                                                <SidebarMenuButton>
-                                                    <item.icon className="mr-2 h-4 w-4" />
-                                                    <span>{item.title}</span>
-                                                    {item.subItems && (
-                                                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                                                    )}
-                                                </SidebarMenuButton>
-                                            </CollapsibleTrigger>
-                                            {item.subItems && (
-                                                <CollapsibleContent>
-                                                    <SidebarMenuSub>
-                                                        {item.subItems.map((sub) => (
-                                                            <SidebarMenuSubItem
-                                                                key={sub.title}
-                                                                onClick={handleItemClick}
-                                                            >
-                                                                <Link href={sub.href}>
-                                                                    {sub.title}
-                                                                </Link>
-                                                            </SidebarMenuSubItem>
-                                                        ))}
-                                                    </SidebarMenuSub>
-                                                </CollapsibleContent>
-                                            )}
-                                        </SidebarMenuItem>
-                                    </Collapsible>
-                                ))}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                </SidebarContent>
-            </Sidebar>
-        </SidebarProvider>
-    );
+    if (role === "teacher") {
+      return [
+        { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
+        { title: "Teacher", url: "/list/teachers", icon: Bot },
+      ]
+    }
+
+    // Admin: show all principal links (no submenus)
+    return [
+      { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
+      { title: "Teachers", url: "/list/teachers", icon: User2 },
+      { title: "Students", url: "/list/students", icon: BookOpen },
+      { title: "Timetable", url: "/list/timetable", icon: GalleryVerticalEnd },
+      { title: "Subjects", url: "/list/subjects", icon: BookOpen },
+      { title: "Classes", url: "/list/classes", icon: Frame },
+      { title: "Local", url: "/list/local", icon: Map },
+      {
+        title: "Attendance",
+        url: "#",
+        icon: Settings2,
+        items: [
+          { title: "Employer", url: "/list/attendance/employer" },
+          { title: "Student", url: "/list/attendance/student" },
+        ],
+      },
+    ]
+  }, [role])
+
+  return (
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <TeamSwitcher teams={staticData.teams} />
+      </SidebarHeader>
+      
+      <SidebarContent>
+        <NavMain items={navItems} />
+        <NavProjects projects={staticData.projects} />
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={staticData.user} />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  )
 }

@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { EmployerDataTable } from "./data-table";
-import { columns } from "./columns";
 import EmployerDialog from "@/components/forms/employerForm";
 import { fetchUser } from "@/lib/getRoleFromToken";
+import { DataTable } from "@/components/DataTable";
+import { columns } from "./columns";
 
 interface Employer {
     employerId: number;
@@ -37,7 +38,7 @@ export default function TeacherList() {
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [nameFilter, setNameFilter] = useState("");
-
+    const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
     const [editData, setEditData] = useState<Employer | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -106,14 +107,15 @@ export default function TeacherList() {
     return (
         <div className="bg-white p-4 flex-1 m-4 rounded-md mt-0">
             <div className="container mx-auto py-4">
-                <EmployerDataTable<Employer, any>
+                <DataTable
+                    title="Subjects"
                     columns={columns({
                         currentPage,
                         totalCount,
                         pageSize,
                         onRefresh: (page) => fetchEmployers(page),
                         onEdit: handleEdit,
-                        role: role,
+                        role,
                     })}
                     data={employers}
                     loading={loading}
@@ -122,20 +124,24 @@ export default function TeacherList() {
                     pageSize={pageSize}
                     onAddNew={handleCreateSuccess}
                     onRefresh={() => fetchEmployers(currentPage)}
-                    onExport={() => { }}
                     onPageChange={(page) => fetchEmployers(page)}
                     onPageSizeChange={(size) => {
                         setPageSize(size);
                         fetchEmployers(1, nameFilter, size);
                     }}
-                    onFilterChange={(name) => {
-                        setNameFilter(name);
-                        fetchEmployers(1, name);
-                    }}
-                    onTypeFilterChange={(val) => {
-                        setTypeFilter(val);
-                        fetchEmployers(1, nameFilter, pageSize); // re-fetch with new type
-                    }}
+                    onFilterChange={(name) => setNameFilter(name)}
+                    onStatusFilterChange={(status) => setStatusFilter(status)}
+                    ontypeFilterChange={(type) => setTypeFilter(type)}
+                    filterKey="firstName"
+                    statusKey="okBlock"
+                    typeKey="type"
+                    renderCreateDialog={
+                        <EmployerDialog
+                            open={createDialogOpen}
+                            onOpenChange={setCreateDialogOpen}
+                            onSuccess={handleCreateSuccess}
+                        />
+                    }
                 />
             </div>
 

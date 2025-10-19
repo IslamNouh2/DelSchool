@@ -1,24 +1,43 @@
 "use client";
 
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from "react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
-import api from "@/lib/api";
-import dynamic from "next/dynamic";
-import { Checkbox } from "../ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import dynamic from "next/dynamic";
+import api from "@/lib/api";
 
+// Lazy load Combobox
 const ComboboxDemo = dynamic(
     () => import("../ui/combobox").then((mod) => mod.ComboboxDemo),
     {
+        ssr: false,
         loading: () => (
             <div className="h-10 w-full rounded-md border bg-gray-100 animate-pulse" />
         ),
-        ssr: false,
     }
 );
+
+interface SubjectDialogProps {
+    type?: "create" | "update";
+    data?: any;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    onSuccess?: () => void;
+    hideButton?: boolean;
+}
 
 type Subject = {
     SubjectId: number;
@@ -29,102 +48,100 @@ type Subject = {
     parentId: number | null;
 };
 
-type SubjectFormProps = {
-    type: "create" | "update";
-    data?: any;
-    setOpen: Dispatch<SetStateAction<boolean>>;
-    relatedData?: any;
-    onSuccess?: (selectedSubSubjectId?: number) => void;
-};
-
-function buildHierarchyWithIndentation(subjects: Subject[]) {
-    const map = new Map<number | null, Subject[]>();
+function buildHierarchy(subjects: any[]) {
+    const map = new Map<number | null, any[]>();
 
     subjects.forEach((s) => {
         const parentId = s.parentId ?? 0;
-        if (!map.has(parentId)) {
-            map.set(parentId, []);
-        }
+        if (!map.has(parentId)) map.set(parentId, []);
         map.get(parentId)!.push(s);
     });
 
     const result: { value: string; label: string }[] = [];
 
-    const traverse = (parentId: number | null, level: number) => {
+    const traverse = (parentId: number | null, level: number, prefix = "") => {
         const children = map.get(parentId ?? 0) || [];
-        for (const child of children) {
-            const indent = " ".repeat(level); // EM space for better alignment
+        children.forEach((child, index) => {
+            const id = child.SubjectId ?? child.subjectId;
+            const name = child.subjectNme ?? child.subjectName;
+
+            if (!id || !name) return;
+
+            // ├─ for middle children, └─ for last child
+            const isLast = index === children.length - 1;
+            const branch = level === 0 ? "" : prefix + (isLast ? "└─ " : "├─ ");
+
             result.push({
-                value: child.SubjectId.toString(),
-                label: `${indent}${child.subjectNme}`,
+                value: id.toString(),
+                label: branch + name,
             });
-            traverse(child.SubjectId, level + 1);
-        }
+
+            // update prefix for nested children
+            const newPrefix = prefix + (isLast ? "   " : "│  ");
+            traverse(id, level + 1, newPrefix);
+        });
     };
 
     traverse(null, 0);
     return result;
 }
 
-const SubjectForm: React.FC<SubjectFormProps> = ({
-    type,
+export default function SubjectDialog({
+    type = "create",
     data,
-    setOpen,
+    open,
+    onOpenChange,
     onSuccess,
-}) => {
+    hideButton = false,
+}: SubjectDialogProps) {
     const [form, setForm] = useState({
         subjectName: "",
         totalGrads: 0,
+        parentId: -1,
+        okBlock: false,
     });
-
+    const [loading, setLoading] = useState(false);
+    const [showSubSubject, setShowSubSubject] = useState(false);
     const [subSubjects, setSubSubjects] = useState<
         { value: string; label: string }[]
     >([]);
     const [selectedSubSubjectId, setSelectedSubSubjectId] = useState<number>(-1);
-    const [showSubSubject, setShowSubSubject] = useState<boolean>(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchParams = async () => {
+        const fetchParam = async () => {
             try {
                 const res = await api.get("/parameter/Ok_Sub_subject");
-                //console.log("Parameter response:", res.data);
-
-                const value = res.data?.okActive;
-                setShowSubSubject(value === true);
+                const isActive = res.data?.okActive === true;
+                setShowSubSubject(isActive);
+                console.log("📘 Ok_Sub_subject:", isActive);
             } catch (err) {
-                console.error("Failed to fetch sub_subject param", err);
-                setShowSubSubject(false); // fallback
+                console.error("❌ Failed to load parameter:", err);
+                setShowSubSubject(false);
             }
         };
-
-        fetchParams();
+        fetchParam();
     }, []);
 
-    // useEffect(() => {
-    //     console.log("Show Sub Subject:", showSubSubject);
-    // }, [showSubSubject
-    // ]);
-
-    
     useEffect(() => {
         if (!showSubSubject) return;
         const fetchSubSubjects = async () => {
             try {
-                setLoading(true);
-                const subResponse = await api.get("/subject/sub");
-                const flatSubjects = subResponse.data || [];
-                const hierarchical = buildHierarchyWithIndentation(flatSubjects);
+                //console.log("📘 Fetching sub subjects...");
+                // 👇 use the correct endpoint that your API actually supports
+                const res = await api.get("/subject/sub-subjects", { withCredentials: true });
+                const flat = res.data || [];
+                const hierarchical = buildHierarchy(flat);
                 setSubSubjects(hierarchical);
+                //console.log("✅ Loaded sub subjects:", hierarchical);
             } catch (err) {
-                console.error("Failed to load sub subjects", err);
-                setError("Failed to load sub subjects");
-            } finally {
-                setLoading(false);
+                console.error("❌ Failed to load sub subjects:", err);
+                toast({
+                    variant: "destructive",
+                    title: "Failed to load sub subjects",
+                    description: "Check your backend route /subject/sub",
+                });
             }
         };
-
         fetchSubSubjects();
     }, [showSubSubject]);
 
@@ -133,162 +150,161 @@ const SubjectForm: React.FC<SubjectFormProps> = ({
             setForm({
                 subjectName: data.subjectName || "",
                 totalGrads: data.totalGrads || 0,
+                parentId: showSubSubject ? selectedSubSubjectId : -1,
+                okBlock: data.okBlock ?? false,
             });
-
-            if (data.subSubject?.subjectId) {
-                setSelectedSubSubjectId(data.subSubject.subjectId);
-            }
+            if (data.parentId) setSelectedSubSubjectId(data.parentId);
         }
     }, [type, data]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubSubjectSelect = (value: string) => {
-        const id = parseInt(value, 10);
-        setSelectedSubSubjectId(id);
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
-
-        if (showSubSubject === true) {
-            if (!selectedSubSubjectId || selectedSubSubjectId <= 0) {
-                setError("Please select a sub subject.");
-                setLoading(false);
-                return;
-            }
-        } else {
-            setSelectedSubSubjectId(-1);
-        }
 
         const payload = {
             subjectName: form.subjectName,
             totalGrads: parseInt(form.totalGrads as any, 10),
-            parentId: selectedSubSubjectId,
+            parentId: showSubSubject ? selectedSubSubjectId : -1,
+            okBlock: form.okBlock, 
         };
 
         try {
             if (type === "create") {
-                await api.post("/subject/createSub", payload, {
-                    withCredentials: true,
-                    headers: { "Content-Type": "application/json" },
-                });
+                console.log("✅ subjects:", payload);
+                await api.post("/subject/createSub", payload, { withCredentials: true });
+                toast({ title: "Subject created successfully" });
             } else {
-                await api.patch(`/subject/${data.classId}`, payload, {
-                    withCredentials: true,
-                    headers: { "Content-Type": "application/json" },
-                });
-            }
+                const id = data.subjectId ?? data.SubjectId;
+                if (!id) {
+                    console.error("❌ Missing subject ID in data:", data);
+                    toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: "Missing subject ID — cannot update.",
+                    });
+                    setLoading(false);
+                    return;
+                }
 
-            setOpen(false);
-            onSuccess?.(selectedSubSubjectId);
+                await api.patch(`/subject/${id}`, payload, { withCredentials: true });
+                toast({ title: "Subject updated successfully" });
+            }
+            onOpenChange?.(false);
+            onSuccess?.();
         } catch (err: any) {
-            console.error("Operation failed:", err);
             toast({
                 variant: "destructive",
-                title: "Uh oh! An error occurred.",
-                description: err.response?.data?.message,
-            })
-            //setError(err.response?.data?.message || "An error occurred");
+                title: "Error",
+                description: err.response?.data?.message || "An error occurred",
+            });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-                <div className="p-3 bg-red-100 text-red-700 rounded-md">{error}</div>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            {!hideButton && (
+                <DialogTrigger asChild>
+                    <Button>
+                        <Plus className="mr-2 h-4 w-4" /> Add Subject
+                    </Button>
+                </DialogTrigger>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                        Subject Name
-                    </label>
-                    <Input
-                        name="subjectName"
-                        value={form.subjectName}
-                        onChange={handleChange}
-                        placeholder="Enter subject name"
-                        required
-                    />
-                </div>
+            <DialogContent className="max-w-2xl">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {type === "create" ? "Create" : "Update"} Subject
+                        </DialogTitle>
+                        <DialogDescription>
+                            Fill out the form to {type === "create" ? "add" : "edit"} a
+                            subject.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                        Total Points
-                    </label>
-                    <Input
-                        type="number"
-                        name="totalGrads"
-                        value={form.totalGrads}
-                        onChange={handleChange}
-                        min="0"
-                        placeholder="Enter total points"
-                        required
-                    />
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Subject Name</Label>
+                            <Input
+                                name="subjectName"
+                                value={form.subjectName}
+                                onChange={(e) =>
+                                    setForm((prev) => ({ ...prev, subjectName: e.target.value }))
+                                }
+                                required
+                            />
+                        </div>
 
-                {showSubSubject && (
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                            Sub Subject
-                        </label>
-                        {loading ? (
-                            <div className="h-10 w-full rounded-md border bg-gray-100 animate-pulse" />
-                        ) : (
-                            <div className="space-y-2 w-11/12">
+                        <div>
+                            <Label>Total Points</Label>
+                            <Input
+                                type="number"
+                                name="totalGrads"
+                                value={form.totalGrads}
+                                onChange={(e) =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        totalGrads: Number(e.target.value),
+                                    }))
+                                }
+                                required
+                            />
+                        </div>
+
+                        {showSubSubject && (
+                            <div>
+                                <Label>Parent Subject</Label>
                                 <ComboboxDemo
                                     frameworks={subSubjects}
-                                    type="sub-subject"
                                     value={
                                         selectedSubSubjectId > 0
                                             ? selectedSubSubjectId.toString()
                                             : ""
                                     }
-                                    onChange={handleSubSubjectSelect}
-                                    width="w-[109%]"
+                                    onChange={(val) => setSelectedSubSubjectId(parseInt(val, 10))}
+                                    type="sub-subject"
+                                    width="w-full"
                                 />
                             </div>
                         )}
-                    </div>
-                )}
 
-                <div className="items-top flex space-x-2">
-                    <Checkbox id="terms1" />
-                    <div className="grid gap-1.5 leading-none">
-                        <label
-                            htmlFor="terms1"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="okBlock"
+                                checked={form.okBlock}
+                                onCheckedChange={(checked) =>
+                                    setForm((prev) => ({ ...prev, okBlock: checked === true }))
+                                }
+                            />
+                            <Label htmlFor="okBlock">Block this subject</Label>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange?.(false)}
+                            disabled={loading}
                         >
-                            Block this subject
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <DialogFooter className="mt-6">
-                <Button type="submit" disabled={loading}>
-                    {loading ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                        </>
-                    ) : type === "create" ? (
-                        "Create Subject"
-                    ) : (
-                        "Update Subject"
-                    )}
-                </Button>
-            </DialogFooter>
-        </form>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                                </>
+                            ) : type === "create" ? (
+                                "Create"
+                            ) : (
+                                "Update"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
-};
-
-export default SubjectForm;
+}

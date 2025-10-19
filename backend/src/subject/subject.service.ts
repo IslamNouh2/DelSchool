@@ -93,29 +93,79 @@ export class SubjectService {
     }
 
 
-    async findAll(page: number = 1, limit: number = 10, orderByField: string = 'dateCreate') {
+    async findAll(
+        page: number = 1,
+        limit: number = 10,
+        orderByField: string = 'dateCreate',
+        name?: string,
+        status?: string, // "active" | "blocked"
+    ) {
         const skip = (page - 1) * limit;
 
-        const [subject, total] = await this.prisma.$transaction([
+        // Build dynamic "where" filter
+        const where: any = {
+            subjectId: { gt: -1 },
+        };
+
+        // 🔍 Filter by name (case-insensitive)
+        if (name) {
+            where.subjectName = {
+                contains: name,
+                mode: 'insensitive',
+            };
+        }
+
+        // 🟢 Filter by status
+        if (status) {
+            if (status === 'active') where.okBlock = false;
+            else if (status === 'blocked') where.okBlock = true;
+        }
+
+        const [subjects, total] = await this.prisma.$transaction([
             this.prisma.subject.findMany({
-                where: { subjectId: { gt: -1 } },
+                where,
                 orderBy: { [orderByField]: 'desc' },
                 skip,
                 take: limit,
+                include: {
+                    parent: {
+                        select: {
+                            subjectId: true,
+                            subjectName: true,
+                        }
+                    }
+                },
             }),
-            this.prisma.subject.count(),
+            this.prisma.subject.count({ where }),
         ]);
 
+        // Transform the data to include flattened parent information
+        const subjectsWithParentInfo = subjects.map(subject => ({
+            ...subject,
+            parentId: subject.parent?.subjectId || null,
+            parentName: subject.parent?.subjectName || null,
+            // Remove the nested parent object if you want a flat structure
+            // parent: undefined
+        }));
+
         return {
-            subject,
+            subjects: subjectsWithParentInfo,
             total,
             page,
             totalPages: Math.ceil(total / limit),
         };
     }
 
+    async findOne(id: number) {
+        return this.prisma.subject.findUnique({
+            where: { subjectId: id },
+            include: { parent: { select: { subjectId: true, subjectName: true } } },
+        });
+    }
+
+
     async update(subjectId: number, updateDto: UpdateSubjectDto) {
-        const { subjectName, totalGrads, parentId: newParentIdInput } = updateDto;
+        const { subjectName, totalGrads, parentId: newParentIdInput, okBlock } = updateDto;
 
         // Get Ok_sub_subject param
         const param = await this.prisma.parameter.findUnique({
@@ -141,7 +191,7 @@ export class SubjectService {
 
         if (!parent && parentId !== -1) throw new Error('New parent not found');
 
-        // If parent changed, shift tree structure
+        // 🧠 If parent changed, handle nested set movement
         if (current.parentId !== parentId) {
             const width = current.BD - current.BG + 1;
 
@@ -168,7 +218,7 @@ export class SubjectService {
                     data: { BD: { decrement: width } },
                 });
 
-                // Step 2: Shift existing nodes to make room under new parent
+                // Step 2: Make room under new parent
                 const newPos = parentId === -1 ? 1 : parent!.BD;
 
                 await tx.subject.updateMany({
@@ -183,38 +233,39 @@ export class SubjectService {
 
                 // Step 3: Move subtree to new location
                 await tx.subject.updateMany({
-                    where: {
-                        BG: { lt: 0 },
-                    },
+                    where: { BG: { lt: 0 } },
                     data: {
                         BG: { increment: newPos },
                         BD: { increment: newPos },
                     },
                 });
 
-                // Update parentId, name, and points
+                // ✅ Update parentId, name, points, and okBlock
                 await tx.subject.update({
                     where: { subjectId },
                     data: {
                         subjectName,
                         totalGrads,
                         parentId,
+                        okBlock, // <-- Added
                     },
                 });
             });
         } else {
-            // Parent not changed, just update name and totalGrads
+            // ✅ Parent not changed, just update name, totalGrads, and okBlock
             await this.prisma.subject.update({
                 where: { subjectId },
                 data: {
                     subjectName,
                     totalGrads,
+                    okBlock, // <-- Added
                 },
             });
         }
 
         return { message: 'Subject updated successfully' };
     }
+
 
 
     async remove(id: number) {
