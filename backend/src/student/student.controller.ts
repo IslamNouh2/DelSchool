@@ -45,7 +45,7 @@ export class StudentController {
     return this.studentService.GetCountStudent();
   }
 
-  
+
 
   @Post('create')
   @UseInterceptors(FileInterceptor('photo', {
@@ -144,5 +144,5 @@ export class StudentController {
   }
 
 
-  
+
 }

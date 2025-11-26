@@ -85,7 +85,7 @@ const CardList: React.FC<UserCardProps> = ({
 
     return (
         <>
-            <div className="rounded-2xl shadow-md bg-white p-4 hover:shadow-lg transition duration-200 space-y-3">
+            <div className="rounded-2xl shadow-md bg-card p-4 hover:shadow-lg transition duration-200 space-y-3">
                 {/* Card content remains the same */}
                 <div className="flex flex-col items-center space-y-2">
                     <div className="relative">

@@ -10,6 +10,8 @@ interface StudentAttendanceFormProps {
     students: any[];
     classId: number;
     date: Date | undefined;
+    existingAttendance: any[];
+    hasExistingData: boolean;
     onClose: () => void;
 }
 
@@ -17,16 +19,23 @@ export default function StudentAttendanceForm({
     students,
     classId,
     date,
+    existingAttendance,
+    hasExistingData,
     onClose,
 }: StudentAttendanceFormProps) {
-    const [data, setData] = useState<StudentAttendance[]>(
-        students.map((s, i) => ({
-            id: s.studentId,
-            num: i + 1,
-            name: `${s.firstName} ${s.lastName}`,
-            code: s.code,
-            status: "present",
-        })));
+    const [data, setData] = useState<StudentAttendance[]>(() => {
+        return students.map((s, i) => {
+            // Check if this student has existing attendance data
+            const existingRecord = existingAttendance.find(att => att.studentId === s.studentId);
+            return {
+                id: s.studentId,
+                num: i + 1,
+                name: `${s.firstName} ${s.lastName}`,
+                code: s.code,
+                status: existingRecord ? existingRecord.status : "PRESENT",
+            };
+        });
+    });
 
     const [saving, setSaving] = useState(false);
 
@@ -35,21 +44,33 @@ export default function StudentAttendanceForm({
     const handleSubmit = async () => {
         setSaving(true);
         try {
-            // Only keep records that are NOT "present"
-            const filteredRecords = data.filter((record) => record.status !== "present");
-
-            // If all students are present, nothing to save
-            if (filteredRecords.length === 0) {
-                console.log("No absences or late records to save.");
-                onClose();
-                return;
+            if (hasExistingData) {
+                // Delete existing student attendance for this date
+                const existingIds = existingAttendance.map((att: any) => att.id);
+                
+                for (const id of existingIds) {
+                    try {
+                        await api.delete(`/attendance/student/${id}`);
+                    } catch (err) {
+                        console.error(`Error deleting attendance record ${id}:`, err);
+                    }
+                }
             }
 
-            await api.post("http://localhost:47005/attendance/save", {
-                classId,
-                date,
-                records: filteredRecords,
-            });
+            // Process all records - PRESENT means no record in DB, others get saved
+            const recordsToSave = data.filter(r => r.status !== "PRESENT");
+
+            if (recordsToSave.length > 0) {
+                await api.post("/attendance/save", {
+                    classId,
+                    date: date?.toISOString(),
+                    academicYear: "2024-2025",
+                    records: recordsToSave.map((r) => ({
+                        studentId: r.id,
+                        status: r.status.toUpperCase(),
+                    })),
+                });
+            }
 
             onClose();
         } catch (err) {
@@ -72,7 +93,12 @@ export default function StudentAttendanceForm({
             />
             <div className="flex justify-end">
                 <Button onClick={handleSubmit} disabled={saving}>
-                    {saving ? "Enregistrement..." : "Sauvegarder"}
+                    {saving 
+                        ? "Enregistrement..." 
+                        : hasExistingData 
+                            ? "Mettre à jour" 
+                            : "Sauvegarder"
+                    }
                 </Button>
             </div>
         </div>

@@ -49,7 +49,7 @@ model Student {
   // Relations
   parent Parent @relation(fields: [parentId], references: [parentId], onDelete: Cascade)
 
-  studentLocals StudentLocal[]
+  studentClasses    StudentClass[]
   studentAttendance StudentAttendance[]
 
   @@map("students")
@@ -80,8 +80,6 @@ model Local {
 
   classes       classes[]
   subject_local subject_local[]
-  studentLocals StudentLocal[]
-  
 }
 
 model classes {
@@ -94,11 +92,12 @@ model classes {
   localId    Int
   okBlock    String    @default("N")
 
-  TeacherCalsses TeaherClass[]
-  Timetables Timetable[]
-  studentAttendance StudentAttendance[] 
-  
-  local          Local         @relation(fields: [localId], references: [localId])
+  TeacherCalsses    TeaherClass[]
+  Timetables        Timetable[]
+  studentAttendance StudentAttendance[]
+  studentClasses    StudentClass[]
+
+  local Local @relation(fields: [localId], references: [localId])
 }
 
 model subject {
@@ -117,7 +116,8 @@ model subject {
   children        subject[]        @relation("SubjectToParent")
   subject_local   subject_local[]
   Teachersubjects TeacherSubject[]
-  Timetables Timetable[]
+  Timetables      Timetable[]
+  grads Grads[]
 }
 
 model parameter {
@@ -140,17 +140,21 @@ model subject_local {
   @@unique([subjectId, localId])
 }
 
-model StudentLocal {
-  id           Int     @id @default(autoincrement())
+model StudentClass {
+  id           Int      @id @default(autoincrement())
   studentId    Int
-  localId      Int
-  academicYear String // e.g., "2024-2025"
-  isCurrent    Boolean @default(false) // Optional helper field
+  classId      Int
+  academicYear String   // e.g., "2024-2025"
+  isCurrent    Boolean  @default(false)
 
+  // Relations
   Student Student @relation(fields: [studentId], references: [studentId])
-  local   Local   @relation(fields: [localId], references: [localId])
+  Class   classes @relation(fields: [classId], references: [classId])
 
-  @@unique([studentId, academicYear]) // One local per student per year
+  grads Grads[]
+
+  @@unique([studentId, academicYear]) 
+  @@map("student_classes")
 }
 
 model Employer {
@@ -181,19 +185,19 @@ model Employer {
   // Change from photo Bytes? to photoFileName String?
   photoFileName String? // Store filename instead of binary data
 
-  TeacherCalsses  TeaherClass[]
-  Teachersubjects TeacherSubject[]
-  Timetables Timetable[]
-  employerAttendance EmployerAttendance[] 
+  TeacherCalsses     TeaherClass[]
+  Teachersubjects    TeacherSubject[]
+  Timetables         Timetable[]
+  employerAttendance EmployerAttendance[]
 
   @@map("employers")
 }
 
 model TeaherClass {
-  id           Int     @id @default(autoincrement())
-  employerId   Int
-  classId      Int
-  isCurrent    Boolean @default(false) // Optional helper field
+  id         Int     @id @default(autoincrement())
+  employerId Int
+  classId    Int
+  isCurrent  Boolean @default(false) // Optional helper field
 
   Employer Employer @relation(fields: [employerId], references: [employerId])
   Class    classes  @relation(fields: [classId], references: [classId])
@@ -202,20 +206,19 @@ model TeaherClass {
 }
 
 model TeacherSubject {
-  id           Int     @id @default(autoincrement())
-  employerId   Int
-  subjectId    Int
-  isCurrent    Boolean @default(false) // Optional helper field
+  id         Int     @id @default(autoincrement())
+  employerId Int
+  subjectId  Int
+  isCurrent  Boolean @default(false) // Optional helper field
 
   Employer Employer @relation(fields: [employerId], references: [employerId])
   subject  subject  @relation(fields: [subjectId], references: [subjectId])
 
-  @@unique([employerId, subjectId])  // One local per student per year
+  @@unique([employerId, subjectId]) // One local per student per year
 }
 
-
 model TimeSlot {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   label     String
   startTime String
   endTime   String
@@ -226,18 +229,18 @@ model TimeSlot {
 }
 
 model Timetable {
-  id           Int      @id @default(autoincrement())
-  day          String   // e.g. "Monday"
+  id           Int    @id @default(autoincrement())
+  day          String // e.g. "Monday"
   classId      Int
   subjectId    Int
   timeSlotId   Int
   employerId   Int
   academicYear String
 
-  Class      classes   @relation(fields: [classId], references: [classId])
-  subject    subject   @relation(fields: [subjectId], references: [subjectId])
-  timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id])
-  teacher    Employer  @relation(fields: [employerId], references: [employerId])
+  Class    classes  @relation(fields: [classId], references: [classId])
+  subject  subject  @relation(fields: [subjectId], references: [subjectId])
+  timeSlot TimeSlot @relation(fields: [timeSlotId], references: [id])
+  teacher  Employer @relation(fields: [employerId], references: [employerId])
 
   @@unique([day, timeSlotId, classId, academicYear])
 }
@@ -250,31 +253,60 @@ enum AttendanceStatus {
 }
 
 model StudentAttendance {
-  id            Int       @id @default(autoincrement())
-  studentId     Int
-  classId       Int
-  date          DateTime  @default(now())
-  status        AttendanceStatus @default(ABSENT)
-  remarks       String?
-  academicYear  String
+  id        Int              @id @default(autoincrement())
+  studentId Int
+  classId   Int
+  date      DateTime         @default(now())
+  status    AttendanceStatus @default(ABSENT)
+
+  academicYear String
 
   student Student @relation(fields: [studentId], references: [studentId])
-  class   classes   @relation(fields: [classId], references: [classId])
+  class   classes @relation(fields: [classId], references: [classId])
 
   @@unique([studentId, date, academicYear])
 }
 
 model EmployerAttendance {
-  id            Int       @id @default(autoincrement())
-  employerId    Int
-  date          DateTime  @default(now())
-  checkInTime   DateTime?
-  checkOutTime  DateTime?
-  status        AttendanceStatus @default(ABSENT)
-  remarks       String?
-  academicYear  String
+  id           Int              @id @default(autoincrement())
+  employerId   Int
+  date         DateTime         @default(now())
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  status       AttendanceStatus @default(ABSENT)
+  remarks      String?
+  academicYear String
 
   employer Employer @relation(fields: [employerId], references: [employerId])
 
   @@unique([employerId, date, academicYear])
+}
+
+model Exam {
+  id         Int       @id @default(autoincrement())
+  examName   String
+  dateStart  DateTime
+  dateEnd    DateTime
+  publish    Boolean
+  dateCreate DateTime?
+  dateModif  DateTime?
+
+  grads Grads[]
+}
+
+model Grads {
+  id             Int       @id @default(autoincrement())
+  grads          Float
+  dateCreate     DateTime?
+  dateModif      DateTime?
+  examId         Int
+  studentClassId Int
+  subjectId      Int
+
+  exam          Exam          @relation(fields: [examId], references: [id])
+  studentClass  StudentClass  @relation(fields: [studentClassId], references: [id])
+  subject       subject       @relation(fields: [subjectId], references: [subjectId])
+
+  @@unique([examId, studentClassId, subjectId]) 
+  @@map("grads")  
 }

@@ -46,7 +46,7 @@ const GenericUserForm: React.FC<UserFormProps> = ({
                 );
             default:
                 return (
-                    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                    <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md">
                         <div className="flex justify-between items-center mb-4">
                             <Dialog.Title className="text-xl font-semibold">
                                 {type === "create" 

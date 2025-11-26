@@ -106,10 +106,10 @@ export class StudentService {
                 },
             });
             console.log('CreateStudent DTO:', dto);
-            await this.prisma.studentLocal.create({
+            await this.prisma.studentClass.create({
                 data: {
                     studentId: student.studentId,
-                    localId: Number(localId),
+                    classId: Number(localId),
                     academicYear: academicYear || this.getCurrentAcademicYear(),
                     isCurrent: true,
                 },

@@ -46,28 +46,28 @@ const EmployerForm = () => {
                     {/* SMALL CARD */}
                     <div className="flex-1 flex flex-wrap justify-between gap-4">
                         {/* CARD */}
-                        {/* <div className="bg-white flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
+                        {/* <div className="bg-card flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
                             <Image src="/singleAttendance.png" alt="" width={24} height={24} className="w-6 h-6" />
                             <div>
                                 <h1 className="text-xl font-semibold">41%</h1>
                                 <span className="text-sm text-gray-400">Attendance</span>
                             </div>
                         </div>
-                        <div className="bg-white flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
+                        <div className="bg-card flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
                             <Image src="/singleBranch.png" alt="" width={24} height={24} className="w-6 h-6" />
                             <div>
                                 <h1 className="text-xl font-semibold">2</h1>
                                 <span className="text-sm text-gray-400">Branchs</span>
                             </div>
                         </div>
-                        <div className="bg-white flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
+                        <div className="bg-card flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
                             <Image src="/singleLesson.png" alt="" width={24} height={24} className="w-6 h-6" />
                             <div>
                                 <h1 className="text-xl font-semibold">4</h1>
                                 <span className="text-sm text-gray-400">Lesson</span>
                             </div>
                         </div>
-                        <div className="bg-white flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
+                        <div className="bg-card flex p-4 gap-4 w-full rounded-md md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
                             <Image src="/singleClass.png" alt="" width={24} height={24} className="w-6 h-6" />
                             <div>
                                 <h1 className="text-xl font-semibold">2</h1>
@@ -77,14 +77,14 @@ const EmployerForm = () => {
                     </div>
                 </div>
                 {/* BOTTOM */}
-                <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
+                <div className="mt-4 bg-card rounded-md p-4 h-[800px]">
                     <h1>Teacher&apos;s Calender</h1>
                     <BigCalender />
                 </div>
             </div>
             {/* RIGHT */}
             <div className="w-full xl:w-1/3 flex flex-col gap-4">
-                <div className="bg-white p-4 rounded-md ">
+                <div className="bg-card p-4 rounded-md ">
                     <h1 className="font-semibold text-xl">ShortCut</h1>
                     <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-400">
                         <Link className="p-3 rounded-md bg-lamaPurpleLight hover:bg-lamaPurple" href="/"> Teacher&apos;s Calender </Link>

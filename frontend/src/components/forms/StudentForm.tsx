@@ -285,13 +285,13 @@
         }));
 
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="max-h-screen overflow-y-auto p-6 bg-white rounded-2xl shadow-lg w-full max-w-6xl relative">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70">
+                <div className="max-h-screen overflow-y-auto p-6 bg-card rounded-2xl shadow-lg w-full max-w-6xl relative border border-border">
                     {/* Close button */}
                     <button
                         type="button"
                         onClick={() => setOpen(false)}
-                        className="absolute top-4 right-4 text-gray-500 hover:text-black text-lg"
+                        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-lg"
                         disabled={isLoading}
                     >
                         ✕
@@ -312,7 +312,7 @@
                                             alt="Preview"
                                             width={96}
                                             height={96}
-                                            className="h-24 w-24 rounded-full object-cover border-2 border-gray-300"
+                                            className="h-24 w-24 rounded-full object-cover border-2 border-border"
                                         />
                                         <button
                                             type="button"
@@ -324,8 +324,8 @@
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="h-24 w-24 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
-                                        <Upload className="h-8 w-8 text-gray-400" />
+                                    <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center">
+                                        <Upload className="h-8 w-8 text-muted-foreground" />
                                     </div>
                                 )}
                             </div>
@@ -338,7 +338,7 @@
                                 className="w-full max-w-sm"
                                 disabled={isLoading}
                             />
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                                 Max 5MB. Formats: JPEG, PNG, WebP
                             </p>
                         </div>

@@ -136,7 +136,7 @@ export default function TimeSlotManager({ open, onOpenChange, timeSlots, setTime
                                     {timeSlots
                                         .sort((a, b) => a.startTime.localeCompare(b.startTime))
                                         .map((slot) => (
-                                            <tr key={slot.id} className="border-b hover:bg-gray-50">
+                                            <tr key={slot.id} className="border-b hover:bg-muted/50">
                                                 <td className="py-1 px-1">{slot.label}</td>
                                                 <td className="py-1 px-1">{slot.startTime}</td>
                                                 <td className="py-1 px-1">{slot.endTime}</td>

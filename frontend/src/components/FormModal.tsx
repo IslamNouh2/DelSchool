@@ -94,7 +94,7 @@ const FormModal: React.FC<FormModalProps> = ({
 
             {open && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-                    <div className="bg-white p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[50%]">
+                    <div className="bg-card p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[50%]">
                         {renderForm()}
                         <div
                             className="absolute top-4 right-4 cursor-pointer"
@@ -132,3 +132,4 @@ const FormModal: React.FC<FormModalProps> = ({
 };
 
 export default FormModal;
+

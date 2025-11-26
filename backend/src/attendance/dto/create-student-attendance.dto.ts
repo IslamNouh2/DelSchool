@@ -1,24 +1,27 @@
-import { IsDateString, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsArray, ValidateNested, IsString, IsDateString, IsEnum } from "class-validator";
+import { Type } from "class-transformer";
+import { AttendanceStatus } from "@prisma/client";
 
-export class CreateStudentAttendanceDto {
+class AttendanceRecordDto {
     @IsInt()
     studentId: number;
 
+    @IsEnum(AttendanceStatus)
+    status: AttendanceStatus;
+}
+
+export class SaveStudentAttendanceDto {
     @IsInt()
     classId: number;
 
-    @IsOptional()
-    @IsDateString()
-    checkInTime?: string;
-
-    @IsOptional()
-    @IsDateString()
-    checkOutTime?: string;
-
-    @IsOptional()
-    @IsString()
-    remarks?: string;
-
     @IsString()
     academicYear: string;
+
+    @IsDateString()
+    date: string;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => AttendanceRecordDto)
+    records: AttendanceRecordDto[];
 }

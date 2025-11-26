@@ -68,7 +68,7 @@ const data = [
 
 const FinanceChart = () => {
     return (
-        <div className='bg-white rounded-2xl w-full h-full p-4'>
+        <div className='bg-card rounded-2xl w-full h-full p-4'>
             {/* Title */}
             <div className='flex justify-between items-center'>
                 <h2>Finance</h2>

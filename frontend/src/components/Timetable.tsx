@@ -330,7 +330,7 @@ export default function TimetableCalendar() {
     return (
         <div className="p-6 ">
                 <h1 className="text-2xl font-semibold mb-4">School Timetable</h1>
-                <div className="mb-4 p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="mb-4 p-3 bg-card border border-border rounded-lg shadow-sm">
                 {/* 🔹 Form Controls */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
                     {/* Class */}
@@ -428,13 +428,13 @@ export default function TimetableCalendar() {
             </div>
 
             {/* Calendar Navigation Header */}
-            <div className="flex justify-between items-center mb-4 p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="flex justify-between items-center mb-4 p-3 bg-card border border-border rounded-lg shadow-sm">
                 <div className="flex gap-2">
                     <Button
                         onClick={handleToday}
                         variant="outline"
                         size="sm"
-                        className="bg-white border-gray-300 hover:bg-gray-50 text-gray-700 font-medium"
+                        className="bg-card border-border hover:bg-muted/50 text-foreground font-medium"
                     >
                         Today
                     </Button>
@@ -442,7 +442,7 @@ export default function TimetableCalendar() {
                         onClick={handleBack}
                         variant="outline"
                         size="sm"
-                        className="bg-white border-gray-300 hover:bg-gray-50 text-gray-700 font-medium"
+                        className="bg-card border-border hover:bg-muted/50 text-foreground font-medium"
                     >
                         Back
                     </Button>
@@ -450,12 +450,12 @@ export default function TimetableCalendar() {
                         onClick={handleNext}
                         variant="outline"
                         size="sm"
-                        className="bg-white border-gray-300 hover:bg-gray-50 text-gray-700 font-medium"
+                        className="bg-card border-border hover:bg-muted/50 text-foreground font-medium"
                     >
                         Next
                     </Button>
                 </div>
-                <div className="text-lg font-semibold text-gray-800">
+                <div className="text-lg font-semibold text-foreground">
                     {getDateRange().start} - {getDateRange().end}
                 </div>
                 <Button
@@ -467,7 +467,7 @@ export default function TimetableCalendar() {
             </div>
 
             {/* Calendar */}
-            <div id="timetable-print" className="mb-4  bg-white border border-gray-200 rounded-lg shadow-sm" >
+            <div id="timetable-print" className="mb-4  bg-card border border-border rounded-lg shadow-sm" >
                 <Calendar
                     localizer={localizer}
                     events={events}
@@ -489,16 +489,14 @@ export default function TimetableCalendar() {
                         timeGutterHeader: () => (
                             <div
                                 style={{
-                                    backgroundColor: "#f8fafc",
-                                    // borderBottom: "1px solid #e5e7eb",
-                                    // borderRight: "1px solid #e5e7eb",
+                                    backgroundColor: "hsl(var(--muted))",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "flex-start",
                                     fontWeight: "600",
                                     height: "36px",
                                     fontSize: "0.9rem",
-                                    color: "#1e293b",
+                                    color: "hsl(var(--foreground))",
                                     padding: "8px 12px",
                                     textAlign: "left",
                                 }}
@@ -525,8 +523,9 @@ export default function TimetableCalendar() {
                                             fontWeight: "600",
                                             fontSize: "0.9rem",
                                             padding: "8px 4px",
-                                            borderBottom: "1px solid #e5e7eb",
-                                            backgroundColor: "#f8fafc",
+                                            borderBottom: "1px solid hsl(var(--border))",
+                                            backgroundColor: "hsl(var(--muted))",
+                                            color: "hsl(var(--foreground))",
                                             textTransform: "capitalize",
                                             height: "36px",
                                             display: "flex",
@@ -545,3 +544,4 @@ export default function TimetableCalendar() {
         </div>
     );
 }
+

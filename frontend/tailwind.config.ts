@@ -83,7 +83,8 @@ const config: Config = {
     			delEmerald: '#D1FAE5',
     			delEmeraldDark: '#065F46',
     			delAmber: '#FEF3C7',
-    			delAmberDark: '#92400E',
+				delAmberDark: '#92400E',
+				delBack: '#F0F3FA',
     			delRed: {
     				'50': '#FFF0F3',
     				'100': '#FFE4E8',

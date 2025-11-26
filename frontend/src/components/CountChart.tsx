@@ -45,7 +45,7 @@ const CountChart = () => {
     const girlsPercent = Math.round((counts.girls / total) * 100);
 
     return (
-        <div className='bg-white rounded-2xl w-full h-full p-4'>
+        <div className='bg-card rounded-2xl w-full h-full p-4'>
             {/* Title */}
             <div className='flex justify-between items-center'>
                 <h2>Students</h2>

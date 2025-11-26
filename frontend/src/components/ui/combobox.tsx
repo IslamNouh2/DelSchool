@@ -21,6 +21,7 @@ type ComboboxDemoProps = {
     value: string
     onChange: (value: string) => void
     width?: string // Tailwind width class, e.g., "w-64"
+    disabled?: boolean
 }
 
 export function ComboboxDemo({
@@ -29,9 +30,10 @@ export function ComboboxDemo({
     value,
     onChange,
     width = "w-64",
+    disabled = false,
 }: ComboboxDemoProps) {
     return (
-        <Select value={value} onValueChange={onChange}>
+        <Select value={value} onValueChange={onChange} disabled={disabled}>
             <SelectTrigger className={`text-right ${width}`}>
                 <SelectValue placeholder={`Select ${type}...`} />
             </SelectTrigger>

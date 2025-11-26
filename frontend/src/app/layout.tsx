@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 // Load Inter with best practices
 const inter = Inter({
@@ -31,7 +31,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          {/* <Toaster richColors position="top-right" /> */}
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
     </html>

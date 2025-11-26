@@ -7,6 +7,7 @@ import {
   BookOpen,
   Bot,
   Command,
+  FileBadge,
   Frame,
   GalleryVerticalEnd,
   Map,
@@ -14,6 +15,7 @@ import {
   Settings2,
   SquareTerminal,
   User2,
+  
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -42,23 +44,23 @@ const staticData = {
       plan: "Enterprise",
     },
   ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
+  // projects: [
+  //   {
+  //     name: "Design Engineering",
+  //     url: "#",
+  //     icon: Frame,
+  //   },
+  //   {
+  //     name: "Sales & Marketing",
+  //     url: "#",
+  //     icon: PieChart,
+  //   },
+  //   {
+  //     name: "Travel",
+  //     url: "#",
+  //     icon: Map,
+  //   },
+  // ],
 }
 
 type DecodedToken = {
@@ -105,10 +107,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       ]
     }
 
-    if (role === "teacher") {
+    if (role === "TEACHER") {
       return [
         { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
         { title: "Teacher", url: "/list/teachers", icon: Bot },
+        {
+          title: "Exam",
+          url: "#",
+          icon: FileBadge,
+          items: [
+            { title: "Ajoute Exam", url: "/list/exam", icon: FileBadge },
+            { title: "Ajouter / mettre à jour les notes", url: "/list/exam/grads" },
+          ],
+        },
       ]
     }
 
@@ -121,6 +132,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       { title: "Subjects", url: "/list/subjects", icon: BookOpen },
       { title: "Classes", url: "/list/classes", icon: Frame },
       { title: "Local", url: "/list/local", icon: Map },
+
       {
         title: "Attendance",
         url: "#",
@@ -130,6 +142,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           { title: "Student", url: "/list/attendance/student" },
         ],
       },
+      {
+        title: "Exam",
+        url: "#",
+        icon: FileBadge,
+        items: [
+          { title: "Ajoute Exam", url: "/list/exam", icon: FileBadge },
+          { title: "Ajouter / mettre à jour les notes", url: "/list/exam/grads" },
+        ],
+      },
+      
     ]
   }, [role])
 
@@ -141,7 +163,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       
       <SidebarContent>
         <NavMain items={navItems} />
-        <NavProjects projects={staticData.projects} />
+        {/* <NavProjects projects={staticData.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={staticData.user} />

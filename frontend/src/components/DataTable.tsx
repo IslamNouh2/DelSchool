@@ -304,7 +304,7 @@ export function DataTable<TData, TValue>({
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.id}
-                                        className="even:bg-slate-50 hover:bg-lamaPurpleLight text-sm border-b"
+                                        className="even:bg-muted/50 hover:bg-muted/50 text-sm border-b"
                                     >
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id}>

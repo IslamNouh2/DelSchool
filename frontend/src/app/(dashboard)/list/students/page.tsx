@@ -1,281 +1,200 @@
 "use client";
-
-import React, { useState, useEffect } from 'react';
-import CardList from '@/components/CardList';
-import StudentForm from '@/components/forms/StudentForm';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Plus, RefreshCw } from 'lucide-react';
-import api from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, Filter, ArrowDownWideNarrow } from "lucide-react";
+import UserCard from "@/components/UserCard";
+import StudentForm from "@/components/forms/StudentForm";
 
 interface Student {
     studentId: number;
+    code: string;
     firstName: string;
     lastName: string;
     email?: string;
-    photoUrl?: string | null;
-    gender: string;
-    dateOfBirth: string;
-    // Add other fields as needed
+    photoFileName?: string;
+    dateOfBirth?: string;
+    dateInscription?: string;
+    lieuOfBirth?: string;
+    nationality?: string;
+    gender?: string;
+    bloodType?: string;
+    cid?: string;
+    etatCivil?: string;
+    health?: string;
+    numNumerisation?: string;
+    address?: string;
+    observation?: string;
 }
 
-interface StudentsResponse {
-    students: Student[];
-    total: number;
-    page: number;
-    totalPages: number;
-}
-
-const StudentsPage: React.FC = () => {
-    const [students, setStudents] = useState<Student[]>([]);
+export default function StudentListPage() {
+    const [data, setData] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalStudents, setTotalStudents] = useState(0);
-    const [showCreateForm, setShowCreateForm] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
+    const [pageSize, setPageSize] = useState(12);
+    const [totalCount, setTotalCount] = useState(0);
+    const [filterValue, setFilterValue] = useState("");
+    
+    // Dialog states
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [formType, setFormType] = useState<"create" | "update">("create");
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-    const studentsPerPage = 12;
-
-    // Fetch students
-    const fetchStudents = async (page: number = 1, search: string = '') => {
+    const fetchData = async (page: number) => {
+        setLoading(true);
         try {
-            setLoading(page === 1);
-
-            const endpoint = search.trim()
-                ? `/student/search?name=${encodeURIComponent(search)}&page=${page}&limit=${studentsPerPage}`
-                : `/student/list?page=${page}&limit=${studentsPerPage}`;
-
-            const response = await api.get<StudentsResponse>(endpoint, {
-                withCredentials: true,
+            const response = await api.get("/student/list", {
+                params: {
+                    page,
+                    limit: pageSize,
+                    search: filterValue,
+                },
             });
-
-            const { students, total, totalPages } = response.data;
-
-            setStudents(students);
-            setTotalStudents(total);
-            setTotalPages(totalPages);
-            setCurrentPage(page);
-
-        } catch (error: any) {
-            console.error('Error fetching students:', error);
-            //toast.error('Failed to load students');
+            setData(response.data.students);
+            setTotalCount(response.data.total);
+        } catch (error) {
+            console.error("Error fetching students:", error);
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
     };
 
-    // Initial load
-    useEffect(() => {
-        fetchStudents(1, searchTerm);
-    }, []);
+    const handleDelete = async (id: number) => {
+        try {
+            await api.delete(`/student/${id}`);
+            fetchData(currentPage);
+        } catch (error) {
+            console.error("Error deleting student:", error);
+        }
+    };
 
-    // Search handler with debounce
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (searchTerm !== '') {
-                fetchStudents(1, searchTerm);
-            } else {
-                fetchStudents(1);
+    const handleUpdate = async (id: number) => {
+        try {
+            // Fetch full student details
+            const response = await api.get(`/student/${id}`);
+            const studentData = response.data;
+            
+            // Construct photo URL if photoFileName exists
+            if (studentData.photoFileName) {
+                studentData.photoUrl = `http://localhost:47005/student/photo/${studentData.photoFileName}`;
             }
-        }, 500);
-
-        return () => clearTimeout(timeoutId);
-    }, [searchTerm]);
-
-    const handleRefresh = () => {
-        setRefreshing(true);
-        fetchStudents(currentPage, searchTerm);
-    };
-
-    const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalPages) {
-            fetchStudents(newPage, searchTerm);
+            
+            setSelectedStudent(studentData);
+            setFormType("update");
+            setIsDialogOpen(true);
+        } catch (error) {
+            console.error("Error fetching student details:", error);
         }
     };
 
-    const handleStudentDeleted = () => {
-        // Refresh current page or go to previous page if current becomes empty
-        const newTotal = totalStudents - 1;
-        const newTotalPages = Math.ceil(newTotal / studentsPerPage);
-
-        if (currentPage > newTotalPages && newTotalPages > 0) {
-            fetchStudents(newTotalPages, searchTerm);
-        } else {
-            fetchStudents(currentPage, searchTerm);
-        }
+    const handleAddStudent = () => {
+        setSelectedStudent(null);
+        setFormType("create");
+        setIsDialogOpen(true);
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading students...</p>
-                </div>
-            </div>
-        );
-    }
+    const handleFormSuccess = () => {
+        fetchData(currentPage);
+        setIsDialogOpen(false);
+    };
+
+    useEffect(() => {
+        fetchData(currentPage);
+    }, [currentPage, pageSize, filterValue]);
+
+    const totalPages = Math.ceil(totalCount / pageSize);
 
     return (
         <div className="container mx-auto px-4 py-6">
-            {/* Header + Search Container */}
-            <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-4 mb-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                    <div>
-                        <h1 className="text-xl font-semibold text-gray-800">Students</h1>
-                        <p className="text-gray-500">
-                            {totalStudents} student{totalStudents !== 1 ? 's' : ''} found
-                        </p>
-                    </div>
-
-                    {/* Top Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                        <div className="flex gap-2">
-                            <Button
-                                onClick={handleRefresh}
-                                variant="outline"
-                                size="sm"
-                                disabled={refreshing}
-                            >
-                                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                Refresh
+            <Card className="mb-6">
+                <CardContent className="p-4">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                        <div>
+                            <h1 className="text-2xl font-bold">Students</h1>
+                            <p className="text-sm text-muted-foreground">Manage your students directory</p>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                                <Filter className="w-4 h-4 mr-2" />
+                                Filter
                             </Button>
-
-                            <Button onClick={() => setShowCreateForm(true)} size="sm">
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                                <ArrowDownWideNarrow className="w-4 h-4 mr-2" />
+                                Sort
+                            </Button>
+                            <Button size="sm" className="flex-1 sm:flex-none" onClick={handleAddStudent}>
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Student
                             </Button>
                         </div>
+                    </div>
 
-                        {/* Bottom Buttons (Filter + Sort) */}
-                        <div className="flex gap-2 mt-2 sm:mt-0 sm:ml-2">
-                            <Button variant="outline" size="sm">
-                                Filter
-                            </Button>
-                            <Button variant="outline" size="sm">
-                                Sort
-                            </Button>
+                    {/* Loading State */}
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="text-muted-foreground">Loading students...</div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Search */}
-                <div className="relative max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                        type="text"
-                        placeholder="Search students by name..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
-                </div>
-            </div>
-
-            {/* Students Grid */}
-            {students.length > 0 ? (
-                <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                        {students.map((student) => (
-                            <CardList
-                                key={student.studentId}
-                                studentId={student.studentId}
-                                firstName={student.firstName}
-                                lastName={student.lastName}
-                                email={student.email}
-                                photoUrl={student.photoUrl}
-                                onDelete={handleStudentDeleted}
-                            />
-                        ))}
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-2">
-                            <Button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                variant="outline"
-                                size="sm"
-                            >
-                                Previous
-                            </Button>
-
-                            <div className="flex gap-1">
-                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                    let pageNum;
-                                    if (totalPages <= 5) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage <= 3) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage >= totalPages - 2) {
-                                        pageNum = totalPages - 4 + i;
-                                    } else {
-                                        pageNum = currentPage - 2 + i;
-                                    }
-
-                                    return (
-                                        <Button
-                                            key={pageNum}
-                                            onClick={() => handlePageChange(pageNum)}
-                                            variant={currentPage === pageNum ? "default" : "outline"}
-                                            size="sm"
-                                            className="w-10"
-                                        >
-                                            {pageNum}
-                                        </Button>
-                                    );
-                                })}
+                    ) : (
+                        <>
+                            {/* Student Cards Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+                                {data.map((student) => (
+                                    <UserCard
+                                        key={student.studentId}
+                                        id={student.studentId}
+                                        code={student.code}
+                                        firstName={student.firstName}
+                                        lastName={student.lastName}
+                                        email={student.email}
+                                        photoUrl={student.photoFileName ? `http://localhost:47005/student/photo/${student.photoFileName}` : undefined}
+                                        userType="student"
+                                        onDelete={handleDelete}
+                                        onUpdate={handleUpdate}
+                                    />
+                                ))}
                             </div>
 
-                            <Button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                variant="outline"
-                                size="sm"
-                            >
-                                Next
-                            </Button>
-                        </div>
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <span className="text-sm text-muted-foreground">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            )}
+                        </>
                     )}
-                </>
-            ) : (
-                <div className="text-center py-12">
-                    <div className="text-gray-400 mb-4">
-                        <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                        </svg>
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No students found</h3>
-                    <p className="text-gray-500 mb-4">
-                        {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding your first student.'}
-                    </p>
-                    {!searchTerm && (
-                        <Button onClick={() => setShowCreateForm(true)}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add First Student
-                        </Button>
-                    )}
-                </div>
-            )}
+                </CardContent>
+            </Card>
 
-            {/* Create Form Modal */}
-            {showCreateForm && (
+            {/* Student Form Dialog */}
+            {isDialogOpen && (
                 <StudentForm
-                    type="create"
-                    setOpen={setShowCreateForm}
-                    onSuccess={() => {
-                        fetchStudents(1, searchTerm); // Refresh list after creation
-                    }}
+                    type={formType}
+                    data={selectedStudent}
+                    setOpen={setIsDialogOpen}
+                    onSuccess={handleFormSuccess}
                 />
             )}
         </div>
     );
-};
+}
 
-export default StudentsPage;
