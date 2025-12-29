@@ -13,7 +13,7 @@ const nextConfig = {
     return [
       {
         source: "/api/student/photo/:filename",
-        destination: "http://delschool-1.onrender.com/student/photo/:filename",
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/student/photo/:filename`
       },
     ];
   },
