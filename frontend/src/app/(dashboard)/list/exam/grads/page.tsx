@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion } from "motion/react";
 import {
   BookOpen,
@@ -35,7 +35,7 @@ export type GradeRow = {
   }[];
 };
 
-export default function ExamGradesPage() {
+function ExamGradesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const examIdParam = searchParams.get("examId");
@@ -367,5 +367,20 @@ export default function ExamGradesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ExamGradesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 dark:text-blue-400" />
+          <p className="text-gray-500 dark:text-slate-400 font-medium">Chargement...</p>
+        </div>
+      }
+    >
+      <ExamGradesContent />
+    </Suspense>
   );
 }
