@@ -17,21 +17,17 @@ export class AuthService {
 
     private setTokenCookie(response: Response, token: string) {
         const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '7d');
-        const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
 
-        // Convert expires time to milliseconds
-        let maxAge = 7 * 24 * 60 * 60 * 1000; // Default 7 days
-        if (expiresIn.includes('d')) {
-            maxAge = parseInt(expiresIn) * 24 * 60 * 60 * 1000;
-        } else if (expiresIn.includes('h')) {
-            maxAge = parseInt(expiresIn) * 60 * 60 * 1000;
-        }
+        let maxAge = 7 * 24 * 60 * 60 * 1000;
+        if (expiresIn.includes('d')) maxAge = parseInt(expiresIn) * 24 * 60 * 60 * 1000;
+        else if (expiresIn.includes('h')) maxAge = parseInt(expiresIn) * 60 * 60 * 1000;
 
         response.cookie('token', token, {
-            httpOnly: true, // Prevents XSS attacks
-            secure: isProduction, // Use HTTPS in production
-            sameSite: isProduction ? 'none' : 'lax', // Allow cross-site cookies in production
-            maxAge: maxAge,
+            httpOnly: true,
+            secure: true,          // ALWAYS true in production HTTPS
+            sameSite: 'none',      // REQUIRED
+            path: '/',             // IMPORTANT
+            maxAge,
         });
     }
 

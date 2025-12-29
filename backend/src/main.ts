@@ -20,8 +20,8 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: [
-      'http://localhost:3000',            // local dev
-      'https://delschool-2.onrender.com', // deployed frontend
+      'http://localhost:3000',                 // local dev
+      'https://del-school-6pi8.vercel.app',    // DEPLOYED FRONTEND
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
@@ -30,7 +30,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  
+
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
