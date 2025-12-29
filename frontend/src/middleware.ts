@@ -46,5 +46,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/(admin|teacher|student)(.*)', '/dashboard'],
+    matcher: ['/(admin|teacher|student)(.*)', '/dashboard', '/list(.*)'],
 };
