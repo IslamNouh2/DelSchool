@@ -19,7 +19,10 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: ['http://localhost:3000'], // Your Next.js app URL
+    origin: [
+      'http://localhost:3000',            // local dev
+      'https://delschool-2.onrender.com', // deployed frontend
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
     allowedHeaders: ['Content-Type', 'Authorization'],
