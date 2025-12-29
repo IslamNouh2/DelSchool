@@ -13,17 +13,16 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { CustomTable } from "@/components/CustomTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ComboboxDemo } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export type GradeRow = {
   studentId: number;
