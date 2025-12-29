@@ -27,7 +27,7 @@ export class AuthService {
             secure: true,
             sameSite: 'none',
             path: '/',
-            domain: 'delschool-2.onrender.com',   // 👈 REQUIRED
+            domain: 'delschool-2.onrender.com',   // ⭐⭐⭐ IMPORTANT ⭐⭐⭐
             maxAge,
         });
     }

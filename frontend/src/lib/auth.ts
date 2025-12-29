@@ -1,7 +1,7 @@
 // lib/auth.ts
 import { jwtVerify } from 'jose';
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your_secret_key');
+const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function verifyToken(token: string) {
     try {
