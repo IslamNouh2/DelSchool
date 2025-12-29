@@ -30,7 +30,7 @@ export class AuthService {
         response.cookie('token', token, {
             httpOnly: true, // Prevents XSS attacks
             secure: isProduction, // Use HTTPS in production
-            sameSite: 'lax', // CSRF protection
+            sameSite: isProduction ? 'none' : 'lax', // Allow cross-site cookies in production
             maxAge: maxAge,
         });
     }
@@ -127,7 +127,7 @@ export class AuthService {
         response.clearCookie('token', {
             httpOnly: true,
             secure: this.configService.get<string>('NODE_ENV') === 'production',
-            sameSite: 'strict',
+            sameSite: this.configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
         });
 
         return {

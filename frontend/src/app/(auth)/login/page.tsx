@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +13,8 @@ export default function LoginPage() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await axios.get('/auth/me', {
-                    withCredentials: true,
-                });
-                const role = res.data?.role?.toLowerCase();
+                const res = await api.get('/auth/me');
+                const role = res.data?.user?.role?.toLowerCase();
                 if (role) {
                     router.push(`/${role}`);
                 }
@@ -46,8 +43,7 @@ export default function LoginPage() {
                 {
                     username: form.emailOrUsername,
                     password: form.password,
-                },
-                { withCredentials: true }
+                }
             );
 
             const { user } = res.data;
@@ -170,9 +166,8 @@ export default function LoginPage() {
                         Login
                     </Button>
 
-                    <div>
-                        <label htmlFor="">admin@gmail.com</label>
-                        <label htmlFor="">123456</label>
+                    <div className="text-center text-xs text-muted-foreground mt-4">
+                        <p>admin@gmail.com / 123456</p>
                     </div>
                 </CardContent>
             </Card>

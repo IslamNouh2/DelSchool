@@ -32,11 +32,11 @@ export default function DashboardLayout({
         const items = [];
 
         // Always start with Dashboard
-        items.push({ label: "Tableau de bord", href: "/dashbord", isPage: pathname === "/dashbord" });
+        items.push({ label: "Tableau de bord", href: "/dashboard", isPage: pathname === "/dashboard" });
 
         // Route mapping for user-friendly names
         const routeMapping: Record<string, string> = {
-            "dashbord": "Tableau de bord",
+            "dashboard": "Tableau de bord",
             "list": "Liste",
             "teachers": "Enseignants",
             "students": "Étudiants",
@@ -60,7 +60,7 @@ export default function DashboardLayout({
             currentPath += `/${segment}`;
             
             // Skip "list" segment in visual breadcrumbs but keep it in path
-            if (segment === "list" || segment === "dashbord") return;
+            if (segment === "list" || segment === "dashboard") return;
 
             const label = routeMapping[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
             
