@@ -24,12 +24,14 @@ export class AuthService {
 
         response.cookie('token', token, {
             httpOnly: true,
-            secure: true,          // ALWAYS true in production HTTPS
-            sameSite: 'none',      // REQUIRED
-            path: '/',             // IMPORTANT
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            domain: 'delschool-2.onrender.com',   // 👈 REQUIRED
             maxAge,
         });
     }
+
 
     async register(registerDto: RegisterDto, response: Response) {
         const { email, username, password, role } = registerDto;

@@ -21,7 +21,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',                 // local dev
-      'https://del-school-6pi8.vercel.app',    // DEPLOYED FRONTEND
+      'https://delschool-2.onrender.com',    // DEPLOYED FRONTEND
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
