@@ -69,8 +69,8 @@ export class AuthController {
         return { message: 'This endpoint is for teachers and admins' };
     }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.STUDENT, Role.TEACHER, Role.ADMIN)
+    //@UseGuards(JwtAuthGuard, RolesGuard)
+    //@Roles(Role.STUDENT, Role.TEACHER, Role.ADMIN)
     @Get('all-users')
     allUsers() {
         return { message: 'This endpoint is for all authenticated users' };

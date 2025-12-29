@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import api from '@/lib/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -40,7 +41,7 @@ export default function LoginPage() {
 
     const handleLogin = async () => {
         try {
-            const res = await axios.post(
+            const res = await api.post(
                 '/auth/login',
                 {
                     username: form.emailOrUsername,
@@ -57,6 +58,7 @@ export default function LoginPage() {
             }
             localStorage.setItem("user_role", user.role.toLowerCase());
             router.push(`/${user.role.toLowerCase()}`);
+            console.log(user);
         } catch (err: any) {
             console.error(err);
             if (err.response?.status === 401) {
@@ -167,6 +169,11 @@ export default function LoginPage() {
                     >
                         Login
                     </Button>
+
+                    <div>
+                        <label htmlFor="">admin@gmail.com</label>
+                        <label htmlFor="">123456</label>
+                    </div>
                 </CardContent>
             </Card>
         </div>
