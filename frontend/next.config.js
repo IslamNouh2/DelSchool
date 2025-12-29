@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,   // ⬅️ Important
+    ignoreDuringBuilds: true,
   },
   images: {
     domains: ["localhost"],
@@ -13,7 +13,7 @@ const nextConfig = {
     return [
       {
         source: "/api/student/photo/:filename",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/student/photo/:filename`
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/student/photo/:filename`,
       },
     ];
   },
@@ -31,4 +31,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;   // ⬅️ Correct export
+module.exports = nextConfig;
