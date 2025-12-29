@@ -13,7 +13,7 @@ export default function LoginPage() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await axios.get('http://localhost:47005/auth/me', {
+                const res = await axios.get('/auth/me', {
                     withCredentials: true,
                 });
                 const role = res.data?.role?.toLowerCase();
@@ -41,7 +41,7 @@ export default function LoginPage() {
     const handleLogin = async () => {
         try {
             const res = await axios.post(
-                'http://localhost:47005/auth/login',
+                '/auth/login',
                 {
                     username: form.emailOrUsername,
                     password: form.password,
