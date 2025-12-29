@@ -251,4 +251,99 @@ export class ExamRepository {
         });
     }
 
+    async getDashboardStats() {
+        const [totalGrades, studentsCount, examsCount] = await Promise.all([
+            this.prisma.grads.aggregate({
+                _avg: { grads: true },
+                _count: { id: true },
+            }),
+            this.prisma.student.count(),
+            this.prisma.exam.count(),
+        ]);
+
+        const passingGrades = await this.prisma.grads.count({
+            where: { grads: { gte: 50 } },
+        });
+
+        const passRate = totalGrades._count.id > 0 
+            ? (passingGrades / totalGrades._count.id) * 100 
+            : 0;
+
+        return {
+            averageGrade: totalGrades._avg.grads || 0,
+            totalStudents: studentsCount,
+            examsCount,
+            passRate,
+        };
+    }
+
+    async getSubjectPerformance() {
+        const subjects = await this.prisma.subject.findMany({
+            include: {
+                grads: {
+                    select: { grads: true },
+                },
+            },
+        });
+
+        return subjects.map(s => {
+            const avg = s.grads.length > 0 
+                ? s.grads.reduce((acc, curr) => acc + curr.grads, 0) / s.grads.length 
+                : 0;
+            const passing = s.grads.filter(g => g.grads >= 50).length;
+            const passRate = s.grads.length > 0 ? (passing / s.grads.length) * 100 : 0;
+
+            return {
+                subject: s.subjectName,
+                average: avg,
+                passing: passRate,
+            };
+        });
+    }
+
+    async getGradeDistribution() {
+        const grades = await this.prisma.grads.findMany({
+            select: { grads: true },
+        });
+
+        const distribution = [
+            { grade: 'A+', min: 95, count: 0 },
+            { grade: 'A', min: 90, count: 0 },
+            { grade: 'B+', min: 85, count: 0 },
+            { grade: 'B', min: 80, count: 0 },
+            { grade: 'C+', min: 75, count: 0 },
+            { grade: 'C', min: 70, count: 0 },
+            { grade: 'D', min: 60, count: 0 },
+            { grade: 'F', min: 0, count: 0 },
+        ];
+
+        grades.forEach(g => {
+            for (const d of distribution) {
+                if (g.grads >= d.min) {
+                    d.count++;
+                    break;
+                }
+            }
+        });
+
+        return distribution.map(({ grade, count }) => ({ grade, count }));
+    }
+    async getStudentGrades(studentId: number) {
+        return this.prisma.grads.findMany({
+            where: {
+                studentClass: {
+                    studentId: studentId
+                }
+            },
+            include: {
+                subject: true,
+                exam: true
+            },
+            orderBy: {
+                exam: {
+                    dateStart: 'desc'
+                }
+            }
+        });
+    }
 }

@@ -154,8 +154,11 @@ export default function SubjectDialog({
                 okBlock: data.okBlock ?? false,
             });
             if (data.parentId) setSelectedSubSubjectId(data.parentId);
+        } else if (type === "create" && data?.parentId) {
+            // Pre-fill parent ID for sub-subject creation
+            setSelectedSubSubjectId(data.parentId);
         }
-    }, [type, data]);
+    }, [type, data, showSubSubject, selectedSubSubjectId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

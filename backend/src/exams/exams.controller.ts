@@ -56,6 +56,11 @@ export class ExamController {
     return this.examService.findOne(id);
   }
 
+  @Get('student/:studentId')
+  async getStudentGrades(@Param('studentId', ParseIntPipe) studentId: number) {
+    return this.examService.getStudentGrades(studentId);
+  }
+
   
 
   @Put(':id')
@@ -72,6 +77,21 @@ export class ExamController {
     @Body('publish') publish: boolean,
   ) {
     return this.examService.togglePublish(id, publish);
+  }
+
+  @Get('dashboard/stats')
+  async getDashboardStats() {
+    return this.examService.getDashboardStats();
+  }
+
+  @Get('dashboard/subject-performance')
+  async getSubjectPerformance() {
+    return this.examService.getSubjectPerformance();
+  }
+
+  @Get('dashboard/distribution')
+  async getGradeDistribution() {
+    return this.examService.getGradeDistribution();
   }
 
   @Delete(':id')

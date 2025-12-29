@@ -87,4 +87,20 @@ export class ExamService {
         await this.findOne(id);
         return this.examRepository.togglePublish(id, publish);
     }
+
+    async getDashboardStats() {
+        return this.examRepository.getDashboardStats();
+    }
+
+    async getSubjectPerformance() {
+        return this.examRepository.getSubjectPerformance();
+    }
+
+    async getGradeDistribution() {
+        return this.examRepository.getGradeDistribution();
+    }
+
+    async getStudentGrades(studentId: number) {
+        return this.examRepository.getStudentGrades(studentId);
+    }
 }

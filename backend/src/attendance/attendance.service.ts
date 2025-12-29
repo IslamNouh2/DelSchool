@@ -73,4 +73,15 @@ export class AttendanceService {
     getEmployerLast7DaysAttendance() {
         return this.repo.getEmployerLast7DaysAttendance();
     }
+    getStudentWeeklyChartData(classId: number) {
+        return this.repo.getStudentWeeklyChartData(classId);
+    }
+
+    getStudentDailySummaryData(classId: number, date: string) {
+        return this.repo.getStudentDailySummaryData(classId, date);
+    }
+
+    getStudentAttendance(studentId: number) {
+        return this.repo.getStudentAttendance(studentId);
+    }
 }

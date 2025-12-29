@@ -107,13 +107,11 @@ const LocalForm: React.FC<LocalFormProps> = ({
         <>
             {!showSubjectForm ? (
                 <form onSubmit={handleSubmit}>
-                    <h2 className="text-lg font-semibold mb-4">
-                        {type === "create" ? "Add Local" : "Edit Local"}
-                    </h2>
+
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="w-full md:w-1/3">
-                                <h1 className="text-sm text-gray-600">Code</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Code</h1>
                                 <Input
                                     value={form.Code}
                                     onChange={(e) => setForm({ ...form, Code: e.target.value })}
@@ -122,7 +120,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
                                 />
                             </div>
                             <div className="w-full md:w-2/3">
-                                <h1 className="text-sm text-gray-600">Local name</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Local name</h1>
                                 <Input
                                     value={form.LocalName}
                                     onChange={(e) =>
@@ -136,7 +134,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
 
                         <div className="flex flex-col md:flex-row justify-between items-end gap-4">
                             <div className="w-full md:w-1/3">
-                                <h1 className="text-sm text-gray-600">Num</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Num</h1>
                                 <Input
                                     type="number"
                                     value={form.NumClass}

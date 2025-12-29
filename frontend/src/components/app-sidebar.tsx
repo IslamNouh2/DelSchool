@@ -4,9 +4,11 @@ import * as React from "react"
 import { useEffect, useState } from "react"
 import {
   AudioWaveform,
+  BadgeDollarSign,
   BookOpen,
   Bot,
   Command,
+  CreditCard,
   FileBadge,
   Frame,
   GalleryVerticalEnd,
@@ -15,6 +17,7 @@ import {
   Settings2,
   SquareTerminal,
   User2,
+  Wallet,
   
 } from "lucide-react"
 
@@ -110,7 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (role === "TEACHER") {
       return [
         { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
-        { title: "Teacher", url: "/list/teachers", icon: Bot },
+        { title: "Employers", url: "/list/employers", icon: Bot },
         {
           title: "Exam",
           url: "#",
@@ -126,13 +129,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     // Admin: show all principal links (no submenus)
     return [
       { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
-      { title: "Teachers", url: "/list/teachers", icon: User2 },
+      { title: "Employers", url: "/list/employers", icon: User2 },
       { title: "Students", url: "/list/students", icon: BookOpen },
       { title: "Timetable", url: "/list/timetable", icon: GalleryVerticalEnd },
       { title: "Subjects", url: "/list/subjects", icon: BookOpen },
       { title: "Classes", url: "/list/classes", icon: Frame },
       { title: "Local", url: "/list/local", icon: Map },
-
       {
         title: "Attendance",
         url: "#",
@@ -151,6 +153,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           { title: "Ajouter / mettre à jour les notes", url: "/list/exam/grads" },
         ],
       },
+      {
+        title: "Fees",
+        url: "#",
+        icon: Wallet,
+        items: [
+          { title: "Fee", url: "/list/fees", icon: BadgeDollarSign },
+          { title: "Payments", url: "/list/payments", icon: CreditCard },
+        ],
+      },
+      
       
     ]
   }, [role])

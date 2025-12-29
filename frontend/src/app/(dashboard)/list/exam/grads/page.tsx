@@ -1,311 +1,372 @@
 "use client";
 
-import { DataTable } from "@/components/DataTable";
-import { Badge } from "@/components/ui/badge";
-import { ComboboxDemo } from "@/components/ui/combobox";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import api from "@/lib/api";
-import { Save, Loader2, BookOpen, GraduationCap, ChevronLeft } from "lucide-react";
-import { useEffect, useState } from "react";
-import { columns, GradeRow } from "./column";
-import { toast } from "sonner";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { motion } from "motion/react";
+import {
+  BookOpen,
+  GraduationCap,
+  ChevronLeft,
+  Save,
+  Loader2,
+  Search,
+  Filter,
+  Download,
+} from "lucide-react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import api from "@/lib/api";
+import { CustomTable } from "@/components/CustomTable";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ComboboxDemo } from "@/components/ui/combobox";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
-export default function GradsList() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const examIdParam = searchParams.get("examId");
+export type GradeRow = {
+  studentId: number;
+  studentCode: string;
+  studentName: string;
+  subjects: {
+    subjectName: string;
+    grade: number | null;
+    subjectId: number;
+  }[];
+};
 
-    const [classes, setClasses] = useState<{ classId: number; ClassName: string }[]>([]);
-    const [exams, setExams] = useState<{ id: number; examName: string }[]>([]);
-    const [formData, setFormData] = useState({ 
-        id: examIdParam ? parseInt(examIdParam) : 0, 
-        classId: 0 
-    });
-    const [selectedClassName, setSelectedClassName] = useState<string>("");
-    const [selectedExamsName, setSelectedExamsName] = useState<string>("");
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalCount, setTotalCount] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [loading, setLoading] = useState(false);
-    const [grades, setGrades] = useState<GradeRow[]>([]);
-    const [subjects, setSubjects] = useState<string[]>([]);
-    const [isSaving, setIsSaving] = useState(false);
+export default function ExamGradesPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const examIdParam = searchParams.get("examId");
 
-    // ✅ Handle grade change dynamically
-    const handleGradeChange = (studentId: number, subjectId: number, newGrade: number) => {
-        setGrades((prev) =>
-            prev.map((row) =>
-                row.studentId === studentId
-                    ? {
-                        ...row,
-                        subjects: row.subjects.map((subj) =>
-                            subj.subjectId === subjectId ? { ...subj, grade: newGrade } : subj
-                        ),
-                    }
-                    : row
-            )
-        );
-    };
+  const [classes, setClasses] = useState<{ classId: number; ClassName: string }[]>([]);
+  const [exams, setExams] = useState<{ id: number; examName: string }[]>([]);
+  const [formData, setFormData] = useState({
+    id: examIdParam ? parseInt(examIdParam) : 0,
+    classId: 0,
+  });
+  const [selectedClassName, setSelectedClassName] = useState<string>("");
+  const [selectedExamsName, setSelectedExamsName] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [grades, setGrades] = useState<GradeRow[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-    // ✅ Save all grades
-    const handleSaveAll = async () => {
-        if (grades.length === 0) return;
-        setIsSaving(true);
-        try {
-            const payload = {
-                classId: formData.classId,
-                examId: formData.id,
-                grades: grades.flatMap((row) =>
-                    row.subjects
-                        .filter((s) => s.grade !== null && s.grade !== undefined)
-                        .map((s) => ({
-                            studentId: row.studentId,
-                            subjectId: s.subjectId,
-                            grade: s.grade,
-                        }))
-                ),
-            };
+  // ✅ Fetch exams on mount
+  useEffect(() => {
+    api.get("/exam/exams")
+      .then((res) => setExams(res.data))
+      .catch((err) => console.error(err));
+  }, []);
 
-            await api.post("exam/grades", payload);
-            toast.success("✅ Notes enregistrées avec succès !");
-        } catch (err) {
-            console.error(err);
-            toast.error("❌ Erreur lors de l’enregistrement des notes");
-        } finally {
-            setIsSaving(false);
-        }
-    };
+  // ✅ Fetch classes when exam changes
+  useEffect(() => {
+    if (formData.id > 0) {
+      api.get(`/class`)
+        .then((res) => setClasses(res.data.classes))
+        .catch((err) => console.error(err));
+      
+      const selected = exams.find(e => e.id === formData.id);
+      if (selected) setSelectedExamsName(selected.examName);
+    } else {
+      setClasses([]);
+      setFormData((prev) => ({ ...prev, classId: 0 }));
+      setSelectedExamsName("");
+    }
+  }, [formData.id, exams]);
 
-    // ✅ Fetch grades
-    const fetchGrads = async (page: number = 1) => {
-        if (formData.classId > 0 && formData.id > 0) {
-            setLoading(true);
-            try {
-                const res = await api.get(`/exam/subjects/${formData.classId}/${formData.id}`);
-                setGrades(res.data);
-                if (res.data.length > 0) {
-                    const allSubjects = res.data[0].subjects.map((s: any) => s.subjectName);
-                    setSubjects(allSubjects);
-                }
-            } catch (err) {
-                console.error(err);
-                toast.error("Erreur lors du chargement des notes");
-            } finally {
-                setLoading(false);
+  // ✅ Fetch grades when class or exam changes
+  useEffect(() => {
+    if (formData.classId > 0 && formData.id > 0) {
+      fetchGrads();
+    } else {
+      setGrades([]);
+      setSubjects([]);
+    }
+  }, [formData.classId, formData.id]);
+
+  const fetchGrads = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/exam/subjects/${formData.classId}/${formData.id}`);
+      setGrades(res.data);
+      if (res.data.length > 0) {
+        const allSubjects = res.data[0].subjects.map((s: any) => s.subjectName);
+        setSubjects(allSubjects);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors du chargement des notes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGradeChange = (studentId: number, subjectId: number, newGrade: number) => {
+    setGrades((prev) =>
+      prev.map((row) =>
+        row.studentId === studentId
+          ? {
+              ...row,
+              subjects: row.subjects.map((subj) =>
+                subj.subjectId === subjectId ? { ...subj, grade: newGrade } : subj
+              ),
             }
-        }
-    };
-
-    // ✅ Fetch exams
-    useEffect(() => {
-        api.get("/exam/exams")
-            .then((res) => setExams(res.data))
-            .catch((err) => console.error(err));
-    }, []);
-
-    // ✅ Set selected exam name
-    useEffect(() => {
-        if (exams.length > 0 && formData.id > 0) {
-            const selected = exams.find(e => e.id === formData.id);
-            if (selected) {
-                setSelectedExamsName(selected.examName);
-            }
-        }
-    }, [exams, formData.id]);
-
-    // ✅ Fetch classes when exam changes
-    useEffect(() => {
-        if (formData.id > 0) {
-            api
-                .get(`/class`)
-                .then((res) => setClasses(res.data.classes))
-                .catch((err) => console.error(err));
-        } else {
-            setClasses([]);
-            setFormData((prev) => ({ ...prev, classId: 0 }));
-        }
-    }, [formData.id]);
-
-    // ✅ Fetch grades when class or exam changes
-    useEffect(() => {
-        if (formData.classId > 0 && formData.id > 0) {
-            fetchGrads(currentPage);
-        } else {
-            setGrades([]);
-        }
-    }, [formData.classId, formData.id, currentPage]);
-
-    return (
-        <div className="flex flex-col w-full space-y-6 p-2 md:p-4 max-w-8xl mx-auto">
-            {/* Breadcrumb & Header */}
-            <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Saisie des Notes</h1>
-                        <p className="text-gray-500 mt-1">Gérez les notes des étudiants par examen et par classe.</p>
-                    </div>
-                    <Link href="/list/exam">
-                        <Button variant="outline" className="gap-2">
-                            <ChevronLeft className="w-4 h-4" />
-                            Retour aux examens
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <Separator />
-
-            {/* Filters Card */}
-            <Card className="border-none shadow-md bg-gradient-to-r from-blue-50 to-indigo-50">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-700">
-                        <BookOpen className="w-5 h-5" />
-                        Sélection
-                    </CardTitle>
-                    <CardDescription>
-                        Choisissez un examen et une classe pour commencer la saisie.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Examen combobox */}
-                        <div className="flex flex-col space-y-2">
-                            <Label className="font-medium text-gray-700">Examen</Label>
-                            <ComboboxDemo
-                                frameworks={exams.map((e) => ({
-                                    value: e.id.toString(),
-                                    label: e.examName,
-                                }))}
-                                type="Examen"
-                                value={formData.id.toString()}
-                                onChange={(val) => {
-                                    const examId = parseInt(val);
-                                    setFormData({ ...formData, id: examId });
-                                    const selectedExam = exams.find((e) => e.id === examId);
-                                    setSelectedExamsName(selectedExam ? selectedExam.examName : "");
-                                }}
-                                width="w-full"
-                            />
-                        </div>
-
-                        {/* Classe combobox */}
-                        <div className="flex flex-col space-y-2">
-                            <Label className="font-medium text-gray-700">Classe</Label>
-                            <ComboboxDemo
-                                frameworks={classes.map((c) => ({
-                                    value: c.classId.toString(),
-                                    label: c.ClassName,
-                                }))}
-                                type="Classe"
-                                value={formData.classId.toString()}
-                                onChange={(val) => {
-                                    const classId = parseInt(val);
-                                    setFormData((prev) => ({ ...prev, classId }));
-                                    const selected = classes.find((c) => c.classId === classId);
-                                    setSelectedClassName(selected ? selected.ClassName : "");
-                                }}
-                                width="w-full"
-                                disabled={formData.id === 0}
-                            />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Main Content Area */}
-            <div className="min-h-[400px]">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-                        <p className="text-gray-500">Chargement des données...</p>
-                    </div>
-                ) : grades.length > 0 ? (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <Card className="overflow-hidden border-t-4 border-t-blue-600 shadow-lg">
-                            <CardHeader className="bg-gray-50/50 border-b pb-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle className="text-xl flex items-center gap-2">
-                                            <GraduationCap className="w-6 h-6 text-blue-600" />
-                                            Feuille de notes
-                                        </CardTitle>
-                                        <CardDescription className="mt-1">
-                                            {selectedExamsName} • <span className="font-semibold text-gray-700">{selectedClassName}</span>
-                                        </CardDescription>
-                                    </div>
-                                    <Badge variant="secondary" className="px-3 py-1 text-sm">
-                                        {grades.length} Étudiants
-                                    </Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-4">
-                                <DataTable
-                                    columns={columns({
-                                        subjects,
-                                        onGradeChange: handleGradeChange,
-                                    })}
-                                    data={grades}
-                                    loading={loading}
-                                    currentPage={currentPage}
-                                    totalCount={totalCount}
-                                    pageSize={pageSize}
-                                    onPageChange={setCurrentPage}
-                                    onPageSizeChange={(size) => {
-                                        setPageSize(size);
-                                        setCurrentPage(1);
-                                    }}
-                                    onRefresh={() => fetchGrads(currentPage)}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        {/* Sticky Bottom Action Bar */}
-                        <div className="fixed bottom-6 right-6 z-50">
-                            <Button
-                                onClick={handleSaveAll}
-                                disabled={isSaving}
-                                size="lg"
-                                className="shadow-xl bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 py-6 transition-all hover:scale-105"
-                            >
-                                {isSaving ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                        Enregistrement...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-5 h-5 mr-2" />
-                                        Enregistrer les notes
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-64 text-center space-y-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                        <div className="p-4 bg-card rounded-full shadow-sm">
-                            <BookOpen className="w-8 h-8 text-gray-400" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-lg font-medium text-gray-900">Aucune donnée affichée</h3>
-                            <p className="text-gray-500 max-w-sm">
-                                {formData.id === 0 
-                                    ? "Veuillez sélectionner un examen pour commencer." 
-                                    : formData.classId === 0 
-                                        ? "Veuillez sélectionner une classe." 
-                                        : "Aucun étudiant trouvé pour cette classe."}
-                            </p>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
+          : row
+      )
     );
-}
+  };
 
+  const handleSaveAll = async () => {
+    if (grades.length === 0) return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        classId: formData.classId,
+        examId: formData.id,
+        grades: grades.flatMap((row) =>
+          row.subjects
+            .filter((s) => s.grade !== null && s.grade !== undefined)
+            .map((s) => ({
+              studentId: row.studentId,
+              subjectId: s.subjectId,
+              grade: s.grade,
+            }))
+        ),
+      };
+
+      await api.post("exam/grades", payload);
+      toast.success("✅ Notes enregistrées avec succès !");
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Erreur lors de l’enregistrement des notes");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const filteredGrades = grades.filter(g => 
+    g.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    g.studentCode.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/list/exam"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-slate-400" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-1">Saisie des Notes</h1>
+            <p className="text-muted-foreground">Gérez les notes des étudiants par examen et par classe</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+            <Download className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+            Exporter
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 dark:text-slate-300">Examen</Label>
+            <ComboboxDemo
+              frameworks={exams.map((e) => ({
+                value: e.id.toString(),
+                label: e.examName,
+              }))}
+              type="Examen"
+              value={formData.id.toString()}
+              onChange={(val) => {
+                const examId = parseInt(val);
+                setFormData({ ...formData, id: examId });
+                const selectedExam = exams.find((e) => e.id === examId);
+                setSelectedExamsName(selectedExam ? selectedExam.examName : "");
+              }}
+              width="w-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 dark:text-slate-300">Classe</Label>
+            <ComboboxDemo
+              frameworks={classes.map((c) => ({
+                value: c.classId.toString(),
+                label: c.ClassName,
+              }))}
+              type="Classe"
+              value={formData.classId.toString()}
+              onChange={(val) => {
+                const classId = parseInt(val);
+                setFormData((prev) => ({ ...prev, classId }));
+                const selected = classes.find((c) => c.classId === classId);
+                setSelectedClassName(selected ? selected.ClassName : "");
+              }}
+              width="w-full"
+              disabled={formData.id === 0}
+            />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Main Content */}
+      <div className="min-h-[400px]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <Loader2 className="w-10 h-10 animate-spin text-blue-600 dark:text-blue-400" />
+            <p className="text-gray-500 dark:text-slate-400 font-medium">Chargement des données...</p>
+          </div>
+        ) : grades.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-6"
+          >
+            {/* Search & Stats Bar */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex-1 relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un étudiant..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
+                />
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <Badge variant="secondary" className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-900/30 text-sm font-medium">
+                  {grades.length} Étudiants
+                </Badge>
+                <div className="text-sm text-gray-500 dark:text-slate-400">
+                  <span className="font-semibold text-gray-900 dark:text-slate-100">{selectedExamsName}</span> • {selectedClassName}
+                </div>
+              </div>
+            </div>
+
+            {/* Grades Table */}
+            <CustomTable
+              data={filteredGrades}
+              loading={loading}
+              rowKey={(item) => item.studentId}
+              columns={[
+                {
+                  header: "Code",
+                  key: "studentCode",
+                  className: "font-mono text-xs text-gray-500 dark:text-slate-400",
+                },
+                {
+                  header: "Nom de l'étudiant",
+                  key: "studentName",
+                  className: "font-medium text-gray-900 dark:text-slate-100",
+                },
+                ...subjects.map((subjectName) => ({
+                  header: subjectName,
+                  key: subjectName,
+                  headerClassName: "text-center font-bold text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400",
+                  render: (item: GradeRow) => {
+                    const subject = item.subjects.find(s => s.subjectName === subjectName);
+                    if (!subject) return <div className="text-center text-gray-300 dark:text-slate-700">—</div>;
+
+                    const grade = subject.grade;
+                    const isFailing = grade !== null && grade < 10;
+                    const isExcellent = grade !== null && grade >= 16;
+
+                    return (
+                      <div className="flex justify-center">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={20}
+                          value={subject.grade ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) {
+                              handleGradeChange(item.studentId, subject.subjectId, num);
+                            } else if (val === "") {
+                              // Handle empty if needed
+                            }
+                          }}
+                          className={`w-16 text-center h-9 transition-all duration-200 rounded-lg bg-white dark:bg-slate-900 text-foreground
+                            ${isFailing ? "text-red-600 dark:text-red-400 font-semibold bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30" : ""}
+                            ${isExcellent ? "text-green-600 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30" : ""}
+                            focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-200 dark:border-slate-800
+                          `}
+                        />
+                      </div>
+                    );
+                  }
+                }))
+              ]}
+            />
+
+            {/* Sticky Save Button */}
+            <div className="fixed bottom-8 right-8 z-50">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  onClick={handleSaveAll}
+                  disabled={isSaving}
+                  size="lg"
+                  className="h-14 px-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-full shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all border-none flex items-center gap-3"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      Enregistrer les notes
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center h-80 text-center space-y-6 bg-gray-50/50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-slate-800 p-12"
+          >
+            <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
+              <BookOpen className="w-12 h-12 text-gray-300 dark:text-slate-700" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Aucune donnée affichée</h3>
+              <p className="text-gray-500 dark:text-slate-400 max-w-sm mx-auto">
+                {formData.id === 0 
+                  ? "Veuillez sélectionner un examen pour commencer la saisie des notes." 
+                  : formData.classId === 0 
+                    ? "Veuillez sélectionner une classe pour afficher la liste des étudiants." 
+                    : "Aucun étudiant trouvé pour cette classe."}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}

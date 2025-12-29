@@ -28,6 +28,19 @@ async function main() {
         },
     });
 
+    await prisma.compte.upsert({
+        where: { id: -1 },
+        update: {},
+        create: {
+            id: -1,
+            name: 'TOUS LES COMPTES',
+            parentId: -1,
+            BG: 0,
+            BD: 1,
+            level: 0,
+        },
+    });
+
     await prisma.parameter.upsert({
         where: { paramId: 1 },
         update: {},
@@ -46,7 +59,7 @@ async function main() {
         },
     });
 
-    console.log('Default root subject inserted');
+    console.log('Default root subject and compte inserted');
 }
 
 main()

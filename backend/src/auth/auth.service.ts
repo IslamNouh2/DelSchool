@@ -5,7 +5,7 @@ import { RegisterDto, Role } from './dto/register.dto';
 import * as bcrypt from 'bcryptjs';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { Response } from 'express';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from 'prisma/prisma.service';
 
 @Injectable()
 export class AuthService {

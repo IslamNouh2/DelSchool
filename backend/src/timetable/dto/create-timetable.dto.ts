@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsString } from "class-validator";
+import { IsEnum, IsInt, IsString, IsOptional } from "class-validator";
 
 export class CreateTimetableDto {
     @IsEnum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
@@ -13,8 +13,9 @@ export class CreateTimetableDto {
     @IsInt()
     timeSlotId: number;
 
+    @IsOptional()
     @IsInt()
-    employerId: number;
+    employerId?: number;
 
     @IsString()
     academicYear: string;

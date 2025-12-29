@@ -65,7 +65,7 @@ export class StudentService {
             fatherName, fatherNumber, matherName, matherNumber,
             matherJob, fatherJob, code, health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality, observation,
-            numNumerisation, dateInscription, okBlock, localId, academicYear,
+            numNumerisation, dateInscription, okBlock, localId, classId, academicYear,
         } = dto;
         let finalParentId = parentId;
         let photoFileName: string | null = null;
@@ -105,15 +105,19 @@ export class StudentService {
                     photoFileName,
                 },
             });
-            console.log('CreateStudent DTO:', dto);
-            await this.prisma.studentClass.create({
-                data: {
-                    studentId: student.studentId,
-                    classId: Number(localId),
-                    academicYear: academicYear || this.getCurrentAcademicYear(),
-                    isCurrent: true,
-                },
-            });
+            
+            const targetClassId = Number(classId || localId);
+            if (targetClassId) {
+                await this.prisma.studentClass.create({
+                    data: {
+                        studentId: student.studentId,
+                        classId: targetClassId,
+                        academicYear: academicYear || this.getCurrentAcademicYear(),
+                        isCurrent: true,
+                    },
+                });
+            }
+
             return {
                 student,
                 studentId: student.studentId,
@@ -150,6 +154,7 @@ export class StudentService {
             matherJob, fatherJob, code, health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality,
             observation, numNumerisation, dateInscription, okBlock,
+            localId, classId, academicYear
         } = dto;
 
         let finalParentId = parentId;
@@ -207,6 +212,28 @@ export class StudentService {
             },
         });
 
+        const targetClassId = Number(classId || localId);
+        if (targetClassId) {
+            await this.prisma.studentClass.upsert({
+                where: {
+                    studentId_academicYear: {
+                        studentId,
+                        academicYear: academicYear || this.getCurrentAcademicYear(),
+                    },
+                },
+                update: {
+                    classId: targetClassId,
+                    isCurrent: true,
+                },
+                create: {
+                    studentId,
+                    classId: targetClassId,
+                    academicYear: academicYear || this.getCurrentAcademicYear(),
+                    isCurrent: true,
+                },
+            });
+        }
+
         return updatedStudent;
     }
 
@@ -239,7 +266,18 @@ export class StudentService {
                     firstName: true,
                     lastName: true,
                     code: true,
+                    gender: true,
                     photoFileName: true,
+                    studentClasses: {
+                        where: { isCurrent: true },
+                        include: {
+                            Class: {
+                                select: {
+                                    ClassName: true
+                                }
+                            }
+                        }
+                    }
                 }
             }),
             this.prisma.student.count(),
@@ -283,6 +321,24 @@ export class StudentService {
                 okBlock: true,
                 photoFileName: true,
                 parentId: true,
+                studentClasses: {
+                    where: { isCurrent: true },
+                    select: {
+                        classId: true,
+                        Class: {
+                            select: {
+                                ClassName: true,
+                                localId: true
+                            }
+                        }
+                    }
+                },
+                studentAttendance: {
+                    select: {
+                        status: true,
+                        date: true
+                    }
+                }
             },
         });
 
@@ -290,8 +346,12 @@ export class StudentService {
             throw new NotFoundException('Student not found');
         }
 
+        const currentClass = student.studentClasses?.[0];
+
         return {
             ...student,
+            localId: currentClass?.Class?.localId || null,
+            classId: currentClass?.classId || null,
             photoUrl: student.photoFileName ? `/api/student/photo/${student.photoFileName}` : null,
         };
     }
@@ -327,7 +387,18 @@ export class StudentService {
                     firstName: true,
                     lastName: true,
                     code: true,
+                    gender: true,
                     photoFileName: true,
+                    studentClasses: {
+                        where: { isCurrent: true },
+                        include: {
+                            Class: {
+                                select: {
+                                    ClassName: true
+                                }
+                            }
+                        }
+                    }
                 }
             }),
             this.prisma.student.count({

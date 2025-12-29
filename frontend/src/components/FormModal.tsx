@@ -15,7 +15,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import EmployerForm from "./forms/page/employerForm";
+import EmployerForm from "./forms/employerForm";
 
 // Lazy load forms
 const StudentForm = dynamic(() => import("./forms/StudentForm"), { loading: () => <p>Loading...</p> });
@@ -56,9 +56,9 @@ const FormModal: React.FC<FormModalProps> = ({
             case "class":
                 return <ClassForm type={type} data={data} setOpen={setOpen} relatedData={relatedData} onSuccess={onSuccess} />;
             case "subject":
-                return <SubjectForm type={type} data={data} setOpen={setOpen} relatedData={relatedData} onSuccess={onSuccess} />;
+                return <SubjectForm type={type} data={data} open={open} onOpenChange={setOpen} onSuccess={onSuccess} />;
             case "employer":
-                // return <EmployerForm type={type} data={data} setOpen={setOpen} relatedData={relatedData} onSuccess={onSuccess} />;
+                return <EmployerForm type={type} data={data} open={open} onOpenChange={setOpen} onSuccess={onSuccess} />;
             default:
                 return <p>Form not found</p>;
         }
@@ -132,4 +132,3 @@ const FormModal: React.FC<FormModalProps> = ({
 };
 
 export default FormModal;
-

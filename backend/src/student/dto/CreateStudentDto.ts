@@ -116,6 +116,11 @@ export class CreateStudentDto {
     localId: number;
 
     @IsOptional()
+    @IsInt()
+    @Type(() => Number)
+    classId?: number;
+
+    @IsOptional()
     @IsString()
     academicYear?: string;
 }

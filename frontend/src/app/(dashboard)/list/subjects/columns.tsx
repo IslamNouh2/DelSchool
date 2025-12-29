@@ -23,7 +23,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import Image from "next/image"; 
+import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -49,8 +49,6 @@ type ColumnProps = {
     role: string | null;
 };
 
-
-
 export const columns = ({
     onRefresh,
     currentPage,
@@ -59,8 +57,6 @@ export const columns = ({
     onEdit,
     role,
 }: ColumnProps): ColumnDef<Subject>[] => [
-
-
         {
             id: "select",
             header: ({ table }) => (
@@ -82,12 +78,11 @@ export const columns = ({
         },
         {
             accessorKey: "subjectName",
-            header: "subjectName",
+            header: "Subject Name",
         },
-
         {
             accessorKey: "totalGrads",
-            header: "totalGrads",
+            header: "Total Grads",
         },
         {
             accessorKey: "parentName",
@@ -122,7 +117,7 @@ export const columns = ({
                 const handleDelete = async () => {
                     try {
                         await api.delete(`/subject/${subject.subjectId}`, { withCredentials: true });
-                        toast.success("Employer deleted");
+                        toast.success("Subject deleted");
 
                         const newTotal = totalCount - 1;
                         const newTotalPages = Math.ceil(newTotal / pageSize);
@@ -131,10 +126,9 @@ export const columns = ({
                         onRefresh(Math.max(newPage, 1));
                     } catch (err) {
                         console.error("Delete error:", err);
-                        toast.error("Failed to delete employer");
+                        toast.error("Failed to delete subject");
                     }
                 };
-
 
                 return (
                     <div className="flex items-center gap-2">
@@ -162,7 +156,7 @@ export const columns = ({
                                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                         <AlertDialogDescription>
                                             This action cannot be undone. It will permanently remove this
-                                            employer.
+                                            subject.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>

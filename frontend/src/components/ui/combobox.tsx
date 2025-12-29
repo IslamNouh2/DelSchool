@@ -39,7 +39,7 @@ export function ComboboxDemo({
             </SelectTrigger>
             <SelectContent className="!w-[var(--radix-select-trigger-width)]">
                 <SelectGroup>
-                    <SelectLabel className="text-gray-400 text-sm">{type}</SelectLabel>
+                    <SelectLabel className="text-gray-400 dark:text-slate-500 text-sm">{type}</SelectLabel>
                     {frameworks.map((f) => (
                         <SelectItem key={f.value} value={f.value}>
                             {f.label}

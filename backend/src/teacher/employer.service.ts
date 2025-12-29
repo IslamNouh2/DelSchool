@@ -368,6 +368,13 @@ export class EmployerService {
                 okBlock: true,
                 type: true,
                 photoFileName: true,
+                compte: {
+                    select: {
+                        id: true,
+                        name: true,
+                        okBlock: true,
+                    }
+                }
             }
         });
 

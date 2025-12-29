@@ -31,13 +31,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchUser } from "@/lib/getRoleFromToken";
 
-export type classes = {
-    subjectId: number;
-    subjectName: string;
-    totalGrads: number;
-    parentId: number;
-    okBlock?: boolean;
-    parentName: string;
+export type Class = {
+    classId: number;
+    ClassName: string;
+    NumStudent: number;
+    localId: number;
+    okBlock: string;
+    local: {
+        name: string;
+    };
 };
 
 type ColumnProps = {
@@ -49,8 +51,6 @@ type ColumnProps = {
     role: string | null;
 };
 
-
-
 export const columns = ({
     onRefresh,
     currentPage,
@@ -58,9 +58,7 @@ export const columns = ({
     pageSize,
     onEdit,
     role,
-}: ColumnProps): ColumnDef<classes>[] => [
-
-
+}: ColumnProps): ColumnDef<Class>[] => [
         {
             id: "select",
             header: ({ table }) => (
@@ -81,27 +79,24 @@ export const columns = ({
             enableHiding: false,
         },
         {
-            accessorKey: "subjectName",
-            header: "subjectName",
-        },
-
-        {
-            accessorKey: "totalGrads",
-            header: "totalGrads",
+            accessorKey: "ClassName",
+            header: "Class Name",
         },
         {
-            accessorKey: "parentName",
-            header: "Parent Subject",
-            cell: ({ row }) => {
-                const name = row.getValue("parentName") as string;
-                return name && name !== "subject" ? name : "-";
-            },
+            accessorKey: "NumStudent",
+            header: "Capacity",
+        },
+        {
+            accessorKey: "local.name",
+            header: "Room",
+            cell: ({ row }) => row.original.local?.name || "-",
         },
         {
             accessorKey: "okBlock",
             header: "Status",
             cell: ({ row }) => {
-                const isBlocked = row.getValue("okBlock") as boolean;
+                const status = row.getValue("okBlock") as string;
+                const isBlocked = status === "Y"; // Assuming 'Y' means blocked based on schema default 'N'
                 return (
                     <span
                         className={`px-2 py-1 rounded-full text-xs ${isBlocked
@@ -117,12 +112,12 @@ export const columns = ({
         {
             id: "actions",
             cell: ({ row }) => {
-                const subject = row.original;
+                const classItem = row.original;
 
                 const handleDelete = async () => {
                     try {
-                        await api.delete(`/subject/${subject.subjectId}`, { withCredentials: true });
-                        toast.success("Employer deleted");
+                        await api.delete(`/classes/${classItem.classId}`, { withCredentials: true });
+                        toast.success("Class deleted");
 
                         const newTotal = totalCount - 1;
                         const newTotalPages = Math.ceil(newTotal / pageSize);
@@ -131,10 +126,9 @@ export const columns = ({
                         onRefresh(Math.max(newPage, 1));
                     } catch (err) {
                         console.error("Delete error:", err);
-                        toast.error("Failed to delete employer");
+                        toast.error("Failed to delete class");
                     }
                 };
-
 
                 return (
                     <div className="flex items-center gap-2">
@@ -142,7 +136,7 @@ export const columns = ({
                         {role?.toLowerCase() === "admin" && <>
                             <Button
                                 className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky p-0"
-                                onClick={() => onEdit(subject.subjectId)}
+                                onClick={() => onEdit(classItem.classId)}
                             >
                                 <Image src="/update.png" alt="Update" width={16} height={16} />
                             </Button>
@@ -162,7 +156,7 @@ export const columns = ({
                                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                         <AlertDialogDescription>
                                             This action cannot be undone. It will permanently remove this
-                                            employer.
+                                            class.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>

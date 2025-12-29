@@ -26,7 +26,7 @@ export class TimetableService {
             }
 
             // ✅ 2. Auto-assign teacher if not provided
-            let assignedTeacherId = dto.employerId;
+            let assignedTeacherId: number | null = dto.employerId || null;
 
             if (!assignedTeacherId) {
                 const teacherSubject = await tx.teacherSubject.findFirst({
@@ -37,13 +37,10 @@ export class TimetableService {
                     select: { employerId: true },
                 });
 
-                if (!teacherSubject) {
-                    throw new NotFoundException(
-                        `No teacher assigned for subject ID ${dto.subjectId}.`
-                    );
+                if (teacherSubject) {
+                    assignedTeacherId = teacherSubject.employerId;
                 }
-
-                assignedTeacherId = teacherSubject.employerId;
+                // If no teacher found, assignedTeacherId remains null, which is valid
             }
 
             // ✅ 3. Create timetable

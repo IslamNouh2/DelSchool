@@ -49,6 +49,13 @@ export class SubjectController {
     return this.subjectsService.findAll(page, limit, orderByField, name, status);
   }
   @Roles(Role.TEACHER, Role.ADMIN)
+  @Get('count')
+  count(@Req() req) {
+    //console.log('Authenticated user:', req.user);
+    return this.subjectsService.StubjectCount();
+  }
+
+  @Roles(Role.TEACHER, Role.ADMIN)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.subjectsService.findOne(id);
@@ -66,13 +73,5 @@ export class SubjectController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.subjectsService.remove(id);
-  }
-
-
-  @Roles(Role.TEACHER, Role.ADMIN)
-  @Get('count')
-  count(@Req() req) {
-    //console.log('Authenticated user:', req.user);
-    return this.subjectsService.StubjectCount();
   }
 }

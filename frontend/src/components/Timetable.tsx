@@ -1,31 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-    Calendar,
-    dateFnsLocalizer,
-    Views,
-    type Event as CalendarEvent,
-} from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
-import "react-big-calendar/lib/css/react-big-calendar.css";
+import { useEffect, useState, Fragment } from "react";
+import { motion } from "motion/react";
+import { Calendar as CalendarIcon, Plus, Loader2 } from "lucide-react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import api from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { enUS } from "date-fns/locale";
 import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import TimeSlotManager from "@/app/(dashboard)/list/timetable/components/TimeSlotManager";
+import { TimetableSlot, TimetableEntry } from "@/app/(dashboard)/list/timetable/components/TimetableSlot";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-
-const locales = { "en-US": enUS };
-
-const localizer = dateFnsLocalizer({
-    format,
-    parse,
-    startOfWeek,
-    getDay,
-    locales,
-});
 
 interface TimeSlot {
     id: number;
@@ -34,47 +23,17 @@ interface TimeSlot {
     endTime: string;
 }
 
-interface TimetableEntry {
-    id: number;
-    day: string;
-    classId: number;
-    subjectId: number;
-    timeSlotId: number;
-    employerId: number;
-    academicYear: string;
-    subject: { subjectName: string };
-    timeSlot: TimeSlot;
-}
-
-interface TimetableEvent extends CalendarEvent {
-    title: string;
-    start: Date;
-    end: Date;
-    classId: number;
-    subjectId: number;
-    employerId: number;
-    timeSlotId: number;
-    academicYear: string;
-    day: string;
-}
-
-const dayMap: Record<string, number> = {
-    Sunday: 0,
-    Monday: 1,
-    Tuesday: 2,
-    Wednesday: 3,
-    Thursday: 4,
-    Friday: 5,
-    Saturday: 6,
-};
-
-const baseWeek = new Date(2025, 8, 1);
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function TimetableCalendar() {
     const [showSlotManager, setShowSlotManager] = useState(false);
-    const [events, setEvents] = useState<TimetableEvent[]>([]);
-    const [currentDate, setCurrentDate] = useState(baseWeek);
+    const [showEntryDialog, setShowEntryDialog] = useState(false);
+    const [timetableData, setTimetableData] = useState<TimetableEntry[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    // Form State
     const [formData, setFormData] = useState({
+        id: 0, // 0 for new
         subjectId: 0,
         classId: 0,
         employerId: 0,
@@ -82,42 +41,20 @@ export default function TimetableCalendar() {
         day: "Monday",
         academicYear: "2025-2026",
     });
+
+    // Data State
     const [subjects, setSubjects] = useState<any[]>([]);
     const [classes, setClasses] = useState<any[]>([]);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [teachers, setTeachers] = useState<any[]>([]);
 
-    // 🔹 Map Timetable DB rows to Calendar Events
-    const mapTimetableToEvents = (timetableData: TimetableEntry[]): TimetableEvent[] => {
-        return timetableData.map((t) => {
-            const startDate = new Date(baseWeek);
-            const dayDiff = dayMap[t.day] - startDate.getDay();
-            startDate.setDate(startDate.getDate() + dayDiff);
-
-            const [startHour, startMinute] = t.timeSlot.startTime.split(":").map(Number);
-            const [endHour, endMinute] = t.timeSlot.endTime.split(":").map(Number);
-
-            const start = new Date(startDate);
-            const end = new Date(startDate);
-
-            start.setHours(startHour, startMinute, 0, 0);
-            end.setHours(endHour, endMinute, 0, 0);
-
-            return {
-                title: `${t.subject.subjectName}`,
-                start,
-                end,
-                ...t,
-            };
-        });
-    };
-
     // 🔹 Load static data
     useEffect(() => {
-        Promise.all([api.get("/class"), api.get("/time-slots")])
-            .then(([classRes, slotRes]) => {
+        Promise.all([api.get("/class"), api.get("/time-slots"), api.get("/subject")])
+            .then(([classRes, slotRes, subjRes]) => {
                 setClasses(classRes.data.classes || []);
                 setTimeSlots(slotRes.data || []);
+                setSubjects(subjRes.data.subjects || []);
             })
             .catch(() => {
                 toast({
@@ -130,21 +67,24 @@ export default function TimetableCalendar() {
     // 🔹 Fetch timetable when class changes
     useEffect(() => {
         if (formData.classId === 0) return;
-        const fetchTimetable = async () => {
-            try {
-                const res = await api.get(`/timetable`);
-                const parsed = mapTimetableToEvents(res.data);
-                setEvents(parsed);
-
-                // Load subjects
-                const subjRes = await api.get(`/subject`);
-                setSubjects(subjRes.data.subjects || []);
-            } catch (error) {
-                console.error("Error fetching timetable:", error);
-            }
-        };
         fetchTimetable();
     }, [formData.classId]);
+
+    const fetchTimetable = async () => {
+        if (formData.classId === 0) return;
+        setLoading(true);
+        try {
+            const res = await api.get(`/timetable`);
+            const allData = res.data as TimetableEntry[];
+            // Filter by selected class
+            const classData = allData.filter(t => t.classId === formData.classId);
+            setTimetableData(classData);
+        } catch (error) {
+            console.error("Error fetching timetable:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // 🔹 Auto-select teacher when subject is chosen
     useEffect(() => {
@@ -153,145 +93,42 @@ export default function TimetableCalendar() {
         const fetchTeachersForSubject = async () => {
             try {
                 const res = await api.get(`/teacher-subject/subject/${formData.subjectId}`);
-                const teachers = res.data.map((item: any) => item.Employer);
-                setTeachers(teachers);
+                // API might return array or single object
+                const data = Array.isArray(res.data) ? res.data : [res.data];
+                const teachersList = data.map((item: any) => item.Employer).filter(Boolean);
+                setTeachers(teachersList);
 
-                // Optional: auto-select first teacher
-                if (teachers.length > 0) {
-                    setFormData(prev => ({ ...prev, employerId: teachers[0].employerId }));
+                // Auto-select first teacher if not editing an existing entry with a teacher
+                if (teachersList.length > 0 && formData.id === 0) {
+                    setFormData(prev => ({ ...prev, employerId: teachersList[0].employerId }));
+                } else if (teachersList.length === 0) {
+                    setFormData(prev => ({ ...prev, employerId: 0 }));
                 }
             } catch (error) {
                 console.error("Error loading teachers:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Failed to load teachers for this subject",
-                });
             }
         };
 
         fetchTeachersForSubject();
     }, [formData.subjectId]);
 
-
-    // Print Section 
-    const handleDownloadPDF = async () => {
-        const timetableElement = document.getElementById("timetable-print");
-        if (!timetableElement) return;
-
-        // Capture the timetable section as image
-        const canvas = await html2canvas(timetableElement, {
-            scale: 2,
-            backgroundColor: "#ffffff",
-        });
-
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("landscape", "mm", "a4");
-
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-
-        // === Header Section ===
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(20);
-        pdf.text("🏫 Modern High School", pageWidth / 2, 15, { align: "center" });
-
-        pdf.setFontSize(12);
-        pdf.setFont("helvetica", "normal");
-        pdf.text(`Academic Year: 2025–2026`, margin, 25);
-        pdf.text(`Class: ${formData.classId || "N/A"}`, margin + 80, 25);
-        pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth - 70, 25);
-
-        pdf.setLineWidth(0.5);
-        pdf.line(margin, 28, pageWidth - margin, 28); // Divider line
-
-        // === Add timetable image ===
-        const imgWidth = pageWidth - margin * 2;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        const yPosition = 35;
-
-        pdf.addImage(imgData, "PNG", margin, yPosition, imgWidth, imgHeight);
-
-        // === Footer ===
-        pdf.setFontSize(10);
-        pdf.setTextColor(100);
-        pdf.text(
-            "Generated automatically by School Timetable System",
-            pageWidth / 2,
-            pageHeight - 10,
-            { align: "center" }
-        );
-
-        pdf.save("Timetable_Report.pdf");
-    };
-
-    // 🔹 When user selects a subject
-    const handleSubjectSelect = async (subjectId: number) => {
+    const handleSubjectSelect = (subjectId: number) => {
         setFormData(prev => ({ ...prev, subjectId }));
-        if (!subjectId) return;
-
-        try {
-            const res = await api.get(`/teacher-subject/subject/${subjectId}`);
-            console.log("TeacherSubject API result:", res.data);
-
-            const data = Array.isArray(res.data) ? res.data : [res.data];
-            const teachers = data.map((item: any) => item.Employer).filter(Boolean);
-            setTeachers(teachers);
-
-            if (teachers.length > 0) {
-                setFormData(prev => ({ ...prev, employerId: teachers[0].employerId }));
-            } else {
-                setFormData(prev => ({ ...prev, employerId: 0 }));
-            }
-        } catch (error) {
-            console.error("Error loading teachers:", error);
-            toast({
-                variant: "destructive",
-                title: "Failed to load teachers for this subject",
-            });
-        }
     };
 
+    const handleSave = async () => {
+        const { day, classId, timeSlotId, academicYear, subjectId, employerId, id } = formData;
+        
+        // Check if subject is lunch/break
+        const selectedSubject = subjects.find(s => s.subjectId === subjectId);
+        const isLunch = selectedSubject?.subjectName?.toLowerCase().includes('lunch') || 
+                       selectedSubject?.subjectName?.toLowerCase().includes('break');
 
-    // 🔹 Navigation functions
-    const handleToday = () => {
-        setCurrentDate(new Date());
-    };
-
-    const handleBack = () => {
-        const newDate = new Date(currentDate);
-        newDate.setDate(newDate.getDate() - 7);
-        setCurrentDate(newDate);
-    };
-
-    const handleNext = () => {
-        const newDate = new Date(currentDate);
-        newDate.setDate(newDate.getDate() + 7);
-        setCurrentDate(newDate);
-    };
-
-    // 🔹 Get date range for display
-    const getDateRange = () => {
-        const startOfWeek = new Date(currentDate);
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(endOfWeek.getDate() + 6);
-
-        return {
-            start: format(startOfWeek, "MMMM dd"),
-            end: format(endOfWeek, "MMMM dd")
-        };
-    };
-
-    // 🔹 Add or Update timetable entry
-    const handleAdd = async () => {
-        const { day, classId, timeSlotId, academicYear, subjectId, employerId } = formData;
-        if (!subjectId || !classId || !timeSlotId || !employerId) {
+        if (!subjectId || !classId || !timeSlotId || (!employerId && !isLunch)) {
             toast({
                 variant: "destructive",
                 title: "Missing data",
-                description: "Please select class, subject and time slot.",
+                description: "Please select class, subject, teacher and time slot.",
             });
             return;
         }
@@ -299,25 +136,35 @@ export default function TimetableCalendar() {
         const payload = { subjectId, classId, employerId, timeSlotId, day, academicYear };
 
         try {
-            const checkRes = await api.get("/timetable/check", {
-                params: { day, classId, timeSlotId, academicYear },
-            });
-            const existing = checkRes.data;
-
-            if (existing?.length > 0) {
-                await Promise.all(
-                    existing.map((entry: any) =>
-                        api.put(`/timetable/${entry.id}`, { subjectId, employerId })
-                    )
-                );
+            if (id > 0) {
+                // Update
+                await api.put(`/timetable/${id}`, { subjectId, employerId, timeSlotId, day });
                 toast({ title: "Timetable updated successfully" });
             } else {
-                await api.post("/timetable", payload);
-                toast({ title: "New timetable entry added" });
+                // Create
+                const checkRes = await api.get("/timetable/check", {
+                    params: { day, classId, timeSlotId, academicYear },
+                });
+                const existing = checkRes.data;
+
+                if (existing?.length > 0) {
+                    // Update existing if found (overwrite)
+                    await Promise.all(
+                        existing.map((entry: any) =>
+                            api.put(`/timetable/${entry.id}`, { subjectId, employerId })
+                        )
+                    );
+                    toast({ title: "Timetable updated successfully" });
+                } else {
+                    await api.post("/timetable", payload);
+                    toast({ title: "New timetable entry added" });
+                }
             }
 
-            const timetableRes = await api.get(`/timetable`);
-            setEvents(mapTimetableToEvents(timetableRes.data));
+            setShowEntryDialog(false);
+            fetchTimetable();
+            // Reset form (keep classId)
+            setFormData(prev => ({ ...prev, id: 0, subjectId: 0, employerId: 0 }));
         } catch (error) {
             console.error(error);
             toast({
@@ -327,221 +174,318 @@ export default function TimetableCalendar() {
         }
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm("Are you sure you want to delete this entry?")) return;
+        try {
+            await api.delete(`/timetable/${id}`);
+            toast({ title: "Entry deleted" });
+            fetchTimetable();
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error deleting entry" });
+        }
+    };
+
+    const handleDrop = async (item: { slot: TimetableEntry, day: string, timeSlotId: number }, newDay: string, newTimeSlotId: number) => {
+        const { slot } = item;
+        if (slot.day === newDay && slot.timeSlotId === newTimeSlotId) return;
+
+        try {
+            await api.put(`/timetable/${slot.id}`, { 
+                day: newDay, 
+                timeSlotId: newTimeSlotId,
+                subjectId: slot.subjectId,
+                employerId: slot.employerId 
+            });
+            toast({ title: "Moved successfully" });
+            fetchTimetable();
+        } catch (error) {
+            toast({ variant: "destructive", title: "Failed to move entry" });
+        }
+    };
+
+    const openAddDialog = (day?: string, timeSlotId?: number) => {
+        setFormData(prev => ({
+            ...prev,
+            id: 0,
+            subjectId: 0,
+            employerId: 0,
+            day: day || "Monday",
+            timeSlotId: timeSlotId || (timeSlots[0]?.id || 0)
+        }));
+        setShowEntryDialog(true);
+    };
+
+    const openEditDialog = (entry: TimetableEntry) => {
+        setFormData({
+            id: entry.id,
+            classId: entry.classId,
+            subjectId: entry.subjectId,
+            employerId: entry.employerId,
+            timeSlotId: entry.timeSlotId,
+            day: entry.day,
+            academicYear: entry.academicYear
+        });
+        setShowEntryDialog(true);
+    };
+
+    const handleDownloadPDF = async () => {
+        const timetableElement = document.getElementById("timetable-grid");
+        if (!timetableElement) return;
+
+        const canvas = await html2canvas(timetableElement, {
+            scale: 2,
+            backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("landscape", "mm", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const margin = 10;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(20);
+        pdf.text("School Timetable", pageWidth / 2, 15, { align: "center" });
+        
+        const selectedClass = classes.find(c => c.classId === formData.classId);
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(`Class: ${selectedClass?.ClassName || "N/A"}`, margin, 25);
+
+        const imgWidth = pageWidth - margin * 2;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, "PNG", margin, 35, imgWidth, imgHeight);
+        pdf.save("Timetable.pdf");
+    };
+
+    const getSlot = (day: string, timeSlotId: number) => {
+        return timetableData.find(t => t.day === day && t.timeSlotId === timeSlotId) || null;
+    };
+
     return (
-        <div className="p-6 ">
-                <h1 className="text-2xl font-semibold mb-4">School Timetable</h1>
-                <div className="mb-4 p-3 bg-card border border-border rounded-lg shadow-sm">
-                {/* 🔹 Form Controls */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
-                    {/* Class */}
-                    <select
-                        value={formData.classId}
-                        onChange={(e) => setFormData({ ...formData, classId: +e.target.value })}
-                        className="border p-2 rounded"
-                    >
-                        <option value={0}>Select Class</option>
-                        {classes.map((c) => (
-                            <option key={c.classId} value={c.classId}>
-                                {c.ClassName}
-                            </option>
-                        ))}
-                    </select>
+        <DndProvider backend={HTML5Backend}>
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-semibold text-foreground mb-1">Timetable Management</h1>
+                        <p className="text-muted-foreground">Manage class schedules and time slots</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <select
+                            value={formData.classId}
+                            onChange={(e) => setFormData(prev => ({ ...prev, classId: +e.target.value }))}
+                            className="px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-background text-foreground"
+                        >
+                            <option value={0}>Select Class</option>
+                            {classes.map((c) => (
+                                <option key={c.classId} value={c.classId}>
+                                    {c.ClassName}
+                                </option>
+                            ))}
+                        </select>
+                        
+                        <Button 
+                            onClick={() => setShowSlotManager(true)}
+                            variant="outline"
+                            className="gap-2"
+                        >
+                            Manage Slots
+                        </Button>
 
-                    {/* Subject (auto fetches teacher) */}
-                    <select
-                        value={formData.subjectId}
-                        onChange={(e) => handleSubjectSelect(+e.target.value)}
-                        className="border p-2 rounded"
-                    >
-                        <option value={0}>Select Subject</option>
-                        {subjects.map((s) => (
-                            <option key={s.subjectId} value={s.subjectId}>
-                                {s.subjectName}
-                            </option>
-                        ))}
-                    </select>
+                        <Button 
+                            onClick={() => openAddDialog()}
+                            className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all rounded-xl"
+                            disabled={formData.classId === 0}
+                        >
+                            <Plus className="w-5 h-5" />
+                            Add Period
+                        </Button>
 
-                    <select
-                        value={formData.employerId}
-                        onChange={(e) => setFormData({ ...formData, employerId: +e.target.value })}
-                        className="border p-2 rounded"
-                    >
-                        <option value={0}>Select Teacher</option>
-                        {teachers.map((t) => (
-                            <option key={t.employerId} value={t.employerId}>
-                                {t.firstName} {t.lastName}
-                            </option>
-                        ))}
-                    </select>
-
-                    {/* Time Slot */}
-                    <select
-                        value={formData.timeSlotId}
-                        onChange={(e) => setFormData({ ...formData, timeSlotId: +e.target.value })}
-                        className="border p-2 rounded"
-                    >
-                        <option value={0}>Select Time Slot</option>
-                        {timeSlots.map((t) => (
-                            <option key={t.id} value={t.id}>
-                                {t.label}
-                            </option>
-                        ))}
-                    </select>
-
-                    {/* Day */}
-                    <select
-                        value={formData.day}
-                        onChange={(e) => setFormData({ ...formData, day: e.target.value })}
-                        className="border p-2 rounded"
-                    >
-                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d) => (
-                            <option key={d} value={d}>
-                                {d}
-                            </option>
-                        ))}
-                    </select>
+                        <Button
+                            onClick={handleDownloadPDF}
+                            variant="destructive"
+                            className="gap-2 rounded-xl"
+                            disabled={formData.classId === 0}
+                        >
+                            Export PDF
+                        </Button>
+                    </div>
                 </div>
 
-                {/* Buttons */}
-                <div className="flex items-center gap-3 mb-2">
-                    <Button
-                        onClick={() => setShowSlotManager(true)}
-                        className="bg-green-600 text-white hover:bg-green-700"
+                {/* Timetable Grid */}
+                {formData.classId === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-[400px] bg-card rounded-2xl border border-dashed border-border">
+                        <CalendarIcon className="w-12 h-12 text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">Please select a class to view the timetable</p>
+                    </div>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-card rounded-2xl p-6 shadow-sm border border-border overflow-x-auto"
+                        id="timetable-grid"
                     >
-                        Manage Time Slots
-                    </Button>
+                        <div className="min-w-[1000px]">
+                            <div className="grid grid-cols-7 gap-4">
+                                {/* Header */}
+                                <div className="p-3 bg-muted/50 rounded-xl">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <CalendarIcon className="w-5 h-5" />
+                                        <span>Time</span>
+                                    </div>
+                                </div>
+                                {days.map((day) => (
+                                    <div key={day} className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl">
+                                        <p className="text-foreground text-center font-medium">{day}</p>
+                                    </div>
+                                ))}
 
-                    <Button
-                        onClick={handleAdd}
-                        className="bg-blue-600 text-white hover:bg-blue-700"
-                    >
-                        Add / Update Timetable
-                    </Button>
-                </div>
+                                {/* Time Slots */}
+                                {timeSlots.sort((a,b) => a.startTime.localeCompare(b.startTime)).map((time) => (
+                                    <Fragment key={time.id}>
+                                        <div className="p-3 bg-muted/50 rounded-xl flex flex-col justify-center">
+                                            <span className="text-foreground font-medium text-sm">{time.label}</span>
+                                            <span className="text-muted-foreground text-xs">{time.startTime} - {time.endTime}</span>
+                                        </div>
+                                        {days.map((day) => (
+                                            <TimetableSlot
+                                                key={`${day}-${time.id}`}
+                                                slot={getSlot(day, time.id)}
+                                                day={day}
+                                                timeSlotId={time.id}
+                                                onDrop={handleDrop}
+                                                onDelete={handleDelete}
+                                                onEdit={openEditDialog}
+                                                onAdd={openAddDialog}
+                                            />
+                                        ))}
+                                    </Fragment>
+                                ))}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
 
+                {/* Legend */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                >
+                    <h2 className="text-foreground mb-4 font-medium">Legend</h2>
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded"></div>
+                            <span className="text-muted-foreground text-sm">Scheduled Class</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-muted border border-border rounded"></div>
+                            <span className="text-muted-foreground text-sm">Break / Lunch</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-muted/30 border border-dashed border-border rounded"></div>
+                            <span className="text-muted-foreground text-sm">Available Slot</span>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Dialogs */}
                 <TimeSlotManager
                     open={showSlotManager}
                     onOpenChange={setShowSlotManager}
                     timeSlots={timeSlots}
                     setTimeSlots={setTimeSlots}
                 />
-            </div>
 
-            {/* Calendar Navigation Header */}
-            <div className="flex justify-between items-center mb-4 p-3 bg-card border border-border rounded-lg shadow-sm">
-                <div className="flex gap-2">
-                    <Button
-                        onClick={handleToday}
-                        variant="outline"
-                        size="sm"
-                        className="bg-card border-border hover:bg-muted/50 text-foreground font-medium"
-                    >
-                        Today
-                    </Button>
-                    <Button
-                        onClick={handleBack}
-                        variant="outline"
-                        size="sm"
-                        className="bg-card border-border hover:bg-muted/50 text-foreground font-medium"
-                    >
-                        Back
-                    </Button>
-                    <Button
-                        onClick={handleNext}
-                        variant="outline"
-                        size="sm"
-                        className="bg-card border-border hover:bg-muted/50 text-foreground font-medium"
-                    >
-                        Next
-                    </Button>
-                </div>
-                <div className="text-lg font-semibold text-foreground">
-                    {getDateRange().start} - {getDateRange().end}
-                </div>
-                <Button
-                    onClick={handleDownloadPDF}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                    🖨️ Export as PDF
-                </Button>
-            </div>
-
-            {/* Calendar */}
-            <div id="timetable-print" className="mb-4  bg-card border border-border rounded-lg shadow-sm" >
-                <Calendar
-                    localizer={localizer}
-                    events={events}
-                    defaultView={Views.WEEK}
-                    views={["week"]}
-                    step={60}
-                    timeslots={1}
-                    date={currentDate}
-                    onNavigate={setCurrentDate}
-                    toolbar={false}
-                    startAccessor="start"
-                    endAccessor="end"
-                    min={new Date(2025, 8, 1, 8, 0)}
-                    max={new Date(2025, 8, 1, 18, 0)}
-                    culture="en-US"
-                    style={{ height: "80vh" }}
-                    components={{
-                        // 🧩 Custom box in the top-left corner (before Sunday)
-                        timeGutterHeader: () => (
-                            <div
-                                style={{
-                                    backgroundColor: "hsl(var(--muted))",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "flex-start",
-                                    fontWeight: "600",
-                                    height: "36px",
-                                    fontSize: "0.9rem",
-                                    color: "hsl(var(--foreground))",
-                                    padding: "8px 12px",
-                                    textAlign: "left",
-                                }}
-                            >
-                                Time
+                <Dialog open={showEntryDialog} onOpenChange={setShowEntryDialog}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{formData.id > 0 ? "Edit Timetable Entry" : "Add Timetable Entry"}</DialogTitle>
+                            <DialogDescription>
+                                Fill in the details below to schedule a class or break.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="grid gap-2">
+                                <Label>Day</Label>
+                                <select
+                                    value={formData.day}
+                                    onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                >
+                                    {days.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
                             </div>
-                        ),
-
-                        // 📅 Custom event component
-                        event: ({ event }) => (
-                            <div className="h-full flex flex-col justify-center items-center text-center">
-                                <div className="font-medium text-sm">{event.title}</div>
+                            <div className="grid gap-2">
+                                <Label>Time Slot</Label>
+                                <select
+                                    value={formData.timeSlotId}
+                                    onChange={(e) => setFormData({ ...formData, timeSlotId: +e.target.value })}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                >
+                                    {timeSlots.map(t => (
+                                        <option key={t.id} value={t.id}>{t.label} ({t.startTime}-{t.endTime})</option>
+                                    ))}
+                                </select>
                             </div>
-                        ),
-
-                        // 🗓️ Custom header for each weekday
-                        week: {
-                            header: ({ date, localizer }) => {
-                                const dayName = localizer.format(date, "EEEE", "en-US");
-                                return (
-                                    <div
-                                        style={{
-                                            textAlign: "center",
-                                            fontWeight: "600",
-                                            fontSize: "0.9rem",
-                                            padding: "8px 4px",
-                                            borderBottom: "1px solid hsl(var(--border))",
-                                            backgroundColor: "hsl(var(--muted))",
-                                            color: "hsl(var(--foreground))",
-                                            textTransform: "capitalize",
-                                            height: "36px",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
+                            <div className="grid gap-2">
+                                <div className="flex justify-between items-center">
+                                    <Label>Subject</Label>
+                                    <Button 
+                                        type="button"
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-6 text-xs text-blue-600 hover:text-blue-700 px-2"
+                                        onClick={() => {
+                                            const lunchSubject = subjects.find(s => s.subjectName.toLowerCase().includes('lunch') || s.subjectName.toLowerCase().includes('break'));
+                                            
+                                            if (lunchSubject) {
+                                                handleSubjectSelect(lunchSubject.subjectId);
+                                                toast({ title: `Selected: ${lunchSubject.subjectName}` });
+                                            } else {
+                                                toast({ 
+                                                    title: "Subject not found", 
+                                                    description: "Please create a subject named 'Lunch' or 'Break' first.",
+                                                    variant: "destructive" 
+                                                });
+                                            }
                                         }}
                                     >
-                                        {dayName}
-                                    </div>
-                                );
-                            },
-                        },
-                    }}
-                />
+                                        Set as Lunch Break
+                                    </Button>
+                                </div>
+                                <select
+                                    value={formData.subjectId}
+                                    onChange={(e) => handleSubjectSelect(+e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                >
+                                    <option value={0}>Select Subject</option>
+                                    {subjects.map(s => (
+                                        <option key={s.subjectId} value={s.subjectId}>{s.subjectName}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Teacher</Label>
+                                <select
+                                    value={formData.employerId}
+                                    onChange={(e) => setFormData({ ...formData, employerId: +e.target.value })}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                >
+                                    <option value={0}>Select Teacher</option>
+                                    {teachers.map(t => (
+                                        <option key={t.employerId} value={t.employerId}>{t.firstName} {t.lastName}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <Button onClick={handleSave} className="w-full">
+                                Save Entry
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
-        </div>
+        </DndProvider>
     );
 }
-

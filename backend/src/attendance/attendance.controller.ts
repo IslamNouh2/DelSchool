@@ -92,4 +92,21 @@ async saveStudentAttendance(@Body() body: any) {
   getEmployerLast7Days() {
     return this.service.getEmployerLast7DaysAttendance();
   }
+  @Get('student-weekly-chart/:classId')
+  getStudentWeeklyChart(@Param('classId', ParseIntPipe) classId: number) {
+    return this.service.getStudentWeeklyChartData(classId);
+  }
+
+  @Get('student-daily-summary/:classId/:date')
+  getStudentDailySummary(
+    @Param('classId', ParseIntPipe) classId: number,
+    @Param('date') date: string
+  ) {
+    return this.service.getStudentDailySummaryData(classId, date);
+  }
+
+  @Get('student/:id/history')
+  getStudentAttendance(@Param('id', ParseIntPipe) id: number) {
+    return this.service.getStudentAttendance(id);
+  }
 }

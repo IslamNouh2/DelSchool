@@ -15,6 +15,9 @@ import { TimetableModule } from './timetable/timetable.module';
 import { TimeSlotModule } from './time-slot/time-slot.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { ExamsModule } from './exams/exams.module';
+import { FeeModule } from './fee/fee.module';
+import { PaymentModule } from './payment/payment.module';
+import { CompteModule } from './compte/compte.module';
 
 @Module({
   imports: [
@@ -34,7 +37,10 @@ import { ExamsModule } from './exams/exams.module';
     TimetableModule,
     TimeSlotModule,
     AttendanceModule,
-    ExamsModule
+    ExamsModule,
+    FeeModule,
+    PaymentModule,
+    CompteModule
   ],
   
 })

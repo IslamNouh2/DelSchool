@@ -31,19 +31,12 @@ const GenericUserForm: React.FC<UserFormProps> = ({
                     <StudentForm
                         type={type}
                         data={data}
-                        setOpen={setOpen}
+                        setOpen={setOpen as any}
                         onSuccess={onSuccess}
                     />
                 );
             case 'teacher':
-                return (
-                    // <TeacherForm
-                    //     type={type}
-                    //     data={data}
-                    //     setOpen={setOpen}
-                    //     onSuccess={onSuccess}
-                    // />
-                );
+                return null;
             default:
                 return (
                     <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md">

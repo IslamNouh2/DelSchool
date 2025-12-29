@@ -21,8 +21,8 @@ export class LocalController {
   ) {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    const validSortFields = ['dateCreate', 'code', 'ClassName']
-    const orderByField = validSortFields.includes(sort) ? sort : 'dateCreate'
+    const validSortFields = ['dateCreate', 'code', 'name', 'NumClass']
+    const orderByField = validSortFields.includes(sort) ? sort : 'name'
     return this.localService.GetLocal(pageNumber, limitNumber, orderByField);
   }
 

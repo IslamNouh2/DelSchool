@@ -147,7 +147,14 @@ export default function EmployerDialog({
 
     useEffect(() => {
         if (type === "update" && data) {
-            setForm({
+            console.log("TeacherForm useEffect - type: update, data:", data);
+            
+            // Normalize gender for pre-population (Select is case-sensitive)
+            let normalizedGender = data.gender || "";
+            if (normalizedGender.toLowerCase() === "male") normalizedGender = "Male";
+            if (normalizedGender.toLowerCase() === "female") normalizedGender = "Female";
+
+            const initialForm = {
                 code: data.code || "",
                 firstName: data.firstName || "",
                 lastName: data.lastName || "",
@@ -155,7 +162,7 @@ export default function EmployerDialog({
                 dateInscription: data.dateInscription || "",
                 lieuNaissance: data.lieuOfBirth || "",
                 nationality: data.nationality || "",
-                gender: data.gender || "",
+                gender: normalizedGender,
                 carteNationale: data.cid || "",
                 etatCivil: data.etatCivil || "",
                 etatSante: data.health || "",
@@ -169,7 +176,10 @@ export default function EmployerDialog({
                 type: data.type || "",
                 okBlock: data?.okBlock ?? false,
                 photo: null,
-            })
+            };
+            console.log("Setting teacher form state to:", initialForm);
+            setForm(initialForm);
+
             setBirthDate(data.dateOfBirth ? new Date(data.dateOfBirth) : undefined)
             setRegisterDate(data.dateInscription ? new Date(data.dateInscription) : undefined)
             if (data.photoFileName) {

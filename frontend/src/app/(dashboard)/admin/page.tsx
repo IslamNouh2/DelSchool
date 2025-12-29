@@ -1,13 +1,22 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import Cookies from "js-cookie";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { motion } from "motion/react";
+import { 
+  Users, 
+  GraduationCap, 
+  UserRound, 
+  Briefcase, 
+  TrendingUp, 
+  Calendar, 
+  Bell,
+  LayoutDashboard
+} from "lucide-react";
 import Announcement from "@/components/announcement";
 import AttendanceCharts from "@/components/AttendanceCharts";
 import CountChart from "@/components/CountChart";
 import EventCalendar from "@/components/EventCalendar";
 import FinanceChart from "@/components/FinanceChart";
-import UserCard from "@/components/UserCard";
 import api from "@/lib/api";
 
 interface CountData {
@@ -25,142 +34,190 @@ const AdminPage = () => {
         staffCount: 0,
     });
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    // useEffect(() => {
-    //     const fetchCounts = async () => {
-    //         try {
-    //             setLoading(true);
-    //             setError(null);
+    const fetchCounts = useCallback(async () => {
+        try {
+            setLoading(true);
+            const [studentRes, teacherRes, parentRes, staffRes] = await Promise.allSettled([
+                api.get("/student/count"),
+                api.get("/teacher/count"),
+                api.get("/parent/count"),
+                api.get("/staff/count"),
+            ]);
 
-    //             // Get token for authentication
-    //             const token = Cookies.get("token");
-    //             if (!token) {
-    //                 throw new Error("No authentication token found");
-    //             }
+            setCounts({
+                studentCount: studentRes.status === 'fulfilled' ? studentRes.value.data.total || 0 : 0,
+                teacherCount: teacherRes.status === 'fulfilled' ? teacherRes.value.data.total || 0 : 0,
+                parentCount: parentRes.status === 'fulfilled' ? parentRes.value.data.total || 0 : 0,
+                staffCount: staffRes.status === 'fulfilled' ? staffRes.value.data.total || 0 : 0,
+            });
+        } catch (err) {
+            console.error("Failed to fetch counts", err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-    //             // Configure headers for API calls
-    //             const config = {
-    //                 headers: {
-    //                     Authorization: `Bearer ${token}`,
-    //                 },
-    //                 withCredentials: true,
-    //             };
+    useEffect(() => {
+        fetchCounts();
+    }, [fetchCounts]);
 
-    //             // Make parallel API calls to different endpoints
-    //             const [studentRes, teacherRes, parentRes, staffRes] = await Promise.allSettled([
-    //                 api.get("/student/count", config),
-    //                 api.get("/teacher/count", config), // Fixed: different endpoint
-    //                 api.get("/parent/count", config),  // Fixed: different endpoint
-    //                 api.get("/staff/count", config),   // Fixed: different endpoint
-    //             ]);
-
-    //             // Process results with error handling
-    //             const newCounts: CountData = {
-    //                 studentCount: studentRes.status === 'fulfilled' ? studentRes.value.data.total || 0 : 0,
-    //                 teacherCount: teacherRes.status === 'fulfilled' ? teacherRes.value.data.total || 0 : 0,
-    //                 parentCount: parentRes.status === 'fulfilled' ? parentRes.value.data.total || 0 : 0,
-    //                 staffCount: staffRes.status === 'fulfilled' ? staffRes.value.data.total || 0 : 0,
-    //             };
-
-    //             setCounts(newCounts);
-
-    //             // Log any failed requests
-    //             if (studentRes.status === 'rejected') console.error("Failed to fetch student count:", studentRes.reason);
-    //             if (teacherRes.status === 'rejected') console.error("Failed to fetch teacher count:", teacherRes.reason);
-    //             if (parentRes.status === 'rejected') console.error("Failed to fetch parent count:", parentRes.reason);
-    //             if (staffRes.status === 'rejected') console.error("Failed to fetch staff count:", staffRes.reason);
-
-    //         } catch (err: any) {
-    //             console.error("Failed to fetch counts", err);
-    //             setError(err.message || "Failed to load dashboard data");
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     fetchCounts();
-    // }, []);
-
-    // // Show loading state
-    // if (loading) {
-    //     return (
-    //         <div className="p-4 h-full">
-    //             <div className="flex items-center justify-center h-64">
-    //                 <div className="flex flex-col items-center gap-4">
-    //                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-    //                     <p className="text-gray-600">Loading dashboard...</p>
-    //                 </div>
-    //             </div>
-    //         </div>
-    //     );
-    // }
-
-    // // Show error state
-    // if (error) {
-    //     return (
-    //         <div className="p-4 h-full">
-    //             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-    //                 <h3 className="font-semibold">Error Loading Dashboard</h3>
-    //                 <p className="mt-1">{error}</p>
-    //                 <button
-    //                     onClick={() => window.location.reload()}
-    //                     className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-    //                 >
-    //                     Retry
-    //                 </button>
-    //             </div>
-    //         </div>
-    //     );
-    // }
+    const stats = useMemo(() => [
+        {
+            title: "Étudiants",
+            value: counts.studentCount,
+            icon: GraduationCap,
+            color: "text-blue-600",
+            bg: "bg-blue-50",
+            trend: "+2.5%",
+            trendUp: true
+        },
+        {
+            title: "Enseignants",
+            value: counts.teacherCount,
+            icon: Users,
+            color: "text-purple-600",
+            bg: "bg-purple-50",
+            trend: "+1.2%",
+            trendUp: true
+        },
+        {
+            title: "Parents",
+            value: counts.parentCount,
+            icon: UserRound,
+            color: "text-green-600",
+            bg: "bg-green-50",
+            trend: "+0.8%",
+            trendUp: true
+        },
+        {
+            title: "Personnel",
+            value: counts.staffCount,
+            icon: Briefcase,
+            color: "text-orange-600",
+            bg: "bg-orange-50",
+            trend: "-0.5%",
+            trendUp: false
+        }
+    ], [counts]);
 
     return (
-        <div className="p-4 h-full w-full">
-            {/* Success indicator for debugging */}
-            {/* <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg">
-            
-                <span className="font-semibold">✅ Admin Dashboard Loaded Successfully!</span>
-            </div> */}
-
-            {/* USER CARDS */}
-            <div className="p-4">
-                <div className="flex gap-4 justify-between flex-wrap">
-                    {/* <UserCard userType="student" count={counts.studentCount} />
-                    <UserCard userType="teacher" count={counts.teacherCount} />
-                    <UserCard userType="parent" count={counts.parentCount} />
-                    <UserCard userType="staff" count={counts.staffCount} /> */}
+        <div className="p-6 space-y-8 bg-gray-50/50 min-h-screen">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <LayoutDashboard className="w-6 h-6 text-blue-600" />
+                        <h1 className="text-2xl font-bold text-gray-900">Tableau de Bord Admin</h1>
+                    </div>
+                    <p className="text-gray-500">Bienvenue sur votre espace de gestion scolaire</p>
+                </div>
+                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="p-2 bg-blue-50 rounded-xl">
+                        <Calendar className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="pr-4">
+                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Aujourd&apos;hui</p>
+                        <p className="text-sm font-bold text-gray-700">{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
                 </div>
             </div>
 
-            <div className='p-4 flex gap-4 flex-col md:flex-row'>
-                {/* Left Part */}
-                <div className="w-full lg:w-2/3 flex flex-col gap-8">
-                    {/* Top Charts */}
-                    <div className="flex gap-4 flex-col lg:flex-row">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats.map((stat, index) => (
+                    <motion.div
+                        key={stat.title}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group"
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className={`p-4 ${stat.bg} rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
+                                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                            </div>
+                            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${stat.trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                                <TrendingUp className={`w-3 h-3 ${!stat.trendUp && 'rotate-180'}`} />
+                                {stat.trend}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-3xl font-bold text-gray-900 mb-1">
+                                {loading ? "..." : stat.value}
+                            </h3>
+                            <p className="text-gray-500 font-medium">{stat.title}</p>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column - Charts */}
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {/* Count Chart */}
-                        <div className="w-full lg:w-1/3 h-[450px]">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className="md:col-span-1 h-[450px]"
+                        >
                             <CountChart />
-                        </div>
+                        </motion.div>
                         {/* Attendance Chart */}
-                        <div className="w-full lg:w-2/3 h-[450px]">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="md:col-span-2 h-[450px]"
+                        >
                             <AttendanceCharts />
-                        </div>
+                        </motion.div>
                     </div>
 
-                    {/* Bottom Chart */}
-                    <div className="w-full h-[500px]">
+                    {/* Finance Chart */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="h-[500px]"
+                    >
                         <FinanceChart />
-                    </div>
+                    </motion.div>
                 </div>
 
-                {/* Right Part */}
-                <div className="w-full lg:w-1/3 flex flex-col gap-8">
-                    <div>
+                {/* Right Column - Calendar & Announcements */}
+                <div className="space-y-8">
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.7 }}
+                        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-orange-50 rounded-xl">
+                                <Calendar className="w-5 h-5 text-orange-600" />
+                            </div>
+                            <h2 className="text-lg font-bold text-gray-900">Calendrier</h2>
+                        </div>
                         <EventCalendar />
-                    </div>
-                    <div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 }}
+                        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-pink-50 rounded-xl">
+                                <Bell className="w-5 h-5 text-pink-600" />
+                            </div>
+                            <h2 className="text-lg font-bold text-gray-900">Annonces</h2>
+                        </div>
                         <Announcement />
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </div>

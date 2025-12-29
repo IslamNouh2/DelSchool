@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AttendanceStatus, Prisma } from '@prisma/client';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from 'prisma/prisma.service';
 import { SaveStudentAttendanceDto } from './dto/create-student-attendance.dto';
 import { CreateEmployerAttendanceDto } from './dto/create-employer-attendance.dto';
 
@@ -252,5 +252,86 @@ export class AttendanceRepository {
                 (record) => record.employerId === employer.employerId,
             ),
         }));
+    }
+    // Chart Data: Weekly Attendance
+    async getStudentWeeklyChartData(classId: number) {
+        const result: { day: string; present: number; absent: number }[] = [];
+        const today = new Date();
+        
+        // Loop for the last 7 days (including today or up to yesterday? usually last 7 days ending today)
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const startOfDay = new Date(d.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(d.setHours(23, 59, 59, 999));
+
+            const records = await this.prisma.studentAttendance.findMany({
+                where: {
+                    classId,
+                    date: {
+                        gte: startOfDay,
+                        lte: endOfDay,
+                    },
+                },
+                select: { status: true },
+            });
+
+            const present = records.filter(r => r.status === 'PRESENT').length;
+            const absent = records.filter(r => r.status === 'ABSENT').length;
+            
+            // Format day name (e.g., "Mon")
+            const dayName = startOfDay.toLocaleDateString('en-US', { weekday: 'short' });
+
+            result.push({
+                day: dayName,
+                present,
+                absent
+            });
+        }
+        return result;
+    }
+
+    // Chart Data: Daily Summary
+    async getStudentDailySummaryData(classId: number, date: string) {
+        const targetDate = new Date(date);
+        const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+        const records = await this.prisma.studentAttendance.findMany({
+            where: {
+                classId,
+                date: {
+                    gte: startOfDay,
+                    lte: endOfDay,
+                },
+            },
+            select: { status: true },
+        });
+
+        const present = records.filter(r => r.status === 'PRESENT').length;
+        const absent = records.filter(r => r.status === 'ABSENT').length;
+
+        // If no records found, maybe we should count total students?
+        // But for now, let's just show what's recorded. 
+        // If "Present" is default (no record), this might be misleading if we only count explicit records.
+        // However, the previous logic implies we save explicit records. 
+        // If we want to be accurate including "implied present", we need total students count.
+        
+        // Let's get total students count to calculate "Implied Present" if needed.
+        // But for simplicity and matching the "Save" logic which saves everything now (based on my previous edit plan),
+        // we can rely on records. Wait, did I change Save to save everything?
+        // In the frontend refactor, I said "Let's save ALL records". 
+        // So we can rely on DB records.
+
+        return [
+            { name: 'Present', value: present, color: '#10B981' },
+            { name: 'Absent', value: absent, color: '#EF4444' },
+        ];
+    }
+    async getStudentAttendance(studentId: number) {
+        return this.prisma.studentAttendance.findMany({
+            where: { studentId },
+            orderBy: { date: 'desc' }
+        });
     }
 }

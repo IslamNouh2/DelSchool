@@ -92,6 +92,10 @@ export class LocalService {
     }
 
     async getAllLocals() {
-        return this.prisma.local.findMany();
+        return this.prisma.local.findMany({
+            include: {
+                classes: true
+            }
+        });
     }
 }
