@@ -21,7 +21,7 @@ import { Role } from 'src/auth/dto/register.dto';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+//@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('subject')
 export class SubjectController {
   constructor(private readonly subjectsService: SubjectService) { }
@@ -37,7 +37,7 @@ export class SubjectController {
     return this.subjectsService.findSubSubjects();
   }
 
-  @Roles(Role.TEACHER, Role.ADMIN)
+  //@Roles(Role.TEACHER, Role.ADMIN)
   @Get()
   async findAll(
     @Query('page') page: number = 1,
