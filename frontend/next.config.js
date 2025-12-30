@@ -4,7 +4,19 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ["localhost", "delschool-2.onrender.com"],
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "47005",
+        pathname: "/student/photo/**",
+      },
+      {
+        protocol: "https",
+        hostname: "delschool-2.onrender.com",
+        pathname: "/student/photo/**",
+      },
+    ],
   },
   experimental: {
     optimizeCss: false,
