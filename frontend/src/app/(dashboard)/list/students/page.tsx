@@ -171,6 +171,9 @@ export default function StudentListPage() {
                     src={getPhotoUrl(student.photoFileName)}
                     alt={`${student.firstName} ${student.lastName}`}
                     className="w-10 h-10 rounded-full object-cover border border-border"
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/noAvatar.png";
+                    }}
                 />
             ),
         },
