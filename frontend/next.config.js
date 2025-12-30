@@ -16,9 +16,9 @@ const nextConfig = {
         destination: `${process.env.NEXT_PUBLIC_API_URL}/student/photo/:filename`,
       },
       {
-  source: "/api/:path*",
-  destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
-},
+        source: "/api/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+      },
     ];
   },
   webpack: (config, { dev, isServer }) => {

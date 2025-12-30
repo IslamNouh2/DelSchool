@@ -24,9 +24,9 @@ export class AuthService {
 
         response.cookie('token', token, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
+            secure: true,          // IMPORTANT on https
+            sameSite: 'none',      // REQUIRED for cross-site
+            path: '/',             // allow all routes
             maxAge,
         });
     }
