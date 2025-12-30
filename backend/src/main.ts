@@ -6,12 +6,34 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 async function runSeedIfNeeded() {
-  const count = await prisma.user.count();   // pick any table
-  if (count === 0) {
-    console.log('🌱 Running seed...');
-    await import('../prisma/seed');  // adjust path
+  console.log('🔍 Checking seed status...');
+
+  const admin = await prisma.user.findUnique({
+    where: { email: 'admin@gmail.com' },
+  });
+
+  const rootSubject = await prisma.subject.findUnique({
+    where: { subjectId: -1 },
+  });
+
+  const rootCompte = await prisma.compte.findUnique({
+    where: { id: -1 },
+  });
+
+  const parameter = await prisma.parameter.findUnique({
+    where: { paramId: 1 },
+  });
+
+  const parent = await prisma.parent.findUnique({
+    where: { parentId: 1 },
+  });
+
+  // if ANY is missing → run seed
+  if (!admin || !rootSubject || !rootCompte || !parameter || !parent) {
+    console.log('🌱 Running seed (missing data detected)...');
+    await import('../prisma/seed');
   } else {
-    console.log('✔ Seed skipped (data exists)');
+    console.log('✔ Seed skipped — all required data exists');
   }
 }
 async function bootstrap() {
