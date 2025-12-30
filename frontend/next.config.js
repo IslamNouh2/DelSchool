@@ -4,7 +4,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ["localhost"],
+    domains: ["localhost", "delschool-2.onrender.com"],
   },
   experimental: {
     optimizeCss: false,
@@ -12,12 +12,12 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/student/photo/:filename",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/student/photo/:filename`,
-      },
-      {
         source: "/api/:path*",
         destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+      },
+      {
+        source: "/student/photo/:filename",
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/student/photo/:filename`,
       },
     ];
   },
