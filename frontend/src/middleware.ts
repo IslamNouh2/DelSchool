@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
         //     return NextResponse.redirect(new URL('/login', request.url));
         // }
         const payload = await verifyToken(token);
-
+        console.log(payload);
         if (!payload || !payload.role) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
@@ -35,8 +35,6 @@ export async function middleware(request: NextRequest) {
         if (!request.nextUrl.pathname.startsWith(`/${role}`)) {
             return NextResponse.redirect(new URL(`/${role}`, request.url));
         }
-
-        return NextResponse.next();
 
         return NextResponse.next();
     } catch (error) {

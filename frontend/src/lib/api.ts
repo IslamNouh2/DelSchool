@@ -2,8 +2,8 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: 'https://delschool-1.onrender.com',
-    withCredentials: true,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,   // ⭐ REQUIRED
 });
 
 export default api;
