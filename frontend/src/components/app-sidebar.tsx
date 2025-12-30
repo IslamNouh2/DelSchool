@@ -101,47 +101,47 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
     })
   }, [])
+  const rolePrefix = role?.toLowerCase() || "";
 
   const navItems = React.useMemo(() => {
-    // Default minimal while role loads
     if (!role) {
       return [
-        { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
+        { title: "Dashboard", url: `/${rolePrefix}/dashbord`, icon: SquareTerminal, isActive: true },
       ]
     }
 
-    if (role === "TEACHER") {
+    if (role === "teacher") {
       return [
-        { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
-        { title: "Employers", url: "/list/employers", icon: Bot },
+        { title: "Dashboard", url: `/${rolePrefix}/dashbord`, icon: SquareTerminal, isActive: true },
+        { title: "Employers", url: `/${rolePrefix}/list/employers`, icon: Bot },
         {
           title: "Exam",
           url: "#",
           icon: FileBadge,
           items: [
-            { title: "Ajoute Exam", url: "/list/exam", icon: FileBadge },
-            { title: "Ajouter / mettre à jour les notes", url: "/list/exam/grads" },
+            { title: "Ajoute Exam", url: `/${rolePrefix}/list/exam`, icon: FileBadge },
+            { title: "Ajouter / mettre à jour les notes", url: `/${rolePrefix}/list/exam/grads` },
           ],
         },
       ]
     }
 
-    // Admin: show all principal links (no submenus)
+    // Admin links
     return [
-      { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
-      { title: "Employers", url: "/list/employers", icon: User2 },
-      { title: "Students", url: "/list/students", icon: BookOpen },
-      { title: "Timetable", url: "/list/timetable", icon: GalleryVerticalEnd },
-      { title: "Subjects", url: "/list/subjects", icon: BookOpen },
-      { title: "Classes", url: "/list/classes", icon: Frame },
-      { title: "Local", url: "/list/local", icon: Map },
+      { title: "Dashboard", url: `/${rolePrefix}/dashbord`, icon: SquareTerminal, isActive: true },
+      { title: "Employers", url: `/${rolePrefix}/list/employers`, icon: User2 },
+      { title: "Students", url: `/${rolePrefix}/list/students`, icon: BookOpen },
+      { title: "Timetable", url: `/${rolePrefix}/list/timetable`, icon: GalleryVerticalEnd },
+      { title: "Subjects", url: `/${rolePrefix}/list/subjects`, icon: BookOpen },
+      { title: "Classes", url: `/${rolePrefix}/list/classes`, icon: Frame },
+      { title: "Local", url: `/${rolePrefix}/list/local`, icon: Map },
       {
         title: "Attendance",
         url: "#",
         icon: Settings2,
         items: [
-          { title: "Employer", url: "/list/attendance/employer" },
-          { title: "Student", url: "/list/attendance/student" },
+          { title: "Employer", url: `/${rolePrefix}/list/attendance/employer` },
+          { title: "Student", url: `/${rolePrefix}/list/attendance/student` },
         ],
       },
       {
@@ -149,8 +149,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "#",
         icon: FileBadge,
         items: [
-          { title: "Ajoute Exam", url: "/list/exam", icon: FileBadge },
-          { title: "Ajouter / mettre à jour les notes", url: "/list/exam/grads" },
+          { title: "Ajoute Exam", url: `/${rolePrefix}/list/exam`, icon: FileBadge },
+          { title: "Ajouter / mettre à jour les notes", url: `/${rolePrefix}/list/exam/grads` },
         ],
       },
       {
@@ -158,14 +158,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "#",
         icon: Wallet,
         items: [
-          { title: "Fee", url: "/list/fees", icon: BadgeDollarSign },
-          { title: "Payments", url: "/list/payments", icon: CreditCard },
+          { title: "Fee", url: `/${rolePrefix}/list/fees`, icon: BadgeDollarSign },
+          { title: "Payments", url: `/${rolePrefix}/list/payments`, icon: CreditCard },
         ],
       },
-      
-      
     ]
-  }, [role])
+  }, [role, rolePrefix])
 
   return (
     <Sidebar collapsible="icon" {...props}>
