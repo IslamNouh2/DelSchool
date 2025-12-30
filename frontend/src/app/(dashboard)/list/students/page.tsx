@@ -51,7 +51,7 @@ export default function StudentListPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [filterValue, setFilterValue] = useState("");
     const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
-    
+
     // Column Visibility State
     const [columnVisibility, setColumnVisibility] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -123,13 +123,13 @@ export default function StudentListPage() {
             console.error("Error deleting student:", error);
         }
     }, [currentPage, fetchData]);
-
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const handleUpdate = useCallback(async (id: number) => {
         try {
             const response = await api.get(`/student/${id}`);
             const studentData = response.data;
             if (studentData.photoFileName) {
-                studentData.photoUrl = `http://localhost:47005/student/photo/${studentData.photoFileName}`;
+                studentData.photoUrl = `${apiUrl}/student/photo/${studentData.photoFileName}`;
             }
             setSelectedStudent(studentData);
             setFormType("update");
@@ -152,14 +152,15 @@ export default function StudentListPage() {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [currentPage, fetchData]);
+    }, [currentPage, debouncedFilterValue, fetchData]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
     const toggleColumn = useCallback((column: keyof typeof columnVisibility) => {
         setColumnVisibility((prev: any) => ({ ...prev, [column]: !prev[column] }));
     }, []);
-
+    const getPhotoUrl = (filename?: string) =>
+        filename ? `${process.env.NEXT_PUBLIC_API_URL}/student/photo/${filename}` : "/noAvatar.png";
     const columns = useMemo(() => [
         {
             header: "Photo",
@@ -167,7 +168,7 @@ export default function StudentListPage() {
             visible: columnVisibility.photo,
             render: (student: Student) => (
                 <img
-                    src={student.photoFileName ? `${process.env.NEXT_PUBLIC_API_URL}/student/photo/${student.photoFileName}` : "/noAvatar.png"}
+                    src={getPhotoUrl(student.photoFileName)}
                     alt={`${student.firstName} ${student.lastName}`}
                     className="w-10 h-10 rounded-full object-cover border border-border"
                 />
@@ -237,7 +238,7 @@ export default function StudentListPage() {
                     >
                         <Edit className="w-4 h-4 text-gray-400 group-hover:text-green-600" />
                     </button>
-                    <button 
+                    <button
                         onClick={() => handleDelete(student.studentId)}
                         className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
                     >
@@ -248,6 +249,8 @@ export default function StudentListPage() {
         },
     ], [columnVisibility, handleUpdate, handleDelete]);
 
+
+
     return (
         <div className="space-y-6 p-6">
             <div className="flex items-center justify-between">
@@ -255,7 +258,7 @@ export default function StudentListPage() {
                     <h1 className="text-2xl font-bold text-gray-900 mb-1">Students</h1>
                     <p className="text-gray-500">Manage all student records and information</p>
                 </div>
-                <Button 
+                <Button
                     onClick={handleAddStudent}
                     className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
                 >
@@ -277,7 +280,7 @@ export default function StudentListPage() {
                             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
                         />
                     </div>
-                    
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
