@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from './lib/auth';
 
 export async function middleware(request: NextRequest) {
-
     const token = request.cookies.get('token')?.value;
 
     if (!token) {
+        // No token → redirect to login
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
@@ -13,18 +13,13 @@ export async function middleware(request: NextRequest) {
         const payload = await verifyToken(token);
 
         if (!payload?.role) {
+            // Invalid token payload → redirect to login
             return NextResponse.redirect(new URL('/login', request.url));
         }
 
-        const role = (payload.role as string).toLowerCase();
-
-        if (!request.nextUrl.pathname.startsWith(`/${role}`)) {
-            return NextResponse.redirect(new URL(`/${role}`, request.url));
-        }
-
+        // Token is valid → allow request
         return NextResponse.next();
-    }
-    catch (e) {
+    } catch (e) {
         console.error('Invalid token', e);
         return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -32,10 +27,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/admin/:path*',
-        '/teacher/:path*',
-        '/student/:path*',
-        '/dashboard',
-        '/list/:path*'
+        '/dashboard/:path*',
+        '/list/:path*',
+        // add other protected routes here
     ],
 };
