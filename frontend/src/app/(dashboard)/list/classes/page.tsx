@@ -25,6 +25,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ClassForm from "@/components/forms/ClassForm";
 
 interface Class {
     classId: number;
@@ -44,7 +46,11 @@ export default function ClassListPage() {
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [filterValue, setFilterValue] = useState("");
-    
+
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [formType, setFormType] = useState<"create" | "update">("create");
+    const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+
     // Column Visibility State
     const [columnVisibility, setColumnVisibility] = useState({
         name: true,
@@ -85,6 +91,17 @@ export default function ClassListPage() {
         }
     };
 
+    const handleFormSuccess = useCallback(() => {
+        fetchData(currentPage);
+        setIsDialogOpen(false);
+    }, [currentPage, fetchData]);
+
+    const handleAddClass = useCallback(() => {
+        setSelectedClass(null);
+        setFormType("create");
+        setIsDialogOpen(true);
+    }, []);
+
     useEffect(() => {
         fetchData(currentPage);
     }, [fetchData, currentPage]);
@@ -102,7 +119,8 @@ export default function ClassListPage() {
                     <h1 className="text-2xl font-bold text-foreground mb-1">Classes</h1>
                     <p className="text-muted-foreground">Manage all school classes and rooms</p>
                 </div>
-                <Button 
+                <Button
+                    onClick={handleAddClass}
                     className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
                 >
                     <Plus className="w-5 h-5" />
@@ -123,7 +141,7 @@ export default function ClassListPage() {
                             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
                         />
                     </div>
-                    
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
@@ -275,6 +293,20 @@ export default function ClassListPage() {
                     </div>
                 )}
             />
+            {/* Local Form Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>{formType === "create" ? "Add New Class" : "Update Class"}</DialogTitle>
+                    </DialogHeader>
+                    <ClassForm
+                        type={formType}
+                        data={selectedClass}
+                        setOpen={setIsDialogOpen}
+                        onSuccess={handleFormSuccess}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
