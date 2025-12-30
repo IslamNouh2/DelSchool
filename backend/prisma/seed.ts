@@ -47,7 +47,7 @@ async function main() {
         create: {
             paramId: 1,
             paramName: 'Ok_Sub_subject',
-            okActive: true
+            okActive: false
         },
     });
 
