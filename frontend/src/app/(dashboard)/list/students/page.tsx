@@ -167,7 +167,7 @@ export default function StudentListPage() {
             visible: columnVisibility.photo,
             render: (student: Student) => (
                 <img
-                    src={student.photoFileName ? `http://localhost:47005/student/photo/${student.photoFileName}` : "/noAvatar.png"}
+                    src={student.photoFileName ? `${process.env.NEXT_PUBLIC_API_URL}/student/photo/${student.photoFileName}` : "/noAvatar.png"}
                     alt={`${student.firstName} ${student.lastName}`}
                     className="w-10 h-10 rounded-full object-cover border border-border"
                 />
