@@ -4,16 +4,7 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
-async function runSeedIfNeeded() {
-  const count = await prisma.user.count();   // pick any table
-  if (count === 0) {
-    console.log('🌱 Running seed...');
-    await import('../prisma/seed');  // adjust path
-  } else {
-    console.log('✔ Seed skipped (data exists)');
-  }
-}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -26,8 +17,6 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  await runSeedIfNeeded();
-  
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
