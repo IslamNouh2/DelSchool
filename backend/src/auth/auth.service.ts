@@ -27,7 +27,6 @@ export class AuthService {
             secure: true,
             sameSite: 'none',
             path: '/',
-            domain: 'delschool-2.onrender.com', 
             maxAge,
         });
     }
@@ -124,10 +123,10 @@ export class AuthService {
     async logout(response: Response) {
         response.clearCookie('token', {
             httpOnly: true,
-            secure: this.configService.get<string>('NODE_ENV') === 'production',
-            sameSite: this.configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
+            secure: true,
+            sameSite: 'none',
+            path: '/',
         });
-
         return {
             message: 'Logout successful',
         };
