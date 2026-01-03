@@ -974,10 +974,7 @@ export default function FeesDashboard() {
           <CompteForm 
             type={compteDialogType}
             data={selectedCompte}
-            onSuccess={() => {
-              fetchComptes();
-              setIsCompteDialogOpen(false);
-            }}
+            onSuccess={fetchComptes}
             setOpen={setIsCompteDialogOpen}
           />
         </DialogContent>

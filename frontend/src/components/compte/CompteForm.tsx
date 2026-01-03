@@ -1,20 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import dynamic from "next/dynamic";
 import api from "@/lib/api";
@@ -30,13 +21,11 @@ const ComboboxDemo = dynamic(
     }
 );
 
-interface CompteDialogProps {
+interface CompteFormProps {
     type?: "create" | "update";
     data?: any;
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
     onSuccess?: () => void;
-    hideButton?: boolean;
+    setOpen: (open: boolean) => void;
 }
 
 function buildHierarchy(comptes: any[]) {
@@ -77,14 +66,12 @@ function buildHierarchy(comptes: any[]) {
     return result;
 }
 
-export default function CompteDialog({
+export default function CompteForm({
     type = "create",
     data,
-    open,
-    onOpenChange,
     onSuccess,
-    hideButton = false,
-}: CompteDialogProps) {
+    setOpen,
+}: CompteFormProps) {
     const [form, setForm] = useState({
         name: "",
         parentId: -1,
@@ -122,11 +109,9 @@ export default function CompteDialog({
     };
 
     useEffect(() => {
-        if (open) {
-            fetchComptes();
-            fetchEmployers();
-        }
-    }, [open]);
+        fetchComptes();
+        fetchEmployers();
+    }, []);
 
     useEffect(() => {
         if (type === "update" && data) {
@@ -151,7 +136,7 @@ export default function CompteDialog({
             setSelectedParentId(-1);
             setSelectedEmployerId(null);
         }
-    }, [type, data, open]);
+    }, [type, data]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -163,7 +148,6 @@ export default function CompteDialog({
             okBlock: form.okBlock,
             employerId: selectedEmployerId,
         };
-        console.log("Submitting account:", payload);
 
         try {
             if (type === "create") {
@@ -173,7 +157,7 @@ export default function CompteDialog({
                 await api.patch(`/compte/${data.id}`, payload);
                 toast({ title: "Account updated successfully" });
             }
-            onOpenChange?.(false);
+            setOpen(false);
             onSuccess?.();
         } catch (err: any) {
             toast({
@@ -187,99 +171,78 @@ export default function CompteDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            {!hideButton && (
-                <DialogTrigger asChild>
-                    <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Add Account
-                    </Button>
-                </DialogTrigger>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+                <div>
+                    <Label>Account Name</Label>
+                    <Input
+                        value={form.name}
+                        onChange={(e) =>
+                            setForm((prev) => ({ ...prev, name: e.target.value }))
+                        }
+                        required
+                        placeholder="e.g. SALAIRES"
+                    />
+                </div>
 
-            <DialogContent className="max-w-md">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {type === "create" ? "Create" : "Update"} Account
-                        </DialogTitle>
-                        <DialogDescription>
-                            Fill out the form to {type === "create" ? "add" : "edit"} an account.
-                        </DialogDescription>
-                    </DialogHeader>
+                <div>
+                    <Label>Parent Account</Label>
+                    <ComboboxDemo
+                        frameworks={comptes}
+                        value={selectedParentId.toString()}
+                        onChange={(val) => setSelectedParentId(parseInt(val, 10))}
+                        type="account"
+                        width="w-full"
+                    />
+                </div>
 
-                    <div className="space-y-4">
-                        <div>
-                            <Label>Account Name</Label>
-                            <Input
-                                value={form.name}
-                                onChange={(e) =>
-                                    setForm((prev) => ({ ...prev, name: e.target.value }))
-                                }
-                                required
-                                placeholder="e.g. SALAIRES"
-                            />
-                        </div>
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="okBlock"
+                        checked={form.okBlock}
+                        onCheckedChange={(checked) =>
+                            setForm((prev) => ({ ...prev, okBlock: checked === true }))
+                        }
+                    />
+                    <Label htmlFor="okBlock">Block this account</Label>
+                </div>
 
-                        <div>
-                            <Label>Parent Account</Label>
-                            <ComboboxDemo
-                                frameworks={comptes}
-                                value={selectedParentId.toString()}
-                                onChange={(val) => setSelectedParentId(parseInt(val, 10))}
-                                type="account"
-                                width="w-full"
-                            />
-                        </div>
+                <div>
+                    <Label>Link to Employer (Optional)</Label>
+                    <ComboboxDemo
+                        frameworks={employers}
+                        value={selectedEmployerId?.toString() || ""}
+                        onChange={(val) => setSelectedEmployerId(val ? parseInt(val, 10) : null)}
+                        type="employer"
+                        width="w-full"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                        Link this account to a staff member to track their status.
+                    </p>
+                </div>
+            </div>
 
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="okBlock"
-                                checked={form.okBlock}
-                                onCheckedChange={(checked) =>
-                                    setForm((prev) => ({ ...prev, okBlock: checked === true }))
-                                }
-                            />
-                            <Label htmlFor="okBlock">Block this account</Label>
-                        </div>
-
-                        <div>
-                            <Label>Link to Employer (Optional)</Label>
-                            <ComboboxDemo
-                                frameworks={employers}
-                                value={selectedEmployerId?.toString() || ""}
-                                onChange={(val) => setSelectedEmployerId(val ? parseInt(val, 10) : null)}
-                                type="employer"
-                                width="w-full"
-                            />
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                                Link this account to a staff member to track their status.
-                            </p>
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange?.(false)}
-                            disabled={loading}
-                        >
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
-                                </>
-                            ) : type === "create" ? (
-                                "Create"
-                            ) : (
-                                "Update"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+            <div className="flex justify-end gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOpen(false)}
+                    disabled={loading}
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                    {loading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                        </>
+                    ) : type === "create" ? (
+                        "Create"
+                    ) : (
+                        "Update"
+                    ) }
+                </Button>
+            </div>
+        </form>
     );
 }
