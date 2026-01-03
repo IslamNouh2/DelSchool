@@ -1,11 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateLocalSubjectBulkDto } from './dto/create-local-subject-bulk.dto';
+import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
 export class SubjectLocalService {
 
-    constructor(private prisma: PrismaService) { };
+    constructor(
+        private prisma: PrismaService,
+        private readonly socketGateway: SocketGateway
+    ) { };
 
     async bulkInsert(dto: CreateLocalSubjectBulkDto) {
         const { localId, subjectIds } = dto;
@@ -17,10 +21,12 @@ export class SubjectLocalService {
             dateCreate: new Date(),
         }));
 
-        return await this.prisma.subject_local.createMany({
+        const result = await this.prisma.subject_local.createMany({
             data: records,
             skipDuplicates: true,
         });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
 
@@ -45,41 +51,12 @@ export class SubjectLocalService {
             throw new NotFoundException('Subject not assigned to this local.');
         }
 
-        await this.prisma.subject_local.delete({
+        const result = await this.prisma.subject_local.delete({
             where: {
                 subjectLocalId: record.subjectLocalId,
             },
         });
-
+        this.socketGateway.emitRefresh();
         return { message: 'Subject removed from local successfully.' };
     }
 }
-
-// async removeIfNotCloture(localId: number, subjectId: number) {
-//     // Find the subject_local record
-//     const record = await this.prisma.subject_local.findUnique({
-//         where: {
-//             subjectLocalId: {
-
-//             }
-//         },
-//     });
-
-//     if (!record) {
-//         throw new NotFoundException('Subject-Local relation not found');
-//     }
-
-//     if (record.cloture) {
-//         throw new BadRequestException('Cannot delete a clôturé subject-local relation');
-//     }
-
-//     await this.prisma.subject_local.delete({
-//         where: {
-//             subjectLocalId: record.subjectLocalId,
-//         },
-//     });
-
-//     return { message: 'Subject removed successfully' };
-// }
-
-

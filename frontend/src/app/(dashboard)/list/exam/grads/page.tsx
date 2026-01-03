@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSocket } from "@/providers/SocketProvider";
 
 export type GradeRow = {
   studentId: number;
@@ -39,6 +40,7 @@ function ExamGradesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const examIdParam = searchParams.get("examId");
+  const { refreshKey } = useSocket();
 
   const [classes, setClasses] = useState<{ classId: number; ClassName: string }[]>([]);
   const [exams, setExams] = useState<{ id: number; examName: string }[]>([]);
@@ -59,7 +61,7 @@ function ExamGradesContent() {
     api.get("/exam/exams")
       .then((res) => setExams(res.data))
       .catch((err) => console.error(err));
-  }, []);
+  }, [refreshKey]);
 
   // ✅ Fetch classes when exam changes
   useEffect(() => {
@@ -75,7 +77,7 @@ function ExamGradesContent() {
       setFormData((prev) => ({ ...prev, classId: 0 }));
       setSelectedExamsName("");
     }
-  }, [formData.id, exams]);
+  }, [formData.id, exams, refreshKey]);
 
   // ✅ Fetch grades when class or exam changes
   useEffect(() => {
@@ -85,7 +87,7 @@ function ExamGradesContent() {
       setGrades([]);
       setSubjects([]);
     }
-  }, [formData.classId, formData.id]);
+  }, [formData.classId, formData.id, refreshKey]);
 
   const fetchGrads = async () => {
     setLoading(true);

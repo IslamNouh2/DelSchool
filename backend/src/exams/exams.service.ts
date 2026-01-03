@@ -1,12 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ExamRepository } from './exam.repository';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 import { Exam } from '@prisma/client';
 import { CreateExamDto } from './DTO/create-exam.dto';
 import { UpdateExamDto } from './DTO/update-exam.dto';
 import { UpsertGradesDto } from './DTO/upsert-grades.dto';
 @Injectable()
 export class ExamService {
-    constructor(private readonly examRepository: ExamRepository) { }
+    constructor(
+        private readonly examRepository: ExamRepository,
+        private socketGateway: SocketGateway
+    ) { }
+
 
     async create(createExamDto: CreateExamDto): Promise<Exam> {
         // Validate dates
@@ -17,7 +23,9 @@ export class ExamService {
             throw new BadRequestException('End date must be after start date');
         }
 
-        return this.examRepository.create(createExamDto);
+        const exam = await this.examRepository.create(createExamDto);
+        this.socketGateway.emitRefresh();
+        return exam;
     }
 
     async findAll(
@@ -74,12 +82,15 @@ export class ExamService {
             }
         }
 
-        return this.examRepository.update(id, updateExamDto);
+        const exam = await this.examRepository.update(id, updateExamDto);
+        this.socketGateway.emitRefresh();
+        return exam;
     }
 
     async remove(id: number): Promise<{ message: string }> {
         await this.findOne(id);
         await this.examRepository.remove(id);
+        this.socketGateway.emitRefresh();
         return { message: `Exam with ID ${id} has been deleted` };
     }
 

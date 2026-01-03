@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PaymentForm from "@/components/forms/PaymentForm";
+import { useSocket } from "@/providers/SocketProvider";
 
 interface Payment {
   id: number;
@@ -39,6 +40,7 @@ export default function PaymentListPage() {
   const [formType, setFormType] = useState<'create' | 'update'>('create');
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { refreshKey } = useSocket();
 
   const fetchData = async () => {
     setLoading(true);
@@ -66,7 +68,7 @@ export default function PaymentListPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <div className="container mx-auto px-4 py-6">

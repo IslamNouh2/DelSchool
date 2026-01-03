@@ -18,6 +18,7 @@ import { ExamsModule } from './exams/exams.module';
 import { FeeModule } from './fee/fee.module';
 import { PaymentModule } from './payment/payment.module';
 import { CompteModule } from './compte/compte.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { CompteModule } from './compte/compte.module';
     ExamsModule,
     FeeModule,
     PaymentModule,
-    CompteModule
+    CompteModule,
+    SocketModule
   ],
   
 })

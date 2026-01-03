@@ -15,6 +15,7 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import StudentForm from '@/components/forms/StudentForm';
+import { useSocket } from '@/providers/SocketProvider';
 
 const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
@@ -124,6 +125,7 @@ export default function StudentProfileNew() {
     const { id } = useParams<{ id: string }>();
     const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(true);
+    const { refreshKey } = useSocket();
 
     // Data States
     const [student, setStudent] = useState<Student | null>(null);
@@ -160,7 +162,7 @@ export default function StudentProfileNew() {
 
     useEffect(() => {
         if (id) fetchData();
-    }, [id, fetchData]);
+    }, [id, fetchData, refreshKey]);
 
     const handleUpdate = useCallback(async (id: number) => {
         try {

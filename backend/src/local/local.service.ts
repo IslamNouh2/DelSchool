@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 import { CreateLocalDto } from './DTO/CreateLocal.dto';
 
 @Injectable()
 export class LocalService {
-    constructor(private prisma: PrismaService) { };
+    constructor(
+        private prisma: PrismaService,
+        private socketGateway: SocketGateway
+    ) { };
+
 
     async GetLocal(page: number = 1, limit: number = 10, orderByField: string) {
         const skip = (page - 1) * limit;
@@ -83,6 +89,7 @@ export class LocalService {
         }
 
         await this.prisma.local.delete({ where: { localId: id } });
+        this.socketGateway.emitRefresh();
     }
 
 

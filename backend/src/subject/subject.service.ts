@@ -2,10 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 
 @Injectable()
 export class SubjectService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private socketGateway: SocketGateway
+    ) { }
+
 
 
     async create(createSubjectDto: CreateSubjectDto) {
@@ -72,6 +78,7 @@ export class SubjectService {
                 },
             });
 
+            this.socketGateway.emitRefresh();
             return newSubject;
         });
     }
@@ -263,6 +270,7 @@ export class SubjectService {
             });
         }
 
+        this.socketGateway.emitRefresh();
         return { message: 'Subject updated successfully' };
     }
 
@@ -278,6 +286,7 @@ export class SubjectService {
         };
 
         await this.prisma.subject.delete({ where: { subjectId: id } });
+        this.socketGateway.emitRefresh();
     }
 
     async StubjectCount() {

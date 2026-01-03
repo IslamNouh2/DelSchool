@@ -1,13 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 
 @Injectable()
 export class PaymentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private socketGateway: SocketGateway
+  ) {}
 
-  create(data: Prisma.PaymentUncheckedCreateInput) {
-    return this.prisma.payment.create({ data });
+
+  async create(data: Prisma.PaymentUncheckedCreateInput) {
+    const payment = await this.prisma.payment.create({ data });
+    this.socketGateway.emitRefresh();
+    return payment;
   }
 
   findAll() {
@@ -39,17 +47,21 @@ export class PaymentService {
     });
   }
 
-  update(id: number, data: Prisma.PaymentUncheckedUpdateInput) {
-    return this.prisma.payment.update({
+  async update(id: number, data: Prisma.PaymentUncheckedUpdateInput) {
+    const payment = await this.prisma.payment.update({
       where: { id },
       data,
     });
+    this.socketGateway.emitRefresh();
+    return payment;
   }
 
-  remove(id: number) {
-    return this.prisma.payment.delete({
+  async remove(id: number) {
+    const deleted = await this.prisma.payment.delete({
       where: { id },
     });
+    this.socketGateway.emitRefresh();
+    return deleted;
   }
 
   async collectPayment(data: { studentId: number; amount: number; method: Prisma.EnumPaymentMethodFilter | any; date?: Date | string }) {
@@ -132,6 +144,7 @@ export class PaymentService {
       // If there's still remaining amount, it's an overpayment or credit.
       // For now, we can either throw, ignore, or create a general credit.
       // Let's just return the created payments.
+      this.socketGateway.emitRefresh();
       return createdPayments;
     });
   }
@@ -171,6 +184,7 @@ export class PaymentService {
       } as any
     });
 
+    this.socketGateway.emitRefresh();
     return payment;
   }
 

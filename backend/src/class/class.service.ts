@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 import { CreateClassDto } from './DTO/CreateClass.dto';
 import { UpdateClassDto } from './DTO/UpdateClass.dto';
 
 @Injectable()
 export class ClassService {
-    constructor(private prisma: PrismaService) { };
+    constructor(
+        private prisma: PrismaService,
+        private socketGateway: SocketGateway
+    ) { };
+
 
     async GetClasses(page: number = 1, limit: number = 10, orderByField: string = 'dateCreate') {
         const skip = (page - 1) * limit;
@@ -110,5 +116,6 @@ export class ClassService {
         }
 
         await this.prisma.classes.delete({ where: { classId: id } });
+        this.socketGateway.emitRefresh();
     }
 }

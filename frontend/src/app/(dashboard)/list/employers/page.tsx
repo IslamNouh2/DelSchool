@@ -15,6 +15,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CustomTable } from "@/components/CustomTable";
+import { useSocket } from "@/providers/SocketProvider";
 
 interface Employer {
     employerId: number;
@@ -41,6 +42,7 @@ export default function TeacherListPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [filterValue, setFilterValue] = useState("");
     const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
+    const { refreshKey } = useSocket();
     
     // Column Visibility State
     const [columnVisibility, setColumnVisibility] = useState(() => {
@@ -140,7 +142,7 @@ export default function TeacherListPage() {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [currentPage, fetchData]);
+    }, [currentPage, fetchData, refreshKey]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 

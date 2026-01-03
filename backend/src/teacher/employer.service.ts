@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, InternalServerErrorException, NotFound
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PrismaService } from "prisma/prisma.service";
+import { SocketGateway } from "src/socket/socket.gateway";
 import { v4 as uuidv4 } from 'uuid';
 import { CreateEmployerDto } from "./dto/CreateEmployer.dto";
 import { UpdateEmployerDto } from "./dto/UpdateEmployer.dto";
@@ -14,7 +15,10 @@ export class EmployerService {
     private readonly maxFileSize = 5 * 1024 * 1024; // 5MB
     private readonly allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
-    constructor(private prisma: PrismaService) {
+    constructor(
+        private prisma: PrismaService,
+        private socketGateway: SocketGateway
+    ) {
         this.ensureUploadDirectory();
     }
 
@@ -61,6 +65,7 @@ export class EmployerService {
 
         // Delete from database
         await this.prisma.employer.delete({ where: { employerId: id } });
+        this.socketGateway.emitRefresh();
 
         // Delete associated photo
         await this.deletePhotoFile(employer.photoFileName);
@@ -144,6 +149,7 @@ export class EmployerService {
                 },
             });
 
+            this.socketGateway.emitRefresh();
             return {
                 employer,
                 employerId: employer.employerId,
@@ -214,6 +220,7 @@ export class EmployerService {
                 },
             });
             console.log('DTO received on backend:', dto.okBlock, typeof dto.okBlock);
+            this.socketGateway.emitRefresh();
             return {
                 employer: updated,
                 photoUrl: photoFileName ? `/api/employer/photo/${photoFileName}` : null,

@@ -2,10 +2,14 @@ import { PrismaService } from "prisma/prisma.service";
 import { CreateTimetableDto } from "./dto/create-timetable.dto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { UpdateTimetableDto } from "./dto/update-timetable.dto";
+import { SocketGateway } from "../socket/socket.gateway";
 
 @Injectable()
 export class TimetableService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly socketGateway: SocketGateway
+    ) { }
 
     async create(dto: CreateTimetableDto) {
         return this.prisma.$transaction(async (tx) => {
@@ -44,7 +48,7 @@ export class TimetableService {
             }
 
             // ✅ 3. Create timetable
-            return tx.timetable.create({
+            const result = await tx.timetable.create({
                 data: {
                     ...dto,
                     employerId: assignedTeacherId,
@@ -56,6 +60,8 @@ export class TimetableService {
                     timeSlot: true,
                 },
             });
+            this.socketGateway.emitRefresh();
+            return result;
         });
     }
 
@@ -165,7 +171,7 @@ export class TimetableService {
         const existing = await this.prisma.timetable.findUnique({ where: { id } });
         if (!existing) throw new NotFoundException("Timetable not found");
 
-        return this.prisma.timetable.update({
+        const result = await this.prisma.timetable.update({
             where: { id },
             data: dto,
             include: {
@@ -175,12 +181,16 @@ export class TimetableService {
                 Class: true,
             },
         });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     async remove(id: number) {
         const existing = await this.prisma.timetable.findUnique({ where: { id } });
         if (!existing) throw new NotFoundException("Timetable not found");
 
-        return this.prisma.timetable.delete({ where: { id } });
+        const result = await this.prisma.timetable.delete({ where: { id } });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 }

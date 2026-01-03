@@ -9,12 +9,16 @@ import { toast } from "@/hooks/use-toast";
 import SubjectCard, { Subject } from "./components/SubjectCard";
 import { fetchUser } from "@/lib/getRoleFromToken";
 import SubjectForm from "@/components/forms/SubjectForm";
+import { useSocket } from "@/providers/SocketProvider";
+
 
 export default function SubjectListPage() {
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [role, setRole] = useState<string>("guest");
+    const { refreshKey } = useSocket();
+
     
     // Dialog states
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -83,7 +87,7 @@ export default function SubjectListPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [refreshKey]);
 
     const handleDelete = async (id: number) => {
         try {

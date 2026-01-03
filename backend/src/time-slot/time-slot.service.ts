@@ -2,24 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { CreateTimeSlotDto } from './dto/CreateTimeSlotDto';
 import { UpdateTimeSlotDto } from './dto/UpdateTimeSlotDto';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
 export class TimeSlotService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly socketGateway: SocketGateway
+    ) { }
 
-    create(dto: CreateTimeSlotDto) {
-        return this.prisma.timeSlot.create({ data: dto });
+    async create(dto: CreateTimeSlotDto) {
+        const result = await this.prisma.timeSlot.create({ data: dto });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     findAll() {
         return this.prisma.timeSlot.findMany({ orderBy: { startTime: 'asc' } });
     }
 
-    update(id: number, dto: UpdateTimeSlotDto) {
-        return this.prisma.timeSlot.update({ where: { id }, data: dto });
+    async update(id: number, dto: UpdateTimeSlotDto) {
+        const result = await this.prisma.timeSlot.update({ where: { id }, data: dto });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
-    remove(id: number) {
-        return this.prisma.timeSlot.delete({ where: { id } });
+    async remove(id: number) {
+        const result = await this.prisma.timeSlot.delete({ where: { id } });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 }

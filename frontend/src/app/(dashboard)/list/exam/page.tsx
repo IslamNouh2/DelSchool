@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { fetchUser } from "@/lib/getRoleFromToken";
+import { useSocket } from "@/providers/SocketProvider";
 import {
   BarChart,
   Bar,
@@ -45,6 +46,7 @@ export default function ExamListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [role, setRole] = useState<string | null>(null);
+  const { refreshKey } = useSocket();
 
   // Dashboard state
   const [stats, setStats] = useState({
@@ -126,7 +128,7 @@ export default function ExamListPage() {
   useEffect(() => {
     fetchExams(currentPage);
     fetchDashboardData();
-  }, [currentPage, fetchExams, fetchDashboardData]);
+  }, [currentPage, fetchExams, fetchDashboardData, refreshKey]);
 
   const handleAddExam = useCallback(() => {
     setFormType("create");

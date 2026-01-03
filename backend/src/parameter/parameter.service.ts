@@ -2,15 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateParameterDto } from './dto/create-parameter.dto';
 import { UpdateParameterDto } from './dto/update-parameter.dto';
+import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
 export class ParameterService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly socketGateway: SocketGateway
+    ) { }
 
     async create(createParameterDto: CreateParameterDto) {
-        return this.prisma.parameter.create({
+        const result = await this.prisma.parameter.create({
             data: createParameterDto,
         });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     async findAll() {
@@ -24,16 +30,20 @@ export class ParameterService {
     }
 
     async update(paramName: string, updateParameterDto: UpdateParameterDto) {
-        return this.prisma.parameter.update({
+        const result = await this.prisma.parameter.update({
             where: { paramName },
             data: updateParameterDto,
         });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     async remove(paramName: string) {
-        return this.prisma.parameter.delete({
+        const result = await this.prisma.parameter.delete({
             where: { paramName },
         });
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     async getOkSubSubjectStatus() {

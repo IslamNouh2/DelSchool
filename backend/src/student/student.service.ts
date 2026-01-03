@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 import { CreateStudentDto } from './dto/CreateStudentDto';
 import { UpdateStudentDto } from './dto/UpdateStudentDto';
 import * as fs from 'fs/promises';
@@ -12,7 +14,10 @@ export class StudentService {
     private readonly maxFileSize = 5 * 1024 * 1024; // 5MB
     private readonly allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
-    constructor(private prisma: PrismaService) {
+    constructor(
+        private prisma: PrismaService,
+        private socketGateway: SocketGateway
+    ) {
         this.ensureUploadDirectory();
     }
 
@@ -118,6 +123,7 @@ export class StudentService {
                 });
             }
 
+            this.socketGateway.emitRefresh();
             return {
                 student,
                 studentId: student.studentId,
@@ -234,6 +240,7 @@ export class StudentService {
             });
         }
 
+        this.socketGateway.emitRefresh();
         return updatedStudent;
     }
 
@@ -252,6 +259,7 @@ export class StudentService {
         }
 
         await this.prisma.student.delete({ where: { studentId: id } });
+        this.socketGateway.emitRefresh();
     }
 
     async GetStudent(page: number = 1, limit: number = 10) {

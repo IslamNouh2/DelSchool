@@ -7,6 +7,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import api from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { useSocket } from "@/providers/SocketProvider";
 
 // Mock data removed as we now fetch real data
 
@@ -37,6 +38,7 @@ export default function AttendancePage() {
     const [saving, setSaving] = useState(false);
     const [hasExistingData, setHasExistingData] = useState(false);
     const [existingRecords, setExistingRecords] = useState<any[]>([]);
+    const { refreshKey } = useSocket();
 
     // Fetch classes on mount
     useEffect(() => {
@@ -107,7 +109,7 @@ export default function AttendancePage() {
         };
 
         fetchData();
-    }, [selectedClassId, selectedDate]);
+    }, [selectedClassId, selectedDate, refreshKey]);
 
     const toggleAttendance = (id: number) => {
         setAttendanceData(prev => prev.map(student =>

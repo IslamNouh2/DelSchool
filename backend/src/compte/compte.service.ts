@@ -2,10 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { CreateCompteDto } from './dto/create-compte.dto';
 import { UpdateCompteDto } from './dto/update-compte.dto';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 
 @Injectable()
 export class CompteService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private socketGateway: SocketGateway
+    ) { }
+
 
     async create(createCompteDto: CreateCompteDto) {
         let { name, parentId, employerId, studentId, okBlock } = createCompteDto;
@@ -59,6 +65,7 @@ export class CompteService {
                 } as any,
             });
 
+            this.socketGateway.emitRefresh();
             return newCompte;
         });
     }
@@ -227,6 +234,7 @@ export class CompteService {
             });
         }
 
+        this.socketGateway.emitRefresh();
         return { message: 'Account updated successfully' };
     }
 
@@ -241,5 +249,6 @@ export class CompteService {
 
         // For Nested Set, we should ideally update other nodes, but following subject pattern
         await this.prisma.compte.delete({ where: { id } });
+        this.socketGateway.emitRefresh();
     }
 }

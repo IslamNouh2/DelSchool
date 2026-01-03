@@ -5,23 +5,33 @@ import { UpdateStudentAttendanceDto } from './dto/update-attendance.dto';
 import { CreateEmployerAttendanceDto } from './dto/create-employer-attendance.dto';
 import { UpdateEmployerAttendanceDto } from './dto/update-employer-attendance.dto';
 import { AttendanceStatus } from '@prisma/client';
+import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
 export class AttendanceService {
-    constructor(private readonly repo: AttendanceRepository) { }
+    constructor(
+        private readonly repo: AttendanceRepository,
+        private readonly socketGateway: SocketGateway
+    ) { }
 
     // 🧒 Student
     async saves(dto: SaveStudentAttendanceDto) {
-        return this.repo.save(dto);
+        const result = await this.repo.save(dto);
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
 
-    updateStudent(id: number, dto: UpdateStudentAttendanceDto) {
-        return this.repo.updateStudent(id, dto);
+    async updateStudent(id: number, dto: UpdateStudentAttendanceDto) {
+        const result = await this.repo.updateStudent(id, dto);
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
-    deleteStudent(id: number) {
-        return this.repo.deleteStudent(id);
+    async deleteStudent(id: number) {
+        const result = await this.repo.deleteStudent(id);
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     getAllStudents() {
@@ -43,11 +53,15 @@ export class AttendanceService {
 
     // 👩‍🏫 Employer
     async createEmployer(dto: CreateEmployerAttendanceDto) {
-        return await this.repo.createEmployer(dto);
+        const result = await this.repo.createEmployer(dto);
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
-    updateEmployer(id: number, dto: UpdateEmployerAttendanceDto) {
-        return this.repo.updateEmployer(id, dto);
+    async updateEmployer(id: number, dto: UpdateEmployerAttendanceDto) {
+        const result = await this.repo.updateEmployer(id, dto);
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     getAllEmployers() {
@@ -62,8 +76,10 @@ export class AttendanceService {
         return this.repo.getExistingEmployerAttendance(date);
     }
 
-    deleteEmployerAttendance(id: number) {
-        return this.repo.deleteEmployerAttendance(id);
+    async deleteEmployerAttendance(id: number) {
+        const result = await this.repo.deleteEmployerAttendance(id);
+        this.socketGateway.emitRefresh();
+        return result;
     }
 
     getStudentLast7DaysAttendance(classId: number) {

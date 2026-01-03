@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ClassForm from "@/components/forms/ClassForm";
+import { useSocket } from "@/providers/SocketProvider";
+
 
 interface Class {
     classId: number;
@@ -50,6 +52,8 @@ export default function ClassListPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formType, setFormType] = useState<"create" | "update">("create");
     const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+    const { refreshKey } = useSocket();
+
 
     // Column Visibility State
     const [columnVisibility, setColumnVisibility] = useState({
@@ -104,7 +108,7 @@ export default function ClassListPage() {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [fetchData, currentPage]);
+    }, [fetchData, currentPage, refreshKey]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 

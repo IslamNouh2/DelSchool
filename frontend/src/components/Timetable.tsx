@@ -15,6 +15,7 @@ import TimeSlotManager from "@/app/(dashboard)/list/timetable/components/TimeSlo
 import { TimetableSlot, TimetableEntry } from "@/app/(dashboard)/list/timetable/components/TimetableSlot";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useSocket } from "@/providers/SocketProvider";
 
 interface TimeSlot {
     id: number;
@@ -30,6 +31,7 @@ export default function TimetableCalendar() {
     const [showEntryDialog, setShowEntryDialog] = useState(false);
     const [timetableData, setTimetableData] = useState<TimetableEntry[]>([]);
     const [loading, setLoading] = useState(false);
+    const { refreshKey } = useSocket();
 
     // Form State
     const [formData, setFormData] = useState({
@@ -62,13 +64,13 @@ export default function TimetableCalendar() {
                     title: "Error loading base data",
                 });
             });
-    }, []);
+    }, [refreshKey]);
 
     // 🔹 Fetch timetable when class changes
     useEffect(() => {
         if (formData.classId === 0) return;
         fetchTimetable();
-    }, [formData.classId]);
+    }, [formData.classId, refreshKey]);
 
     const fetchTimetable = async () => {
         if (formData.classId === 0) return;

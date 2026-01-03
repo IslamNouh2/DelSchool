@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateteacherSubjectDto } from './dto/CreateTeacherSubject.Dto';
+import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
 export class TeacherSubjectService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly socketGateway: SocketGateway
+    ) { }
 
 
     async bulkInsert(dto: CreateteacherSubjectDto) {
@@ -41,6 +45,7 @@ export class TeacherSubjectService {
                 return insertResult;
             });
 
+            this.socketGateway.emitRefresh();
             return {
                 message: 'Subjects assigned successfully.',
                 count: result.count,
@@ -94,6 +99,7 @@ export class TeacherSubjectService {
                 return { message: 'Subject removed from Teacher successfully.' };
             });
 
+            this.socketGateway.emitRefresh();
             return result;
         } catch (error) {
             // Optionally handle error logging or rethrow

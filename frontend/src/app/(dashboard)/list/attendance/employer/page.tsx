@@ -18,6 +18,7 @@ import {
 import EmployerAttendanceForm from "./EmployerAttendanceForm";
 import Last7DaysAttendance from "@/components/Last7DaysAttendance";
 import { Card, CardContent } from "@/components/ui/card";
+import { useSocket } from "@/providers/SocketProvider";
 
 export default function EmployerAttendancePage() {
     const [open, setOpen] = useState(false);
@@ -29,12 +30,13 @@ export default function EmployerAttendancePage() {
     const [hasExistingData, setHasExistingData] = useState(false);
     const [showLast7Days, setShowLast7Days] = useState(false);
     const [reload, setReload] = useState(false);
+    const { refreshKey } = useSocket();
 
     useEffect(() => {
         api.get("/attendance/employers")
             .then((res) => setEmployers(res.data))
             .catch((err) => console.error(err));
-    }, []);
+    }, [refreshKey]);
 
     const handleOpen = async () => {
         if (!date) return;

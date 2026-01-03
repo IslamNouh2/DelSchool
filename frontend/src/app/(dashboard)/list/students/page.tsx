@@ -15,6 +15,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CustomTable } from "@/components/CustomTable";
+import { useSocket } from "@/providers/SocketProvider";
+
 
 interface Student {
     studentId: number;
@@ -51,6 +53,8 @@ export default function StudentListPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [filterValue, setFilterValue] = useState("");
     const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
+    const { refreshKey } = useSocket();
+
 
     // Column Visibility State
     const [columnVisibility, setColumnVisibility] = useState(() => {
@@ -152,7 +156,7 @@ export default function StudentListPage() {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [currentPage, debouncedFilterValue, fetchData]);
+    }, [currentPage, debouncedFilterValue, fetchData, refreshKey]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 

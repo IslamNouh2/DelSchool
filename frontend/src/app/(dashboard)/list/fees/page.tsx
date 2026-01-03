@@ -27,6 +27,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import FeeForm from "@/components/forms/FeeForm";
 import CompteTree from "@/components/compte/CompteTree";
 import CompteForm from "@/components/compte/CompteForm";
+import { useSocket } from "@/providers/SocketProvider";
+import { Input } from "@/components/ui/input";
 
 interface Fee {
   id: number;
@@ -80,6 +82,7 @@ export default function FeesDashboard() {
   const [fees, setFees] = useState<Fee[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { refreshKey } = useSocket();
 
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -210,7 +213,7 @@ export default function FeesDashboard() {
     fetchHistory();
     fetchEmployers();
     fetchComptes();
-  }, []);
+  }, [refreshKey]);
 
   const handleDeletePayment = async (id: string) => {
     const paymentId = id.replace('p-', '');
@@ -798,27 +801,27 @@ export default function FeesDashboard() {
                           </TableCell>
                           <TableCell>{item.feeTitle}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{item.account}</TableCell>
-                          <TableCell>DA{item.amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-green-600 dark:text-green-400">DA{item.paid.toFixed(2)}</TableCell>
-                          <TableCell className="text-orange-600 dark:text-orange-400">DA{item.pending.toFixed(2)}</TableCell>
+                          <TableCell className="font-semibold">DA{item.amount.toFixed(2)}</TableCell>
+                          <TableCell className="text-green-600 font-medium">DA{item.paid.toFixed(2)}</TableCell>
+                          <TableCell className="text-red-600 font-medium">DA{item.pending.toFixed(2)}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-lg text-xs ${
-                              item.status === 'Paid' ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' :
-                              item.status === 'Partial' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' :
-                              'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              item.status === 'Paid' ? 'bg-green-50 text-green-600' : 
+                              item.status === 'Partial' ? 'bg-orange-50 text-orange-600' : 
+                              'bg-red-50 text-red-600'
                             }`}>
                               {item.status}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            {item.pending > 0 && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleCollectPayment(item)}
-                              >
-                                Collect
-                              </Button>
-                            )}
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              disabled={item.status === 'Paid'}
+                              onClick={() => handleCollectPayment(item)}
+                            >
+                              Collect
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -834,28 +837,17 @@ export default function FeesDashboard() {
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                  <h2 className="text-xl font-semibold">Payment History</h2>
-                  <p className="text-sm text-muted-foreground">Track all incoming and outgoing transactions</p>
+                  <h2 className="text-xl font-semibold">Transaction History</h2>
+                  <p className="text-sm text-muted-foreground">View all financial transactions</p>
                 </div>
-                <Button size="sm" onClick={() => { 
-                  setTimeout(() => {
-                    setDialogType("fee-create"); 
-                    setSelectedFee({ type: 'expense' } as any); 
-                    setIsDialogOpen(true); 
-                  }, 0);
-                }}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Expense
-                </Button>
               </div>
 
-              {/* Filters */}
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search transactions..."
+                    placeholder="Search history..."
                     className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
                     value={historySearch}
                     onChange={(e) => setHistorySearch(e.target.value)}
@@ -874,7 +866,7 @@ export default function FeesDashboard() {
                 </div>
               </div>
 
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -882,15 +874,16 @@ export default function FeesDashboard() {
                       <TableHead>Type</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Entity</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Method</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredHistory.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           No transactions found.
                         </TableCell>
                       </TableRow>
@@ -899,26 +892,26 @@ export default function FeesDashboard() {
                         <TableRow key={item.id}>
                           <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              item.type === 'INCOME' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              item.type === 'INCOME' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
                             }`}>
                               {item.type}
                             </span>
                           </TableCell>
                           <TableCell>{item.category}</TableCell>
-                          <TableCell>{item.entityName}</TableCell>
-                          <TableCell className="max-w-xs truncate">{item.description}</TableCell>
-                          <TableCell className={`text-right font-semibold ${
-                            item.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {item.type === 'INCOME' ? '+' : '-'}DA{item.amount.toFixed(2)}
-                          </TableCell>
+                          <TableCell>{item.entityName || "-"}</TableCell>
+                          <TableCell className="font-semibold">DA{item.amount.toFixed(2)}</TableCell>
+                          <TableCell>{item.method}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{item.description || "-"}</TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => handleDeletePayment(item.id)}>
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => handleDeletePayment(item.id)}
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -932,110 +925,103 @@ export default function FeesDashboard() {
 
         <TabsContent value="accounts">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h2 className="text-xl font-semibold">Chart of Accounts</h2>
-                  <p className="text-sm text-muted-foreground">Manage your school's account hierarchy</p>
+                  <p className="text-sm text-muted-foreground">Manage financial accounts and hierarchy</p>
                 </div>
-                <Button onClick={() => { setSelectedCompte(null); setCompteDialogType("create"); setIsCompteDialogOpen(true); }}>
+                <Button size="sm" onClick={() => {
+                  setSelectedCompte(null);
+                  setCompteDialogType("create");
+                  setIsCompteDialogOpen(true);
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Root Account
                 </Button>
               </div>
-              
-              <CompteTree 
-                comptes={comptes} 
-                onEdit={handleEditCompte} 
-                onDelete={handleDeleteCompte} 
-                onAddSub={handleAddSubCompte} 
-              />
+
+              <div className="bg-muted/30 rounded-xl p-4 border border-border">
+                <CompteTree 
+                  comptes={comptes} 
+                  onEdit={handleEditCompte}
+                  onDelete={handleDeleteCompte}
+                  onAddSub={handleAddSubCompte}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* Fee Form Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        setTimeout(() => {
-          setIsDialogOpen(open);
-        }, 0);
-      }}>
-        <DialogContent className="sm:max-w-[500px]">
-            <FeeForm 
-              type={dialogType === "fee-create" ? "create" : "update"} 
-              data={selectedFee} 
-              setOpen={setIsDialogOpen} 
-              onSuccess={handleFormSuccess} 
-            />
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogTitle>{dialogType === "fee-create" ? "Create New Fee" : "Update Fee"}</DialogTitle>
+          <FeeForm 
+            type={dialogType === "fee-create" ? "create" : "update"}
+            data={selectedFee}
+            onSuccess={handleFormSuccess}
+            setOpen={setIsDialogOpen}
+          />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showPaymentModal} onOpenChange={(open) => {
-        setShowPaymentModal(open);
-        if (!open) setSelectedStudent(null);
-      }}>
-        <DialogContent className="sm:max-w-[600px]">
-          <div className="p-6 border-b border-border flex items-center justify-between">
-            <DialogTitle className="text-foreground font-semibold text-lg">Collect Payment</DialogTitle>
-            <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
-              <X className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
-          {selectedStudent && (
-            <div className="p-6 space-y-4">
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Student</p>
-                <p className="text-foreground font-medium">{selectedStudent.studentName}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Pending Amount</p>
-                <p className="text-foreground font-medium">DA{selectedStudent.pending.toFixed(2)}</p>
-              </div>
-              <div>
-                <label className="block text-foreground font-medium mb-2">Payment Amount (DA)</label>
-                <input
-                  type="number"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-foreground font-medium mb-2">Payment Method</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="CASH">Cash</option>
-                  <option value="CARD">Card</option>
-                  <option value="BANK_TRANSFER">Bank Transfer</option>
-                  <option value="ONLINE">Online</option>
-                </select>
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button
-                  onClick={handlePaymentSubmit}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  Confirm Payment
-                </button>
+      {/* Compte Form Dialog */}
+      <Dialog open={isCompteDialogOpen} onOpenChange={setIsCompteDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogTitle>{compteDialogType === "create" ? "Add New Account" : "Update Account"}</DialogTitle>
+          <CompteForm 
+            type={compteDialogType}
+            data={selectedCompte}
+            onSuccess={() => {
+              fetchComptes();
+              setIsCompteDialogOpen(false);
+            }}
+            setOpen={setIsCompteDialogOpen}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogTitle>Collect Payment</DialogTitle>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Student / Fee</label>
+              <div className="p-2 bg-muted rounded-lg text-sm">
+                {selectedStudent?.studentName} - {selectedStudent?.feeTitle}
               </div>
             </div>
-          )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Amount (DA)</label>
+              <Input 
+                type="number" 
+                value={paymentAmount} 
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                placeholder="Enter amount"
+              />
+              <p className="text-xs text-muted-foreground">Pending: DA{selectedStudent?.pending}</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Payment Method</label>
+              <select 
+                className="w-full p-2 bg-background border border-input rounded-lg text-sm"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="CASH">Cash</option>
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="CHECK">Check</option>
+              </select>
+            </div>
+            <Button className="w-full" onClick={handlePaymentSubmit}>
+              Confirm Payment
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
-
-      <CompteForm 
-        open={isCompteDialogOpen} 
-        onOpenChange={setIsCompteDialogOpen} 
-        type={compteDialogType} 
-        data={selectedCompte} 
-        onSuccess={fetchComptes} 
-        hideButton 
-      />
     </div>
   );
 }

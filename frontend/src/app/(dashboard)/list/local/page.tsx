@@ -20,6 +20,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import LocalForm from "@/components/forms/LocalForm";
+import { useSocket } from "@/providers/SocketProvider";
+
 
 interface Local {
     localId: number;
@@ -49,6 +51,8 @@ export default function LocalListPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formType, setFormType] = useState<"create" | "update">("create");
     const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
+    const { refreshKey } = useSocket();
+
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -116,7 +120,7 @@ export default function LocalListPage() {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [currentPage, fetchData]);
+    }, [currentPage, fetchData, refreshKey]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 

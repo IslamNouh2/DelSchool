@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
+
 
 @Injectable()
 export class FeeService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private socketGateway: SocketGateway
+  ) {}
+
 
   async create(data: Prisma.FeeUncheckedCreateInput) {
     // Auto-associate student or employer if compteId is provided
@@ -17,7 +23,9 @@ export class FeeService {
         if (compte.employerId) data.employerId = compte.employerId;
       }
     }
-    return this.prisma.fee.create({ data: data as any });
+    const fee = await this.prisma.fee.create({ data: data as any });
+    this.socketGateway.emitRefresh();
+    return fee;
   }
 
   findAll() {
@@ -43,11 +51,13 @@ export class FeeService {
     });
   }
 
-  update(id: number, data: Prisma.FeeUpdateInput) {
-    return this.prisma.fee.update({
+  async update(id: number, data: Prisma.FeeUpdateInput) {
+    const fee = await this.prisma.fee.update({
       where: { id },
       data,
     });
+    this.socketGateway.emitRefresh();
+    return fee;
   }
 
   async remove(id: number) {
@@ -61,9 +71,11 @@ export class FeeService {
       throw new Error('Cannot delete fee with associated payments. Delete payments first.');
     }
 
-    return this.prisma.fee.delete({
+    const deleted = await this.prisma.fee.delete({
       where: { id },
     });
+    this.socketGateway.emitRefresh();
+    return deleted;
   }
 
   // Dashboard Stats
