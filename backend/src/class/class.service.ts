@@ -70,6 +70,7 @@ export class ClassService {
             },
         });
 
+        this.socketGateway.emitRefresh();
         return Classe;
     }
 
@@ -103,7 +104,7 @@ export class ClassService {
             },
         });
 
-        
+        this.socketGateway.emitRefresh();
         return Classe;
     }
 

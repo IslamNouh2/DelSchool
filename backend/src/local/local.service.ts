@@ -57,6 +57,7 @@ export class LocalService {
             },
         });
 
+        this.socketGateway.emitRefresh();
         return Locals;
     }
 
@@ -78,6 +79,7 @@ export class LocalService {
             },
         });
 
+        this.socketGateway.emitRefresh();
         return Locals;
     }
 
