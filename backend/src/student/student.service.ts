@@ -67,8 +67,8 @@ export class StudentService {
     async CreateStudent(dto: CreateStudentDto, photo?: Express.Multer.File) {
         const {
             firstName, lastName, dateOfBirth, gender, address, parentId,
-            fatherName, fatherNumber, matherName, matherNumber,
-            matherJob, fatherJob, code, health, dateCreate, dateModif,
+            fatherName, fatherNumber, motherName, motherNumber,
+            motherJob, fatherJob, code, health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality, observation,
             numNumerisation, dateInscription, okBlock, localId, classId, academicYear,
         } = dto;
@@ -77,14 +77,14 @@ export class StudentService {
         if (photo) {
             photoFileName = await this.savePhotoFile(photo.buffer, photo.mimetype);
         }
-        if ((fatherName && fatherNumber) || (matherName && matherNumber)) {
+        if ((fatherName && fatherNumber) || (motherName && motherNumber)) {
             const parent = await this.prisma.parent.create({
                 data: {
                     father: fatherName || '',
-                    mother: matherName || '',
+                    mother: motherName || '',
                     fatherJob: fatherJob || '',
-                    motherJob: matherJob || '',
-                    motherNumber: matherNumber || '',
+                    motherJob: motherJob || '',
+                    motherNumber: motherNumber || '',
                     fatherNumber: fatherNumber || '',
                 },
                 select: { parentId: true },
@@ -113,11 +113,75 @@ export class StudentService {
             
             const targetClassId = Number(classId || localId);
             if (targetClassId) {
+                let schoolYear;
+                if (academicYear) {
+                    schoolYear = await this.prisma.schoolYear.findUnique({ where: { year: academicYear } });
+                } else {
+                    schoolYear = await this.prisma.schoolYear.findFirst({ where: { isCurrent: true } });
+                    if (!schoolYear) {
+                        const yearLabel = this.getCurrentAcademicYearLabel();
+                        schoolYear = await this.prisma.schoolYear.findUnique({ where: { year: yearLabel } });
+                    }
+                }
+                
+                if (!schoolYear) {
+                    const yearLabel = academicYear || this.getCurrentAcademicYearLabel();
+                    throw new BadRequestException(`School year ${yearLabel} not found`);
+                }
+
+                // Capacity Validation
+                const targetClass = await this.prisma.classes.findUnique({
+                    where: { classId: targetClassId },
+                    include: { 
+                        local: true,
+                        _count: {
+                            select: { studentClasses: { where: { isCurrent: true, schoolYearId: schoolYear.id } } }
+                        }
+                    }
+                });
+
+                if (!targetClass) {
+                    throw new NotFoundException(`Class with ID ${targetClassId} not found`);
+                }
+
+                if (targetClass.cloture) {
+                    throw new BadRequestException(`La classe "${targetClass.ClassName}" est clôturée.`);
+                }
+
+                if (targetClass._count.studentClasses >= targetClass.NumStudent) {
+                    // Find alternative classes in the same local
+                    const alternativeClasses = await this.prisma.classes.findMany({
+                        where: {
+                            localId: targetClass.localId,
+                            cloture: false,
+                            classId: { not: targetClassId }
+                        },
+                        include: {
+                            _count: {
+                                select: { studentClasses: { where: { isCurrent: true, schoolYearId: schoolYear.id } } }
+                            }
+                        }
+                    });
+
+                    const availableAlternatives = alternativeClasses
+                        .filter(c => c._count.studentClasses < c.NumStudent)
+                        .map(c => c.ClassName);
+
+                    let errorMessage = `La classe "${targetClass.ClassName}" est complète (${targetClass._count.studentClasses}/${targetClass.NumStudent}).`;
+                    if (availableAlternatives.length > 0) {
+                        errorMessage += ` Les sections suivantes sont encore disponibles : ${availableAlternatives.join(', ')}.`;
+                    } else {
+                        errorMessage += ` Aucune autre section n'est disponible pour ce niveau.`;
+                    }
+
+                    throw new BadRequestException(errorMessage);
+                }
+
                 await this.prisma.studentClass.create({
                     data: {
                         studentId: student.studentId,
                         classId: targetClassId,
-                        academicYear: academicYear || this.getCurrentAcademicYear(),
+                        schoolYearId: schoolYear.id,
                         isCurrent: true,
                     },
                 });
@@ -138,9 +202,14 @@ export class StudentService {
         }
     }
 
-    private getCurrentAcademicYear(): string {
+    private getCurrentAcademicYearLabel(): string {
         const now = new Date();
+        const month = now.getMonth(); // 0-11
         const year = now.getFullYear();
+        // If current month is before September (0-7), the academic year started in the previous calendar year
+        if (month < 8) {
+            return `${year - 1}-${year}`;
+        }
         return `${year}-${year + 1}`;
     }
 
@@ -156,8 +225,8 @@ export class StudentService {
 
         const {
             firstName, lastName, dateOfBirth, gender, address, parentId,
-            fatherName, fatherNumber, matherName, matherNumber,
-            matherJob, fatherJob, code, health, dateCreate, dateModif,
+            fatherName, fatherNumber, motherName, motherNumber,
+            motherJob, fatherJob, code, health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality,
             observation, numNumerisation, dateInscription, okBlock,
             localId, classId, academicYear
@@ -173,17 +242,17 @@ export class StudentService {
             photoFileName = await this.savePhotoFile(photo.buffer, photo.mimetype);
         }
 
-        if ((fatherName && fatherNumber) || (matherName && matherNumber)) {
+        if ((fatherName && fatherNumber) || (motherName && motherNumber)) {
             if (parentId && parentId !== 1) {
                 await this.prisma.parent.update({
                     where: { parentId },
                     data: {
                         father: fatherName || undefined,
-                        mother: matherName || undefined,
+                        mother: motherName || undefined,
                         fatherJob: fatherJob || undefined,
-                        motherJob: matherJob || undefined,
+                        motherJob: motherJob || undefined,
                         fatherNumber: fatherNumber || undefined,
-                        motherNumber: matherNumber || undefined,
+                        motherNumber: motherNumber || undefined,
                     },
                 });
                 finalParentId = parentId;
@@ -191,11 +260,11 @@ export class StudentService {
                 const parent = await this.prisma.parent.create({
                     data: {
                         father: fatherName || '',
-                        mother: matherName || '',
+                        mother: motherName || '',
                         fatherJob: fatherJob || '',
-                        motherJob: matherJob || '',
+                        motherJob: motherJob || '',
                         fatherNumber: fatherNumber || '',
-                        motherNumber: matherNumber || '',
+                        motherNumber: motherNumber || '',
                     },
                 });
                 finalParentId = parent.parentId;
@@ -220,11 +289,86 @@ export class StudentService {
 
         const targetClassId = Number(classId || localId);
         if (targetClassId) {
+            let schoolYear;
+            if (academicYear) {
+                schoolYear = await this.prisma.schoolYear.findUnique({ where: { year: academicYear } });
+            } else {
+                schoolYear = await this.prisma.schoolYear.findFirst({ where: { isCurrent: true } });
+                if (!schoolYear) {
+                    const yearLabel = this.getCurrentAcademicYearLabel();
+                    schoolYear = await this.prisma.schoolYear.findUnique({ where: { year: yearLabel } });
+                }
+            }
+
+            if (!schoolYear) {
+                const yearLabel = academicYear || this.getCurrentAcademicYearLabel();
+                throw new BadRequestException(`School year ${yearLabel} not found`);
+            }
+
+            // Capacity Validation
+            const targetClass = await this.prisma.classes.findUnique({
+                where: { classId: targetClassId },
+                include: { 
+                    local: true,
+                    _count: {
+                        select: { studentClasses: { where: { isCurrent: true, schoolYearId: schoolYear.id } } }
+                    }
+                }
+            });
+
+            if (!targetClass) {
+                throw new NotFoundException(`Class with ID ${targetClassId} not found`);
+            }
+
+            // Check if student is already in this class (don't block update if staying in same full class)
+            const currentAssignment = await this.prisma.studentClass.findUnique({
+                where: {
+                    studentId_schoolYearId: {
+                        studentId,
+                        schoolYearId: schoolYear.id,
+                    },
+                }
+            });
+
+            if (currentAssignment?.classId !== targetClassId) {
+                if (targetClass.cloture) {
+                    throw new BadRequestException(`La classe "${targetClass.ClassName}" est clôturée.`);
+                }
+
+                if (targetClass._count.studentClasses >= targetClass.NumStudent) {
+                    const alternativeClasses = await this.prisma.classes.findMany({
+                        where: {
+                            localId: targetClass.localId,
+                            cloture: false,
+                            classId: { not: targetClassId }
+                        },
+                        include: {
+                            _count: {
+                                select: { studentClasses: { where: { isCurrent: true, schoolYearId: schoolYear.id } } }
+                            }
+                        }
+                    });
+
+                    const availableAlternatives = alternativeClasses
+                        .filter(c => c._count.studentClasses < c.NumStudent)
+                        .map(c => c.ClassName);
+
+                    let errorMessage = `La classe "${targetClass.ClassName}" est complète (${targetClass._count.studentClasses}/${targetClass.NumStudent}).`;
+                    if (availableAlternatives.length > 0) {
+                        errorMessage += ` Les sections suivantes sont encore disponibles : ${availableAlternatives.join(', ')}.`;
+                    } else {
+                        errorMessage += ` Aucune autre section n'est disponible pour ce niveau.`;
+                    }
+
+                    throw new BadRequestException(errorMessage);
+                }
+            }
+
             await this.prisma.studentClass.upsert({
                 where: {
-                    studentId_academicYear: {
+                    studentId_schoolYearId: {
                         studentId,
-                        academicYear: academicYear || this.getCurrentAcademicYear(),
+                        schoolYearId: schoolYear.id,
                     },
                 },
                 update: {
@@ -234,7 +378,7 @@ export class StudentService {
                 create: {
                     studentId,
                     classId: targetClassId,
-                    academicYear: academicYear || this.getCurrentAcademicYear(),
+                    schoolYearId: schoolYear.id,
                     isCurrent: true,
                 },
             });
@@ -328,7 +472,15 @@ export class StudentService {
                 dateModif: true,
                 okBlock: true,
                 photoFileName: true,
-                parentId: true,
+                parent: {
+                    select: {
+                        parentId: true,
+                        father: true,
+                        mother: true,
+                        fatherNumber: true,
+                        motherNumber: true,
+                    }
+                },
                 studentClasses: {
                     where: { isCurrent: true },
                     select: {
@@ -361,6 +513,10 @@ export class StudentService {
             localId: currentClass?.Class?.localId || null,
             classId: currentClass?.classId || null,
             photoUrl: student.photoFileName ? `/api/student/photo/${student.photoFileName}` : null,
+            fatherName: student.parent?.father || '',
+            motherName: student.parent?.mother || '',
+            fatherPhone: student.parent?.fatherNumber || '',
+            motherPhone: student.parent?.motherNumber || '',
         };
     }
 

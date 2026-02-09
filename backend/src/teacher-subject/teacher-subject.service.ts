@@ -69,11 +69,45 @@ export class TeacherSubjectService {
     }
 
     // teacher-subject.service.ts
-    async getTeacherBySubject(subjectId: number) {
-        return this.prisma.teacherSubject.findMany({
-            where: { subjectId: Number(subjectId)},
+    async getTeacherBySubject(subjectId: number, academicYear?: string) {
+        const teachersInSubject = await this.prisma.teacherSubject.findMany({
+            where: { subjectId: Number(subjectId) },
             include: { Employer: true },
         });
+
+        if (!academicYear) {
+            return teachersInSubject;
+        }
+
+        // Filter teachers based on workload
+        const activeTeachers = await Promise.all(
+            teachersInSubject.map(async (ts) => {
+                const employer = ts.Employer;
+                if (!employer) return null;
+
+                // Count timetable entries for this teacher in this academic year
+                const count = await this.prisma.timetable.count({
+                    where: {
+                        employerId: employer.employerId,
+                        academicYear: academicYear,
+                    },
+                });
+
+                // If workload is 0 or null, treat as 20 by default (matching schema)
+                const maxWorkload = employer.weeklyWorkload || 20;
+
+                return {
+                    ...ts,
+                    isFull: count >= maxWorkload,
+                    currentWorkload: count,
+                    maxWorkload: maxWorkload,
+                };
+            })
+        );
+
+        // Filter out nulls and ideally only return teachers that are NOT full
+        // or return all with the flag so the frontend can show a warning
+        return activeTeachers.filter(Boolean);
     }
 
     async removeSubjectFromTeacher(employerId: number, subjectId: number) {

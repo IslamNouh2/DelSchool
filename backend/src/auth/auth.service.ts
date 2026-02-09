@@ -22,11 +22,13 @@ export class AuthService {
         if (expiresIn.includes('d')) maxAge = parseInt(expiresIn) * 24 * 60 * 60 * 1000;
         else if (expiresIn.includes('h')) maxAge = parseInt(expiresIn) * 60 * 60 * 1000;
 
+        const isProduction = process.env.NODE_ENV === 'production';
+
         response.cookie('token', token, {
             httpOnly: true,
-            secure: true,          // IMPORTANT on https
-            sameSite: 'none',      // REQUIRED for cross-site
-            path: '/',             // allow all routes
+            secure: isProduction,         // only secure in production
+            sameSite: isProduction ? 'none' : 'lax',
+            path: '/',
             maxAge,
         });
     }

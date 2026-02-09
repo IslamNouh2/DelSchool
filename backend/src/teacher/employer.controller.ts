@@ -117,6 +117,19 @@ export class EmployerController {
 
 
 
+    @Post('assign-class')
+    async assignClass(
+        @Body('employerId', ParseIntPipe) employerId: number,
+        @Body('classId', ParseIntPipe) classId: number,
+    ) {
+        return this.employerService.assignClassToTeacher(employerId, classId);
+    }
+
+    @Get('teacher-class/:employerId')
+    async getTeacherClass(@Param('employerId', ParseIntPipe) employerId: number) {
+        return this.employerService.getTeacherClass(employerId);
+    }
+
     // New endpoint to serve photo files
     @Get('photo/:fileName')
     async getPhoto(

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { TeacherSubjectService } from './teacher-subject.service';
 import { CreateteacherSubjectDto } from './dto/CreateTeacherSubject.Dto';
 
@@ -17,8 +17,11 @@ export class TeacherSubjectController {
   }
 
   @Get('subject/:subjectId')
-  getTeacherBySubject(@Param('subjectId') subjectId: string) {
-    return this.teacherSubjectService.getTeacherBySubject(+subjectId);
+  getTeacherBySubject(
+    @Param('subjectId') subjectId: string,
+    @Query('academicYear') academicYear?: string,
+  ) {
+    return this.teacherSubjectService.getTeacherBySubject(+subjectId, academicYear);
   }
 
 

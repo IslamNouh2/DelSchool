@@ -13,4 +13,7 @@ export class CreateLocalDto {
     @IsInt()
     NumClass: number;
 
+    @IsOptional()
+    @IsInt()
+    size: number;
 }

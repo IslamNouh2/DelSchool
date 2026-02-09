@@ -28,6 +28,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
         LocalName: "",
         Code: "",
         NumClass: "",
+        size: "",
     });
 
     const [localId, setLocalId] = useState<number | null>(null);
@@ -41,6 +42,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
                 LocalName: data.name || "",
                 Code: data.code || "",
                 NumClass: data.NumClass?.toString() || "",
+                size: data.size?.toString() || "",
             });
             setLocalId(data.localId);
         }
@@ -73,6 +75,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
             name: LocalName,
             code: Code,
             NumClass: numClassInt,
+            size: parseInt(form.size) || 0,
         };
 
         try {
@@ -142,6 +145,19 @@ const LocalForm: React.FC<LocalFormProps> = ({
                                         setForm({ ...form, NumClass: e.target.value })
                                     }
                                     placeholder="Num"
+                                    required
+                                />
+                            </div>
+
+                            <div className="w-full md:w-1/3">
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Student Capacity (Size)</h1>
+                                <Input
+                                    type="number"
+                                    value={form.size}
+                                    onChange={(e) =>
+                                        setForm({ ...form, size: e.target.value })
+                                    }
+                                    placeholder="e.g. 60"
                                     required
                                 />
                             </div>

@@ -20,4 +20,7 @@ export class UpdateClassDto {
     @IsOptional()
     @IsString()
     okBlock: string;
+
+    @IsOptional()
+    cloture: boolean;
 }

@@ -36,11 +36,11 @@ export class UpdateStudentDto {
 
     @IsOptional()
     @IsString()
-    matherName?: string;
+    motherName?: string;
 
     @IsOptional()
     @IsString()
-    matherNumber?: string;
+    motherNumber?: string;
 
     @IsOptional()
     @IsString()
@@ -48,7 +48,7 @@ export class UpdateStudentDto {
 
     @IsOptional()
     @IsString()
-    matherJob?: string;
+    motherJob?: string;
 
     @IsOptional()
     @IsString()
@@ -108,6 +108,7 @@ export class UpdateStudentDto {
 
     @IsNotEmpty()
     @IsInt()
+    @Type(() => Number)
     localId: number;
 
     @IsOptional()

@@ -33,10 +33,13 @@ const CardList: React.FC<UserCardProps> = ({
 
     const getPhotoSrc = () => {
         if (photoUrl && typeof photoUrl === "string" && photoUrl.trim() !== "") {
-            if (photoUrl.startsWith("http") || photoUrl.startsWith("/api/") || photoUrl.startsWith("data:image/")) {
+            if (photoUrl.startsWith("http") || photoUrl.startsWith("data:image/")) {
                 return photoUrl;
             }
-            return `/api/student/photo/${photoUrl}`;
+            if (photoUrl.startsWith("/api/")) {
+                return `http://localhost:47005${photoUrl}`;
+            }
+            return `http://localhost:47005/api/student/photo/${photoUrl}`;
         }
         return "/avatar.png";
     };
@@ -50,12 +53,7 @@ const CardList: React.FC<UserCardProps> = ({
 
             const student = response.data;
             if (student) {
-                setStudentData({
-                    ...student,
-                    photoUrl: student.photoFileName
-                        ? `/api/student/photo/${student.photoFileName}`
-                        : null
-                });
+                setStudentData(student);
                 setShowUpdateForm(true);
             }
         } catch (error) {

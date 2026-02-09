@@ -127,14 +127,10 @@ export default function StudentListPage() {
             console.error("Error deleting student:", error);
         }
     }, [currentPage, fetchData]);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const handleUpdate = useCallback(async (id: number) => {
         try {
             const response = await api.get(`/student/${id}`);
             const studentData = response.data;
-            if (studentData.photoFileName) {
-                studentData.photoUrl = `${apiUrl}/student/photo/${studentData.photoFileName}`;
-            }
             setSelectedStudent(studentData);
             setFormType("update");
             setIsDialogOpen(true);
@@ -164,7 +160,7 @@ export default function StudentListPage() {
         setColumnVisibility((prev: any) => ({ ...prev, [column]: !prev[column] }));
     }, []);
     const getPhotoUrl = (filename?: string) =>
-        filename ? `${process.env.NEXT_PUBLIC_API_URL}/student/photo/${filename}` : "/noAvatar.png";
+        filename ? `http://localhost:47005/api/student/photo/${filename}` : "/avatar.png";
     const columns = useMemo(() => [
         {
             header: "Photo",
@@ -176,7 +172,7 @@ export default function StudentListPage() {
                     alt={`${student.firstName} ${student.lastName}`}
                     className="w-10 h-10 rounded-full object-cover border border-border"
                     onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/noAvatar.png";
+                        (e.target as HTMLImageElement).src = "/avatar.png";
                     }}
                 />
             ),

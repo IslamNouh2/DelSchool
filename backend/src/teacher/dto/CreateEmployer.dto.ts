@@ -5,6 +5,8 @@ import {
     IsString,
     IsDateString,
     IsBoolean,
+    IsInt,
+    Min,
 } from 'class-validator';
 
 export class CreateEmployerDto {
@@ -100,4 +102,9 @@ export class CreateEmployerDto {
     @IsOptional()
     @IsString()
     photoFileName?: string;
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    @Type(() => Number)
+    weeklyWorkload?: number;
 }

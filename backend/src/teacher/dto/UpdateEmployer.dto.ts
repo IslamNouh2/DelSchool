@@ -4,6 +4,8 @@ import {
     IsString,
     IsDateString,
     IsBoolean,
+    IsInt,
+    Min,
 } from 'class-validator';
 
 export class UpdateEmployerDto {
@@ -32,4 +34,12 @@ export class UpdateEmployerDto {
     @Transform(({ value }) => value === 'true')
     okBlock?: boolean;
     @IsOptional() @IsString() type?: string;
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    @Transform(({ value }) => {
+        if (typeof value === 'string') return parseInt(value, 10);
+        return value;
+    })
+    weeklyWorkload?: number;
 }

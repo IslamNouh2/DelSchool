@@ -92,22 +92,20 @@ export const TimetableSlot = ({ slot, day, timeSlotId, onDrop, onDelete, onEdit,
         >
             <div className="flex items-start justify-between mb-2">
                 <p className={`text-sm font-medium ${isLunch ? 'text-muted-foreground' : 'text-foreground'}`}>{slot.subject?.subjectName || 'Unknown Subject'}</p>
-                {!isLunch && (
-                    <div className="flex gap-1">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onEdit?.(slot); }}
-                            className="p-1 hover:bg-background rounded transition-colors"
-                        >
-                            <Edit className="w-3 h-3 text-muted-foreground" />
-                        </button>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onDelete?.(slot.id); }}
-                            className="p-1 hover:bg-background rounded transition-colors"
-                        >
-                            <Trash2 className="w-3 h-3 text-muted-foreground" />
-                        </button>
-                    </div>
-                )}
+                <div className="flex gap-1">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onEdit?.(slot); }}
+                        className="p-1 hover:bg-background rounded transition-colors"
+                    >
+                        <Edit className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onDelete?.(slot.id); }}
+                        className="p-1 hover:bg-background rounded transition-colors"
+                    >
+                        <Trash2 className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                </div>
             </div>
             {!isLunch && (
                 <>

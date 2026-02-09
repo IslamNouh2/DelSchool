@@ -54,6 +54,7 @@ export class LocalService {
                 NumClass,
                 name,
                 code,
+                size: dto.size || 0,
             },
         });
 
@@ -76,6 +77,7 @@ export class LocalService {
                 NumClass,
                 name,
                 code,
+                size: dto.size !== undefined ? dto.size : undefined,
             },
         });
 

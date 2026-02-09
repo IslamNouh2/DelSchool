@@ -52,11 +52,22 @@ export default function TimetableCalendar() {
 
     // 🔹 Load static data
     useEffect(() => {
-        Promise.all([api.get("/class"), api.get("/time-slots"), api.get("/subject")])
-            .then(([classRes, slotRes, subjRes]) => {
+        Promise.all([
+            api.get("/class"), 
+            api.get("/time-slots"), 
+            api.get("/subject"),
+            api.get("/school-year")
+        ])
+            .then(([classRes, slotRes, subjRes, yearRes]) => {
                 setClasses(classRes.data.classes || []);
                 setTimeSlots(slotRes.data || []);
                 setSubjects(subjRes.data.subjects || []);
+                
+                // Set current academic year
+                const currentYear = yearRes.data.find((y: any) => y.isCurrent);
+                if (currentYear) {
+                    setFormData(prev => ({ ...prev, academicYear: currentYear.year }));
+                }
             })
             .catch(() => {
                 toast({
@@ -78,8 +89,11 @@ export default function TimetableCalendar() {
         try {
             const res = await api.get(`/timetable`);
             const allData = res.data as TimetableEntry[];
-            // Filter by selected class
-            const classData = allData.filter(t => t.classId === formData.classId);
+            // Filter by selected class AND academic year
+            const classData = allData.filter(t => 
+                t.classId === formData.classId && 
+                t.academicYear === formData.academicYear
+            );
             setTimetableData(classData);
         } catch (error) {
             console.error("Error fetching timetable:", error);
@@ -94,10 +108,17 @@ export default function TimetableCalendar() {
 
         const fetchTeachersForSubject = async () => {
             try {
-                const res = await api.get(`/teacher-subject/subject/${formData.subjectId}`);
+                const res = await api.get(`/teacher-subject/subject/${formData.subjectId}`, {
+                    params: { academicYear: formData.academicYear }
+                });
                 // API might return array or single object
                 const data = Array.isArray(res.data) ? res.data : [res.data];
-                const teachersList = data.map((item: any) => item.Employer).filter(Boolean);
+                
+                // Filter out teachers who have reached their workload
+                const teachersList = data
+                    .filter((item: any) => item.Employer && !item.isFull)
+                    .map((item: any) => item.Employer);
+                
                 setTeachers(teachersList);
 
                 // Auto-select first teacher if not editing an existing entry with a teacher
@@ -105,6 +126,19 @@ export default function TimetableCalendar() {
                     setFormData(prev => ({ ...prev, employerId: teachersList[0].employerId }));
                 } else if (teachersList.length === 0) {
                     setFormData(prev => ({ ...prev, employerId: 0 }));
+                    
+                    // Don't show toast for Lunch/Break subjects
+                    const selectedSubject = subjects.find(s => s.subjectId === formData.subjectId);
+                    const isLunch = selectedSubject?.subjectName?.toLowerCase().includes('lunch') || 
+                                   selectedSubject?.subjectName?.toLowerCase().includes('break');
+                                   
+                    if (!isLunch && data.some((item: any) => item.isFull)) {
+                         toast({
+                            variant: "destructive",
+                            title: "All teachers full",
+                            description: "All teachers for this subject have reached their weekly workload.",
+                        });
+                    }
                 }
             } catch (error) {
                 console.error("Error loading teachers:", error);
@@ -112,10 +146,36 @@ export default function TimetableCalendar() {
         };
 
         fetchTeachersForSubject();
-    }, [formData.subjectId]);
+    }, [formData.subjectId, formData.academicYear]);
 
     const handleSubjectSelect = (subjectId: number) => {
         setFormData(prev => ({ ...prev, subjectId }));
+    };
+    
+    // Helper to ensure Lunch subject exists
+    const ensureLunchSubject = async () => {
+        let lunchSubject = subjects.find(s => 
+            s.subjectName.toLowerCase() === 'lunch' || 
+            s.subjectName.toLowerCase() === 'break'
+        );
+        
+        if (!lunchSubject) {
+            try {
+                // Create it if it doesn't exist
+                const res = await api.post("/subject/createSub", {
+                    subjectName: "Break",
+                    totalGrads: 20
+                });
+                lunchSubject = res.data;
+                setSubjects(prev => [...prev, lunchSubject]);
+                toast({ title: "Created 'Break' subject automatically" });
+            } catch (error) {
+                console.error("Failed to create break subject", error);
+                toast({ variant: "destructive", title: "Failed to create Break subject" });
+                return null;
+            }
+        }
+        return lunchSubject;
     };
 
     const handleSave = async () => {
@@ -270,7 +330,9 @@ export default function TimetableCalendar() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold text-foreground mb-1">Timetable Management</h1>
-                        <p className="text-muted-foreground">Manage class schedules and time slots</p>
+                        <p className="text-muted-foreground">
+                            Manage class schedules for <span className="font-medium text-blue-600">{formData.academicYear}</span>
+                        </p>
                     </div>
                     <div className="flex items-center gap-3">
                         <select
@@ -439,18 +501,11 @@ export default function TimetableCalendar() {
                                         variant="ghost" 
                                         size="sm" 
                                         className="h-6 text-xs text-blue-600 hover:text-blue-700 px-2"
-                                        onClick={() => {
-                                            const lunchSubject = subjects.find(s => s.subjectName.toLowerCase().includes('lunch') || s.subjectName.toLowerCase().includes('break'));
-                                            
+                                        onClick={async () => {
+                                            const lunchSubject = await ensureLunchSubject();
                                             if (lunchSubject) {
                                                 handleSubjectSelect(lunchSubject.subjectId);
                                                 toast({ title: `Selected: ${lunchSubject.subjectName}` });
-                                            } else {
-                                                toast({ 
-                                                    title: "Subject not found", 
-                                                    description: "Please create a subject named 'Lunch' or 'Break' first.",
-                                                    variant: "destructive" 
-                                                });
                                             }
                                         }}
                                     >

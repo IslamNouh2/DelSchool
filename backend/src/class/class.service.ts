@@ -59,6 +59,28 @@ export class ClassService {
             throw new Error(`❌ Local with name "${localName}" not found.`);
         }
 
+        // Capacity Check
+        if (local.size > 0) {
+            const currentTotal = await this.prisma.classes.aggregate({
+                where: { localId: local.localId },
+                _sum: { NumStudent: true }
+            });
+            const total = (currentTotal._sum.NumStudent || 0) + NumStudent;
+            if (total > local.size) {
+                throw new Error(`❌ Local capacity exceeded. Total students (${total}) > Local size (${local.size})`);
+            }
+        }
+
+        // NumClass Check
+        if (local.NumClass && local.NumClass > 0) {
+            const classCount = await this.prisma.classes.count({
+                where: { localId: local.localId }
+            });
+            if (classCount >= local.NumClass) {
+                throw new Error(`❌ Local class limit reached. Maximum classes allowed: ${local.NumClass}`);
+            }
+        }
+
         // Create the class using the resolved localId
         const Classe = await this.prisma.classes.create({
             data: {
@@ -67,6 +89,7 @@ export class ClassService {
                 code,
                 NumStudent,
                 okBlock,
+                cloture: dto.cloture === true,
             },
         });
 
@@ -93,6 +116,34 @@ export class ClassService {
             throw new Error(`❌ Local with name "${localName}" not found.`);
         }
 
+        // Capacity Check
+        if (local.size > 0) {
+            const currentTotal = await this.prisma.classes.aggregate({
+                where: { 
+                    localId: local.localId,
+                    NOT: { classId: id } // Exclude this class from its own total
+                },
+                _sum: { NumStudent: true }
+            });
+            const total = (currentTotal._sum.NumStudent || 0) + NumStudent;
+            if (total > local.size) {
+                throw new Error(`❌ Local capacity exceeded. Total students (${total}) > Local size (${local.size})`);
+            }
+        }
+
+        // NumClass Check
+        if (local.NumClass && local.NumClass > 0) {
+            const currentClassCount = await this.prisma.classes.count({
+                where: { 
+                    localId: local.localId,
+                    NOT: { classId: id } // Exclude this class
+                }
+            });
+            if (currentClassCount >= local.NumClass) {
+                throw new Error(`❌ Local class limit reached. Maximum classes allowed: ${local.NumClass}`);
+            }
+        }
+
         const Classe = await this.prisma.classes.update({
             where: { classId: id },
             data: {
@@ -101,6 +152,7 @@ export class ClassService {
                 code,
                 NumStudent,
                 okBlock,
+                cloture: dto.cloture !== undefined ? dto.cloture : undefined,
             },
         });
 

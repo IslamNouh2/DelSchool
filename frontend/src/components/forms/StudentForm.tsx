@@ -116,7 +116,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
             if (data.dateOfBirth) setBirthDate(new Date(data.dateOfBirth));
             if (data.dateInscription) setRegisterDate(new Date(data.dateInscription));
-            if (data.photoUrl) setPhotoPreview(data.photoUrl);
+            if (data.photoUrl) setPhotoPreview(`http://localhost:47005${data.photoUrl}`);
         }
         fetchLocal();
     }, [type, data]);
@@ -158,6 +158,16 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!form.dateNaissance) {
+            alert("Date of Birth is required");
+            return;
+        }
+        if (!form.localId) {
+            alert("Local (Assigned Local) is required");
+            return;
+        }
+
         setIsLoading(true);
 
         const formData = new FormData();
@@ -183,11 +193,11 @@ const StudentForm: React.FC<StudentFormProps> = ({
         formData.append("fatherName", form.pereNom);
         formData.append("fatherNumber", form.pereTel);
         formData.append("fatherJob", form.pereEmploi);
-        formData.append("matherName", form.mereNom);
-        formData.append("matherNumber", form.mereTel);
-        formData.append("matherJob", form.mereEmploi);
+        formData.append("motherName", form.mereNom);
+        formData.append("motherNumber", form.mereTel);
+        formData.append("motherJob", form.mereEmploi);
         formData.append("localId", String(form.localId));
-        formData.append("classId", String(form.classId));
+        if (form.classId) formData.append("classId", String(form.classId));
         formData.append("academicYear", form.academicYear || "");
 
         if (form.photo) formData.append("photo", form.photo);
@@ -203,7 +213,10 @@ const StudentForm: React.FC<StudentFormProps> = ({
             setOpen(false);
             if (onSuccess) onSuccess({ studentId, localId });
         } catch (err: any) {
-            console.error("Error during form submission:", err.message);
+            console.error("Error during form submission:", err);
+            const message = err.response?.data?.message || err.message || "Unknown error";
+            alert(`Error: ${Array.isArray(message) ? message.join(", ") : message}`);
+
         } finally {
             setIsLoading(false);
         }
@@ -304,7 +317,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                     {/* Personal Details Section */}
                     <Section title="Personal Details" icon={<User className="w-5 h-5 text-blue-500" />}>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FormItem label="Date of Birth">
+                            <FormItem label="Date of Birth" required>
                                 <DatePicker value={birthDate} onChange={(date) => {
                                     setBirthDate(date);
                                     if (date) setForm(prev => ({ ...prev, dateNaissance: date.toISOString() }));

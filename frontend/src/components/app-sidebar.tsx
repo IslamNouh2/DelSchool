@@ -18,7 +18,7 @@ import {
   SquareTerminal,
   User2,
   Wallet,
-  
+
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -101,7 +101,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
     })
   }, [])
-  
+
 
   const navItems = React.useMemo(() => {
     // Default minimal while role loads
@@ -135,7 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       { title: "Timetable", url: "/list/timetable", icon: GalleryVerticalEnd },
       { title: "Subjects", url: "/list/subjects", icon: BookOpen },
       { title: "Classes", url: "/list/classes", icon: Frame },
-      { title: "Local", url: "/list/local", icon: Map },
+      { title: "Niveaux", url: "/list/local", icon: Map },
       {
         title: "Attendance",
         url: "#",
@@ -145,15 +145,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           { title: "Student", url: "/list/attendance/student" },
         ],
       },
-      {
-        title: "Exam",
-        url: "#",
-        icon: FileBadge,
-        items: [
-          { title: "Ajoute Exam", url: "/list/exam", icon: FileBadge },
-          { title: "Ajouter / mettre à jour les notes", url: "/list/exam/grads" },
-        ],
-      },
+      { title: "Exam", url: "/list/exam", icon: FileBadge },
       {
         title: "Fees",
         url: "#",
@@ -163,8 +155,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           { title: "Payments", url: "/list/payments", icon: CreditCard },
         ],
       },
-      
-      
+      { title: "Settings", url: "/list/settings", icon: Settings2 },
     ]
   }, [role])
 
@@ -173,7 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <TeamSwitcher teams={staticData.teams} />
       </SidebarHeader>
-      
+
       <SidebarContent>
         <NavMain items={navItems} />
         {/* <NavProjects projects={staticData.projects} /> */}

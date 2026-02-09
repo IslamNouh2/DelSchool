@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { ChevronDownIcon, Upload, X } from "lucide-react"
+import { ChevronDownIcon, Upload, X, Search, BookOpen, Plus, Trash2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -77,6 +77,7 @@ export default function EmployerDialog({
         phone: "",
         type: "",
         okBlock: false,
+        weeklyWorkload: 20,
         photo: null as File | null,
     })
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -91,6 +92,13 @@ export default function EmployerDialog({
     const [createdEmployerId, setCreatedEmployerId] = useState<string | null>(null);
     const [initialAssignedSubjects, setInitialAssignedSubjects] = useState<any[]>([]);
     const [opend, setOpen] = useState(false);
+    const [isClassTeacher, setIsClassTeacher] = useState(false);
+    const [showClassDialog, setShowClassDialog] = useState(false);
+    const [locals, setLocals] = useState<any[]>([]);
+    const [classes, setClasses] = useState<any[]>([]);
+    const [selectedLocalId, setSelectedLocalId] = useState<string>("");
+    const [selectedClassId, setSelectedClassId] = useState<string>("");
+    const [subjectSearch, setSubjectSearch] = useState("");
 
     const handleClose = () => {
         if (onOpenChange) onOpenChange(false);
@@ -113,9 +121,58 @@ export default function EmployerDialog({
         }
     }, [showSubjectDialog]);
 
+    // Check Class Teacher Parameter
+    useEffect(() => {
+        const checkClassTeacherParam = async () => {
+            try {
+                const res = await api.get("/parameter/classteacher");
+                // The parameter might return { paramName: 'classteacher', okActive: true }
+                setIsClassTeacher(res.data?.okActive === true);
+            } catch (error) {
+                console.error("Failed to fetch classteacher parameter:", error);
+                // Default to false if param not found or error
+                setIsClassTeacher(false);
+            }
+        };
+        checkClassTeacherParam();
+    }, []);
+
+    // Load Locals and Classes when Class Dialog opens
+    useEffect(() => {
+        if (showClassDialog) {
+            const loadLocals = async () => {
+               try {
+                   const res = await api.get("/local");
+                   setLocals(res.data.locals || []);
+               } catch (error) {
+                   console.error("Failed to load locals", error);
+                   toast.error("Failed to load locals");
+               }
+            };
+            loadLocals();
+        }
+    }, [showClassDialog]);
+
+    // Load Classes when Local is selected
+    useEffect(() => {
+        if (selectedLocalId) {
+            const loadClasses = async () => {
+                try {
+                    const res = await api.get(`/class?localId=${selectedLocalId}&limit=100`);
+                    setClasses(res.data.classes || []);
+                } catch (error) {
+                    console.error("Failed to load classes", error);
+                }
+            };
+            loadClasses();
+        } else {
+            setClasses([]);
+        }
+    }, [selectedLocalId]);
+
 
     useEffect(() => {
-        console.log("👀 form.type:", form.type);
+        // console.log("👀 form.type:", form.type);
         if (form.type === "teacher") {
             // console.log("✅ Loaded subjects:");
             api.get("/subject")
@@ -124,9 +181,11 @@ export default function EmployerDialog({
                     const raw = res.data;
                     const subjectsData = Array.isArray(raw)
                         ? raw
-                        : Array.isArray(raw.subject)
-                            ? raw.subject
-                            : [];
+                        : Array.isArray(raw.subjects)
+                            ? raw.subjects
+                            : Array.isArray(raw.subject)
+                                ? raw.subject
+                                : [];
 
                     if (subjectsData.length === 0) {
                         console.warn("🚫 No valid subjects found in response:", raw);
@@ -175,6 +234,7 @@ export default function EmployerDialog({
                 phone: data.phone || "",
                 type: data.type || "",
                 okBlock: data?.okBlock ?? false,
+                weeklyWorkload: data.weeklyWorkload || 20,
                 photo: null,
             };
             console.log("Setting teacher form state to:", initialForm);
@@ -208,6 +268,7 @@ export default function EmployerDialog({
                 phone: "",
                 type: "",
                 okBlock: false,
+                weeklyWorkload: 20,
                 photo: null,
             })
             setBirthDate(undefined)
@@ -288,6 +349,7 @@ export default function EmployerDialog({
             formData.append("motherName", form.mereNom)
             formData.append("phone", form.phone)
             formData.append("type", form.type)
+            formData.append("weeklyWorkload", form.weeklyWorkload.toString())
 
             // ✅ Serialize boolean correctly
             formData.append("okBlock", JSON.stringify(form.okBlock))
@@ -323,24 +385,28 @@ export default function EmployerDialog({
                 console.log("Extracted employerId:", employerId)
                 setCreatedEmployerId(employerId)
 
-                // Load subjects if not already loaded
-                if (subjects.length === 0) {
-                    console.log("Loading subjects...")
-                    try {
-                        const subjectsResponse = await api.get("/subject");
-                        const raw = subjectsResponse.data;
-                        const subjectList = Array.isArray(raw) ? raw : raw.subject || [];
-                        setSubjects(subjectList);
-                    } catch (err) {
-                        console.error("Failed to load subjects:", err)
-                        toast.error("Failed to load subjects")
+                if (isClassTeacher) {
+                    setShowClassDialog(true);
+                } else {
+                     // Load subjects if not already loaded
+                    if (subjects.length === 0) {
+                        console.log("Loading subjects...")
+                        try {
+                            const subjectsResponse = await api.get("/subject");
+                            const raw = subjectsResponse.data;
+                            const subjectList = Array.isArray(raw) ? raw : raw.subjects || raw.subject || [];
+                            setSubjects(subjectList);
+                        } catch (err) {
+                            console.error("Failed to load subjects:", err)
+                            toast.error("Failed to load subjects")
+                        }
                     }
+                    setShowSubjectDialog(true)
                 }
 
-                setShowSubjectDialog(true)
-                if (onSuccess) onSuccess()
-                if (onOpenChange) onOpenChange(false)
-                //console.log(showSubjectDialog);
+                // Do not close dialog here, wait for secondary dialog to finish
+                // if (onSuccess) onSuccess()
+                // if (onOpenChange) onOpenChange(false)
             } else {
                 if (onSuccess) onSuccess()
                 if (onOpenChange) onOpenChange(false)
@@ -366,6 +432,7 @@ export default function EmployerDialog({
                     phone: "",
                     type: "",
                     okBlock: false,
+                    weeklyWorkload: 20,
                     photo: null,
                 })
                 setBirthDate(undefined)
@@ -728,6 +795,20 @@ export default function EmployerDialog({
                                         <Label htmlFor="okBlock">Block</Label>
                                     </div>
                                 )}
+                                {form.type === "teacher" && (
+                                    <div>
+                                        <Label>Weekly Workload (Hours/Periods)</Label>
+                                        <Input
+                                            type="number"
+                                            name="weeklyWorkload"
+                                            value={form.weeklyWorkload}
+                                            onChange={handleChange}
+                                            placeholder="20"
+                                            disabled={isLoading}
+                                            min={0}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -759,68 +840,143 @@ export default function EmployerDialog({
 
             {showSubjectDialog && (
                 <Dialog open={showSubjectDialog} onOpenChange={setShowSubjectDialog}>
-                    <DialogContent className="max-w-5xl">
+                    <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                         <DialogHeader>
-                            <DialogTitle>Assign Subjects to Teacher</DialogTitle>
-                            <DialogDescription>Double-click subjects to move between tables</DialogDescription>
+                            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                <BookOpen className="w-6 h-6 text-blue-600" />
+                                Assign Subjects
+                            </DialogTitle>
+                            <DialogDescription>
+                                Manage the subjects assigned to this teacher. Double-click to move items.
+                            </DialogDescription>
                         </DialogHeader>
 
-                        <div className="grid grid-cols-2 gap-4 h-96">
-                            {/* Available Subjects */}
-                            <div>
-                                <p className="font-semibold mb-2">Available Subjects</p>
-                                <div className="border rounded h-80 overflow-y-auto">
-                                    {subjects.length > 0 ? (
-                                        subjects
-                                            .filter(s => !selectedSubjects.some(sel => sel.subjectId === s.subjectId))
-                                            .map(subject => (
-                                                <div
-                                                    key={subject.subjectId}
-                                                    onDoubleClick={() => setSelectedSubjects([...selectedSubjects, subject])}
-                                                    className="cursor-pointer px-3 py-2 hover:bg-gray-100 border-b"
-                                                >
-                                                    {subject.subjectName}
+                        <div className="flex-1 min-h-0 py-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Available Subjects Panel */}
+                            <div className="flex flex-col gap-3 h-full border rounded-xl overflow-hidden bg-gray-50/50 dark:bg-slate-900/50">
+                                <div className="p-4 border-b bg-white dark:bg-slate-900">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-200">
+                                            Available Subjects
+                                        </h3>
+                                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                            {subjects.filter(s => !selectedSubjects.some(sel => sel.subjectId === s.subjectId)).length}
+                                        </span>
+                                    </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <Input 
+                                            placeholder="Search subjects..." 
+                                            className="pl-9 h-9 text-sm"
+                                            value={subjectSearch}
+                                            onChange={(e) => setSubjectSearch(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                                    {subjects
+                                        .filter(s => 
+                                            !selectedSubjects.some(sel => sel.subjectId === s.subjectId) &&
+                                            s.subjectName.toLowerCase().includes(subjectSearch.toLowerCase())
+                                        )
+                                        .map(subject => (
+                                            <div
+                                                key={subject.subjectId}
+                                                onClick={() => setSelectedSubjects([...selectedSubjects, subject])}
+                                                className="group flex items-center justify-between p-3 rounded-lg border border-transparent hover:border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-all duration-200"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border flex items-center justify-center text-gray-500 group-hover:text-blue-600 group-hover:border-blue-200">
+                                                        <BookOpen size={14} />
+                                                    </div>
+                                                    <span className="font-medium text-sm text-gray-700 dark:text-gray-200">
+                                                        {subject.subjectName}
+                                                    </span>
                                                 </div>
-                                            ))
-                                    ) : (
-                                        <p className="p-3 text-gray-500">No subjects available</p>
+                                                <Plus size={16} className="text-gray-300 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                        ))
+                                    }
+                                    {subjects.filter(s => !selectedSubjects.some(sel => sel.subjectId === s.subjectId)).length === 0 && (
+                                        <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+                                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                                                <Search className="w-6 h-6 opacity-30" />
+                                            </div>
+                                            <p className="text-sm">No subjects available</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Selected Subjects */}
-                            <div>
-                                <p className="font-semibold mb-2">Selected Subjects</p>
-                                <div className="border rounded h-80 overflow-y-auto">
+                            {/* Arrow Indicator (Desktop) */}
+                            {/* <div className="hidden md:flex flex-col justify-center items-center text-gray-300">
+                                <ArrowRight size={24} />
+                            </div> */}
+
+                            {/* Selected Subjects Panel */}
+                            <div className="flex flex-col gap-3 h-full border rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm ring-1 ring-gray-200 dark:ring-slate-800">
+                                <div className="p-4 border-b bg-green-50/50 dark:bg-green-900/10">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                                            Assigned Subjects
+                                        </h3>
+                                        <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+                                            {selectedSubjects.length}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-2 space-y-1">
                                     {selectedSubjects.length > 0 ? (
                                         selectedSubjects.map(subject => (
                                             <div
                                                 key={subject.subjectId}
-                                                onDoubleClick={() =>
-                                                    setSelectedSubjects(selectedSubjects.filter(s => s.subjectId !== subject.subjectId))
-                                                }
-                                                className="cursor-pointer px-3 py-2 hover:bg-red-100 border-b"
+                                                onClick={() => setSelectedSubjects(selectedSubjects.filter(s => s.subjectId !== subject.subjectId))}
+                                                className="group flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-all duration-200"
                                             >
-                                                {subject.subjectName}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 flex items-center justify-center font-bold text-xs">
+                                                        {subject.subjectName.substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <span className="font-medium text-sm text-gray-700 dark:text-gray-200">
+                                                        {subject.subjectName}
+                                                    </span>
+                                                </div>
+                                                <div className="p-1 rounded-full text-red-400 hover:bg-red-200 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">
+                                                    <Trash2 size={14} />
+                                                </div>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="p-3 text-gray-500">No subjects selected</p>
+                                        <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-2">
+                                            <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                                <Plus className="w-8 h-8 opacity-20" />
+                                            </div>
+                                            <p className="text-sm">Select subjects from the list</p>
+                                        </div>
                                     )}
                                 </div>
+                                {selectedSubjects.length > 0 && (
+                                    <div className="p-3 bg-gray-50 border-t text-center text-xs text-gray-500">
+                                        Click item to remove
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        <DialogFooter>
+                        <DialogFooter className="gap-2 sm:gap-0">
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={handleClose} // ✅ Call the close handler
+                                onClick={handleClose}
                                 disabled={isLoading}
+                                className="w-full sm:w-auto"
                             >
                                 Cancel
                             </Button>
                             <Button
+                                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
                                 onClick={async () => {
                                     try {
                                         const employerId = createdEmployerId || data?.employerId;
@@ -867,7 +1023,104 @@ export default function EmployerDialog({
                                 }}
                                 disabled={selectedSubjects.length === 0}
                             >
-                                Confirm
+                                Confirm Updates
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {showClassDialog && (
+                <Dialog open={showClassDialog} onOpenChange={setShowClassDialog}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Assign Class to Teacher</DialogTitle>
+                            <DialogDescription>Select the class this teacher will be responsible for.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Select Local</Label>
+                                <Select 
+                                    value={selectedLocalId} 
+                                    onValueChange={(val) => {
+                                        setSelectedLocalId(val);
+                                        setSelectedClassId("");
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Local" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {locals.map((local: any) => (
+                                            <SelectItem key={local.localId} value={local.localId.toString()}>
+                                                {local.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label>Select Class</Label>
+                                <Select 
+                                    value={selectedClassId} 
+                                    onValueChange={(val) => setSelectedClassId(val)}
+                                    disabled={!selectedLocalId}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Class" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {classes.length > 0 ? (
+                                            classes.map((cls: any) => (
+                                                <SelectItem key={cls.classId} value={cls.classId.toString()}>
+                                                    {cls.ClassName}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <div className="p-2 text-sm text-gray-500 text-center">No classes found</div>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowClassDialog(false);
+                                    if (onSuccess) onSuccess(); 
+                                    if (onOpenChange) onOpenChange(false);
+                                }}
+                            >
+                                Skip / Cancel
+                            </Button>
+                            <Button
+                                onClick={async () => {
+                                    try {
+                                        const employerId = createdEmployerId || data?.employerId;
+                                        if (!employerId || !selectedClassId) {
+                                            toast.error("Please select a class");
+                                            return;
+                                        }
+
+                                        await api.post("/employer/assign-class", {
+                                            employerId: parseInt(employerId),
+                                            classId: parseInt(selectedClassId),
+                                        });
+
+                                        toast.success("Class assigned successfully!");
+                                        setShowClassDialog(false);
+                                        if (onSuccess) onSuccess();
+                                        if (onOpenChange) onOpenChange(false);
+                                    } catch (err) {
+                                        console.error("Assignment error:", err);
+                                        toast.error("Failed to assign class");
+                                    }
+                                }}
+                                disabled={!selectedClassId}
+                            >
+                                Confirm Assignment
                             </Button>
                         </DialogFooter>
                     </DialogContent>

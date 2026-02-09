@@ -76,10 +76,11 @@ model Parent {
 model Local {
   localId    Int       @id @default(autoincrement())
   name       String
-  code       String
+  code       String    @unique
   dateCreate DateTime?
   dateModif  DateTime?
   NumClass   Int?
+  size       Int       @default(0) // Added for capacity check
 
   classes       classes[]
   subject_local subject_local[]
@@ -88,12 +89,13 @@ model Local {
 model classes {
   classId    Int       @id @default(autoincrement())
   ClassName  String
-  code       String
+  code       String    @unique
   dateCreate DateTime?
   dateModif  DateTime?
   NumStudent Int
   localId    Int
   okBlock    String    @default("N")
+  cloture    Boolean   @default(false)
 
   TeacherCalsses    TeaherClass[]
   Timetables        Timetable[]
@@ -148,17 +150,30 @@ model StudentClass {
   id           Int      @id @default(autoincrement())
   studentId    Int
   classId      Int
-  academicYear String   // e.g., "2024-2025"
+  schoolYearId Int
   isCurrent    Boolean  @default(false)
+  cloture      Boolean  @default(false) // Added for transition tracking
 
   // Relations
-  Student Student @relation(fields: [studentId], references: [studentId])
-  Class   classes @relation(fields: [classId], references: [classId])
+  Student    Student    @relation(fields: [studentId], references: [studentId])
+  Class      classes    @relation(fields: [classId], references: [classId])
+  schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id])
 
   grads Grads[]
 
-  @@unique([studentId, academicYear]) 
+  @@unique([studentId, schoolYearId]) 
   @@map("student_classes")
+}
+
+model SchoolYear {
+  id             Int            @id @default(autoincrement())
+  year           String         @unique // e.g. "2024-2025"
+  startDate      DateTime
+  endDate        DateTime
+  isCurrent      Boolean        @default(false)
+  studentClasses StudentClass[]
+
+  @@map("school_years")
 }
 
 model Employer {
@@ -185,6 +200,7 @@ model Employer {
   dateInscription DateTime?
   okBlock         Boolean   @default(false)
   type            String
+  weeklyWorkload  Int       @default(20)
 
   // Change from photo Bytes? to photoFileName String?
   photoFileName String? // Store filename instead of binary data

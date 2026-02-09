@@ -40,7 +40,7 @@ export class CreateStudentDto {
 
     @IsOptional()
     @IsString()
-    matherName: string;
+    motherName: string;
 
     @IsOptional()
     @IsString()
@@ -48,11 +48,11 @@ export class CreateStudentDto {
 
     @IsOptional()
     @IsString()
-    matherNumber: string;
+    motherNumber: string;
 
     @IsOptional()
     @IsString()
-    matherJob: string;
+    motherJob: string;
 
     @IsOptional()
     @IsString()
@@ -113,6 +113,7 @@ export class CreateStudentDto {
 
     @IsNotEmpty()
     @IsInt()
+    @Type(() => Number)
     localId: number;
 
     @IsOptional()

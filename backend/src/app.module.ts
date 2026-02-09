@@ -19,6 +19,8 @@ import { FeeModule } from './fee/fee.module';
 import { PaymentModule } from './payment/payment.module';
 import { CompteModule } from './compte/compte.module';
 import { SocketModule } from './socket/socket.module';
+import { SchoolYearModule } from './school-year/school-year.module';
+import { TransitionModule } from './transition/transition.module';
 
 @Module({
   imports: [
@@ -42,7 +44,9 @@ import { SocketModule } from './socket/socket.module';
     FeeModule,
     PaymentModule,
     CompteModule,
-    SocketModule
+    SocketModule,
+    SchoolYearModule,
+    TransitionModule
   ],
   
 })

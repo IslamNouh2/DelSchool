@@ -78,7 +78,7 @@ export class EmployerService {
             fatherName, motherName,
             health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality, observation,
-            numNumerisation, dateInscription, okBlock, type, phone,
+            numNumerisation, dateInscription, okBlock, type, phone, weeklyWorkload,
         } = dto;
 
         let photoFileName: string | null = null;
@@ -146,6 +146,7 @@ export class EmployerService {
                     okBlock: okBlock === false,
                     photoFileName,
                     type,
+                    weeklyWorkload: weeklyWorkload || 20,
                 },
             });
 
@@ -216,6 +217,7 @@ export class EmployerService {
                     dateInscription: dto.dateInscription ? new Date(dto.dateInscription) : undefined,
                     okBlock: dto.okBlock ?? false,
                     type: dto.type,
+                    weeklyWorkload: dto.weeklyWorkload !== undefined ? dto.weeklyWorkload : undefined,
                     photoFileName: photoFileName,
                 },
             });
@@ -374,6 +376,7 @@ export class EmployerService {
                 dateInscription: true,
                 okBlock: true,
                 type: true,
+                weeklyWorkload: true,
                 photoFileName: true,
                 compte: {
                     select: {
@@ -448,5 +451,34 @@ export class EmployerService {
         } catch (error) {
             throw new NotFoundException('Photo not found');
         }
+    }
+
+    async assignClassToTeacher(employerId: number, classId: number) {
+        // Check if assignment exists
+        const existing = await this.prisma.teaherClass.findUnique({
+            where: { employerId },
+        });
+
+        if (existing) {
+            return this.prisma.teaherClass.update({
+                where: { employerId },
+                data: { classId, isCurrent: true },
+            });
+        }
+
+        return this.prisma.teaherClass.create({
+            data: {
+                employerId,
+                classId,
+                isCurrent: true,
+            },
+        });
+    }
+
+    async getTeacherClass(employerId: number) {
+        return this.prisma.teaherClass.findUnique({
+            where: { employerId },
+            include: { Class: { include: { local: true } } },
+        });
     }
 }

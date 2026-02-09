@@ -394,7 +394,10 @@ export default function ExamListPage() {
                   Saisir des notes
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl rounded-3xl bg-white dark:bg-slate-900">
+              <DialogContent 
+                onPointerDownOutside={(e) => e.preventDefault()}
+                className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl rounded-3xl bg-white dark:bg-slate-900"
+              >
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
                   <DialogHeader>
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">

@@ -20,4 +20,7 @@ export class CreateClassDto {
     @IsOptional()
     @IsString()
     okBlock: string;
+
+    @IsOptional()
+    cloture: boolean;
 }
