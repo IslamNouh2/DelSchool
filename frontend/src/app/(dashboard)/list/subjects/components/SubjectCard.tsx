@@ -57,10 +57,10 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden"
+            className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden hover:shadow-md transition-all duration-300"
         >
             <div
-                className="w-full p-6 flex items-center gap-4 hover:bg-muted/30 transition-colors cursor-pointer"
+                className="w-full p-5 flex items-center gap-4 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                 onClick={() => hasChildren && setIsExpanded(!isExpanded)}
             >
                 {/* Icon Box */}
@@ -89,7 +89,7 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                                className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                                 onClick={() => onAddSubSubject?.(subject.subjectId)}
                                 title="Add Sub-subject"
                             >
@@ -99,7 +99,7 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                className="h-8 w-8 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                                 onClick={() => onEdit(subject.subjectId)}
                             >
                                 <Edit className="w-4 h-4" />
@@ -110,7 +110,7 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                        className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </Button>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import api from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Search, Download, Eye, Edit, Trash2, ArrowDownWideNarrow, Columns3 } from "lucide-react";
+import { Plus, Filter, Search, Download, Eye, Edit, Trash2, ArrowDownWideNarrow, Columns3, GraduationCap } from "lucide-react";
 import { motion } from "framer-motion";
 import StudentForm from "@/components/forms/StudentForm";
 import Link from "next/link";
@@ -256,14 +256,25 @@ export default function StudentListPage() {
 
     return (
         <div className="space-y-6 p-6">
-            <div className="flex items-center justify-between">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">Students</h1>
-                    <p className="text-gray-500">Manage all student records and information</p>
+                   <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                      <div className="p-3 bg-lamaYellow rounded-2xl shadow-lg shadow-yellow-500/20 text-white">
+                          <GraduationCap size={24} />
+                      </div>
+                      Students
+                      <span className="text-sm font-bold bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full dark:bg-yellow-900/30 dark:text-yellow-300">
+                           {totalCount} Total
+                      </span>
+                   </h1>
+                   <p className="text-gray-500 font-medium mt-2 max-w-lg">
+                      Manage all student records and information
+                   </p>
                 </div>
                 <Button
                     onClick={handleAddStudent}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
+                    className="flex items-center gap-2 px-6 py-3 bg-lamaSky hover:bg-lamaSkyLight text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none font-bold"
                 >
                     <Plus className="w-5 h-5" />
                     Add Student
@@ -271,7 +282,7 @@ export default function StudentListPage() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-slate-800">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
@@ -280,13 +291,13 @@ export default function StudentListPage() {
                             placeholder="Search by name, code, or email..."
                             value={filterValue}
                             onChange={(e) => setFilterValue(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
                         />
                     </div>
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                            <Button variant="outline" className="flex items-center gap-2 px-4 py-3 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors h-auto">
                                 <Columns3 className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                                 <span className="text-gray-600 dark:text-slate-400">Columns</span>
                             </Button>
@@ -303,12 +314,12 @@ export default function StudentListPage() {
                     </DropdownMenu>
 
                     <Button variant="outline"
-                        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                        className="flex items-center gap-2 px-4 py-3 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors h-auto"
                     >
                         <Filter className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                         Filters
                     </Button>
-                    <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                    <Button variant="outline" className="flex items-center gap-2 px-4 py-3 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors h-auto">
                         <Download className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                         Export
                     </Button>
@@ -362,7 +373,6 @@ export default function StudentListPage() {
                     </div>
                 )}
             />
-
             {/* Student Form Dialog */}
             {isDialogOpen && (
                 <StudentForm

@@ -74,11 +74,10 @@ export class EmployerService {
 
     async CreateEmployer(dto: CreateEmployerDto, photo?: Express.Multer.File) {
         const {
-            firstName, lastName, dateOfBirth, gender, address,
-            fatherName, motherName,
-            health, dateCreate, dateModif,
-            lieuOfBirth, bloodType, etatCivil, cid, nationality, observation,
-            numNumerisation, dateInscription, okBlock, type, phone, weeklyWorkload,
+            firstName, lastName, dateOfBirth, lieuOfBirth, gender, address,
+            fatherName, code, motherName, health, dateCreate, dateModif,
+            bloodType, etatCivil, cid, nationality, observation, numNumerisation,
+            dateInscription, okBlock, type, phone, weeklyWorkload, salary
         } = dto;
 
         let photoFileName: string | null = null;
@@ -128,6 +127,7 @@ export class EmployerService {
                     dateOfBirth: new Date(dateOfBirth),
                     gender,
                     address,
+                    salary: Number(dto.salary || 0),
                     code: newCode, // ✅ Use generated code here
                     health,
                     fatherName,
@@ -382,7 +382,6 @@ export class EmployerService {
                     select: {
                         id: true,
                         name: true,
-                        okBlock: true,
                     }
                 }
             }

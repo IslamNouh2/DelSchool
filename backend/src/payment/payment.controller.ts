@@ -1,53 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import { Prisma } from '@prisma/client';
+import { CollectPaymentDto } from './dto/collect-payment.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('payments')
+@UseGuards(JwtAuthGuard)
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+    constructor(private readonly paymentService: PaymentService) { }
 
-  @Post()
-  create(@Body() createPaymentDto: Prisma.PaymentUncheckedCreateInput) {
-    return this.paymentService.create(createPaymentDto);
-  }
+    @Post('collect')
+    collect(@Body() dto: CollectPaymentDto) {
+        return this.paymentService.collect(dto);
+    }
 
-  @Post('collect')
-  collectPayment(@Body() data: { studentId: number; feeId?: number; amount: number; method: any; date?: string }) {
-    return this.paymentService.collectPayment(data);
-  }
+    @Get('fee/:id')
+    getFeePayments(@Param('id', ParseIntPipe) id: number) {
+        return this.paymentService.getFeePayments(id);
+    }
 
-  @Post('collect-generic')
-  collectGenericPayment(@Body() data: { feeId: number; amount: number; method: any; date?: string }) {
-    return this.paymentService.collectGenericPayment(data);
-  }
-
-  @Get('history')
-  getFinanceHistory() {
-    return this.paymentService.getFinanceHistory();
-  }
-
-  @Get()
-  findAll() {
-    return this.paymentService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.paymentService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePaymentDto: Prisma.PaymentUncheckedUpdateInput) {
-    return this.paymentService.update(+id, updatePaymentDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentService.remove(+id);
-  }
-
-  @Get('student/:id')
-  getStudentPayments(@Param('id') id: string) {
-    return this.paymentService.getStudentPayments(+id);
-  }
+    @Get('student/:id/history')
+    getStudentHistory(@Param('id', ParseIntPipe) id: number) {
+        return this.paymentService.getStudentHistory(id);
+    }
 }

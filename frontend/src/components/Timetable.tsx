@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState, Fragment, useTransition, useOptimistic } from "react";
 import { motion } from "motion/react";
 import { Calendar as CalendarIcon, Plus, Loader2 } from "lucide-react";
 import { DndProvider } from "react-dnd";
@@ -30,8 +30,31 @@ export default function TimetableCalendar() {
     const [showSlotManager, setShowSlotManager] = useState(false);
     const [showEntryDialog, setShowEntryDialog] = useState(false);
     const [timetableData, setTimetableData] = useState<TimetableEntry[]>([]);
+
+    const [isPending, startTransition] = useTransition();
+
     const [loading, setLoading] = useState(false);
     const { refreshKey } = useSocket();
+
+    const [optimisticTimetable, addOptimisticEntry] = useOptimistic<
+        TimetableEntry[],
+        TimetableEntry
+    >(timetableData, (state, newEntry) => {
+        const existingIndex = state.findIndex(
+            (t) =>
+                t.day === newEntry.day &&
+                t.timeSlotId === newEntry.timeSlotId &&
+                t.classId === newEntry.classId
+        );
+
+        if (existingIndex !== -1) {
+            const copy = [...state];
+            copy[existingIndex] = newEntry;
+            return copy;
+        }
+
+        return [...state, newEntry];
+    });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -179,72 +202,89 @@ export default function TimetableCalendar() {
     };
 
     const handleSave = async () => {
-        const { day, classId, timeSlotId, academicYear, subjectId, employerId, id } = formData;
-        
-        // Check if subject is lunch/break
-        const selectedSubject = subjects.find(s => s.subjectId === subjectId);
-        const isLunch = selectedSubject?.subjectName?.toLowerCase().includes('lunch') || 
-                       selectedSubject?.subjectName?.toLowerCase().includes('break');
+        const { day, classId, timeSlotId, academicYear, subjectId, employerId, id } =
+            formData;
+
+        const selectedSubject = subjects.find(
+            (s) => s.subjectId === subjectId
+        );
+
+        const isLunch =
+            selectedSubject?.subjectName?.toLowerCase().includes("lunch") ||
+            selectedSubject?.subjectName?.toLowerCase().includes("break");
 
         if (!subjectId || !classId || !timeSlotId || (!employerId && !isLunch)) {
             toast({
                 variant: "destructive",
                 title: "Missing data",
-                description: "Please select class, subject, teacher and time slot.",
             });
             return;
         }
 
-        const payload = { subjectId, classId, employerId, timeSlotId, day, academicYear };
+        const optimisticEntry: TimetableEntry = {
+            id: id || Date.now(), // temporary ID
+            subjectId,
+            classId,
+            employerId,
+            timeSlotId,
+            day,
+            academicYear,
+            subject: selectedSubject,
+            teacher: teachers.find((t) => t.employerId === employerId),
+        };
 
-        try {
-            if (id > 0) {
-                // Update
-                await api.put(`/timetable/${id}`, { subjectId, employerId, timeSlotId, day });
-                toast({ title: "Timetable updated successfully" });
-            } else {
-                // Create
-                const checkRes = await api.get("/timetable/check", {
-                    params: { day, classId, timeSlotId, academicYear },
-                });
-                const existing = checkRes.data;
+        // 🔥 Optimistic UI update instantly
+        addOptimisticEntry(optimisticEntry);
 
-                if (existing?.length > 0) {
-                    // Update existing if found (overwrite)
-                    await Promise.all(
-                        existing.map((entry: any) =>
-                            api.put(`/timetable/${entry.id}`, { subjectId, employerId })
-                        )
-                    );
-                    toast({ title: "Timetable updated successfully" });
+        startTransition(async () => {
+            try {
+                if (id > 0) {
+                    await api.put(`/timetable/${id}`, {
+                        subjectId,
+                        employerId,
+                        timeSlotId,
+                        day,
+                    });
                 } else {
-                    await api.post("/timetable", payload);
-                    toast({ title: "New timetable entry added" });
+                    await api.post("/timetable", {
+                        subjectId,
+                        classId,
+                        employerId,
+                        timeSlotId,
+                        day,
+                        academicYear,
+                    });
                 }
-            }
 
-            setShowEntryDialog(false);
-            fetchTimetable();
-            // Reset form (keep classId)
-            setFormData(prev => ({ ...prev, id: 0, subjectId: 0, employerId: 0 }));
-        } catch (error) {
-            console.error(error);
-            toast({
-                variant: "destructive",
-                title: "Error saving timetable",
-            });
-        }
+                toast({ title: "Saved successfully" });
+
+                await fetchTimetable(); // sync real data
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    title: "Error saving",
+                });
+
+                await fetchTimetable(); // rollback by refetch
+            }
+        });
+
+        setShowEntryDialog(false);
     };
 
+
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this entry?")) return;
-        try {
-            await api.delete(`/timetable/${id}`);
-            toast({ title: "Entry deleted" });
-            fetchTimetable();
-        } catch (error) {
-            toast({ variant: "destructive", title: "Error deleting entry" });
-        }
+        if (!confirm("Are you sure?")) return;
+
+        startTransition(async () => {
+            try {
+                await api.delete(`/timetable/${id}`);
+                toast({ title: "Deleted" });
+                fetchTimetable();
+            } catch {
+                toast({ variant: "destructive", title: "Error deleting" });
+            }
+        });
     };
 
     const handleDrop = async (item: { slot: TimetableEntry, day: string, timeSlotId: number }, newDay: string, newTimeSlotId: number) => {
@@ -321,7 +361,7 @@ export default function TimetableCalendar() {
     };
 
     const getSlot = (day: string, timeSlotId: number) => {
-        return timetableData.find(t => t.day === day && t.timeSlotId === timeSlotId) || null;
+        return optimisticTimetable.find(t => t.day === day && t.timeSlotId === timeSlotId) || null;
     };
 
     return (
@@ -329,8 +369,13 @@ export default function TimetableCalendar() {
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-foreground mb-1">Timetable Management</h1>
-                        <p className="text-muted-foreground">
+                        <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                            <div className="p-3 bg-lamaYellow rounded-2xl shadow-lg shadow-yellow-500/20 text-white">
+                                <CalendarIcon size={24} />
+                            </div>
+                            Timetable Management
+                        </h1>
+                        <p className="text-gray-500 font-medium mt-2 max-w-lg">
                             Manage class schedules for <span className="font-medium text-blue-600">{formData.academicYear}</span>
                         </p>
                     </div>
@@ -536,8 +581,15 @@ export default function TimetableCalendar() {
                                     ))}
                                 </select>
                             </div>
-                            <Button onClick={handleSave} className="w-full">
-                                Save Entry
+                            <Button onClick={handleSave} className="w-full" disabled={isPending}>
+                                {isPending ? (
+                                    <>
+                                        <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Save Entry"
+                                )}
                             </Button>
                         </div>
                     </DialogContent>

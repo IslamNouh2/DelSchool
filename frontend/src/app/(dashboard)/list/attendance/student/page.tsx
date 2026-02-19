@@ -196,78 +196,83 @@ export default function AttendancePage() {
 
     return (
         <div className="space-y-6 p-6">
-            <div>
-                <h1 className="text-2xl font-semibold text-foreground mb-1">Attendance Management</h1>
-                <p className="text-muted-foreground">Mark and track student attendance</p>
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                        Student Attendance
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">
+                        Monitor and manage student presence across classes
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {/* Secondary actions can go here if needed */}
+                </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-md transition-all duration-300"
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                            <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                            <p className="text-muted-foreground text-sm">Total Students</p>
-                            <p className="text-foreground font-semibold text-xl">{totalStudents}</p>
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                            <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                         </div>
                     </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{totalStudents}</h3>
+                    <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Total Students</p>
                 </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-md transition-all duration-300"
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                            <p className="text-muted-foreground text-sm">Present</p>
-                            <p className="text-foreground font-semibold text-xl">{presentCount}</p>
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                            <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                         </div>
                     </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{presentCount}</h3>
+                    <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Present Today</p>
                 </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-md transition-all duration-300"
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                        </div>
-                        <div>
-                            <p className="text-muted-foreground text-sm">Absent</p>
-                            <p className="text-foreground font-semibold text-xl">{absentCount}</p>
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-2xl">
+                            <XCircle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                         </div>
                     </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{absentCount}</h3>
+                    <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Absent Today</p>
                 </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-md transition-all duration-300"
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                            <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl">
+                            <Calendar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                         </div>
-                        <div>
-                            <p className="text-muted-foreground text-sm">Attendance Rate</p>
-                            <p className="text-foreground font-semibold text-xl">{percentage}%</p>
+                        <div className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+                            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{percentage}%</span>
                         </div>
                     </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Attendance</h3>
+                    <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Daily Success Rate</p>
                 </motion.div>
             </div>
 
@@ -276,21 +281,27 @@ export default function AttendancePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800"
             >
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-                    <h2 className="text-foreground font-semibold text-lg">Daily Attendance Sheet</h2>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Daily Attendance Registry</h2>
+                        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Select class and date to mark attendance</p>
+                    </div>
                     <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="px-4 py-2.5 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
+                        <div className="relative group">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700 dark:text-gray-200 text-sm font-medium"
+                            />
+                        </div>
                         <select
                             value={selectedClassId}
                             onChange={(e) => setSelectedClassId(Number(e.target.value))}
-                            className="px-4 py-2.5 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="px-4 py-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700 dark:text-gray-200 text-sm font-medium"
                         >
                             {classes.map((c) => (
                                 <option key={c.classId} value={c.classId}>
@@ -298,130 +309,180 @@ export default function AttendancePage() {
                                 </option>
                             ))}
                         </select>
-                        <Button variant="outline" className="gap-2 rounded-xl">
-                            <Download className="w-4 h-4" />
-                            Export
+                        <Button variant="outline" className="gap-2 rounded-xl border-gray-100 dark:border-slate-800 text-gray-600 dark:text-slate-400 font-bold px-5">
+                            <Download className="w-4 h-4 text-emerald-500" />
+                            <span>Export</span>
                         </Button>
                     </div>
                 </div>
 
                 {loading ? (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                        <div className="w-12 h-12 border-4 border-blue-100 dark:border-blue-900/30 rounded-full animate-spin border-t-blue-600" />
+                        <p className="text-gray-400 dark:text-slate-500 font-medium">Retrieving student records...</p>
                     </div>
                 ) : attendanceData.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                        No students found for this class.
+                    <div className="text-center py-20 bg-gray-50/50 dark:bg-slate-900/30 rounded-3xl border-2 border-dashed border-gray-100 dark:border-slate-800">
+                        <Users className="w-12 h-12 text-gray-300 dark:text-slate-700 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-slate-400 font-medium">No students found for this class</p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {attendanceData.map((student) => (
-                            <div
+                            <motion.div
                                 key={student.id}
-                                className="flex flex-col sm:flex-row items-center justify-between p-4 border border-border rounded-xl hover:bg-muted/30 transition-colors gap-4"
+                                whileHover={{ y: -2 }}
+                                className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-slate-800/30 border border-gray-100 dark:border-slate-800/50 rounded-2xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm transition-all duration-200"
                             >
-                                <div className="flex items-center gap-4 w-full sm:w-auto">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-medium shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-slate-800 dark:to-slate-900 rounded-xl flex items-center justify-center text-gray-500 dark:text-slate-400 font-bold shadow-inner border border-white dark:border-slate-700">
                                         {student.rollNo.slice(-2)}
                                     </div>
-                                    <div>
-                                        <p className="text-foreground font-medium">{student.name}</p>
-                                        <p className="text-muted-foreground text-sm">{student.rollNo}</p>
+                                    <div className="min-w-0">
+                                        <p className="text-gray-900 dark:text-white font-bold truncate leading-tight">{student.name}</p>
+                                        <p className="text-gray-400 dark:text-slate-500 text-xs font-mono mt-0.5">{student.rollNo}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                                <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => toggleAttendance(student.id)}
-                                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl transition-all font-medium ${
+                                        className={`px-4 py-2 rounded-xl transition-all font-bold text-xs uppercase tracking-wider ${
                                             student.status === 'present'
-                                                ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
-                                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                                : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-600 border border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
                                         }`}
                                     >
                                         Present
                                     </button>
                                     <button
                                         onClick={() => toggleAttendance(student.id)}
-                                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl transition-all font-medium ${
+                                        className={`px-4 py-2 rounded-xl transition-all font-bold text-xs uppercase tracking-wider ${
                                             student.status === 'absent'
-                                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-                                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                                ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                                                : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-600 border border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
                                         }`}
                                     >
                                         Absent
                                     </button>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 )}
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-8 flex justify-end">
                     <Button 
                         onClick={handleSave} 
                         disabled={saving || loading || attendanceData.length === 0}
-                        className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all rounded-xl py-6 px-8"
+                        className="h-14 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all border-none flex items-center gap-3 font-bold text-base"
                     >
                         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        Save Attendance
+                        <span>Save Attendance Records</span>
                     </Button>
                 </div>
             </motion.div>
 
-            {/* Charts */}
+            {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Weekly Attendance */}
+                {/* Weekly Performance */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800"
                 >
-                    <h2 className="text-foreground font-semibold text-lg mb-6">Weekly Attendance</h2>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={weeklyChartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
-                            <YAxis stroke="hsl(var(--muted-foreground))" />
-                            <Tooltip 
-                                contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                            />
-                            <Legend />
-                            <Bar dataKey="present" fill="#10B981" radius={[8, 8, 0, 0]} />
-                            <Bar dataKey="absent" fill="#EF4444" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Weekly Trend</h2>
+                            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Attendance flow for the last 7 days</p>
+                        </div>
+                        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                            <BarChart className="w-5 h-5 text-emerald-600" />
+                        </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={weeklyChartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.1} vertical={false} />
+                                <XAxis 
+                                    dataKey="day" 
+                                    stroke="#94a3b8" 
+                                    fontSize={12} 
+                                    tickLine={false} 
+                                    axisLine={false}
+                                    tick={{ fill: '#94a3b8' }}
+                                />
+                                <YAxis 
+                                    stroke="#94a3b8" 
+                                    fontSize={12} 
+                                    tickLine={false} 
+                                    axisLine={false}
+                                    tick={{ fill: '#94a3b8' }}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        backgroundColor: '#1e293b', 
+                                        border: 'none', 
+                                        borderRadius: '12px',
+                                        color: '#fff',
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                    itemStyle={{ color: '#fff' }}
+                                    cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
+                                />
+                                <Legend iconType="circle" />
+                                <Bar dataKey="present" name="Present" fill="#10b981" radius={[6, 6, 0, 0]} barSize={20} />
+                                <Bar dataKey="absent" name="Absent" fill="#f43f5e" radius={[6, 6, 0, 0]} barSize={20} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </motion.div>
 
-                {/* Summary Pie Chart */}
+                {/* Daily Distribution */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800"
                 >
-                    <h2 className="text-foreground font-semibold text-lg mb-6">Attendance Summary</h2>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                            <Pie
-                                data={summaryChartData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                outerRadius={100}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {summaryChartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip 
-                                contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Daily Distribution</h2>
+                            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Student presence breakdown</p>
+                        </div>
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                            <PieChart className="w-5 h-5 text-blue-600" />
+                        </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={summaryChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={100}
+                                    paddingAngle={8}
+                                    dataKey="value"
+                                >
+                                    {summaryChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                    ))}
+                                </Pie>
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        backgroundColor: '#1e293b', 
+                                        border: 'none', 
+                                        borderRadius: '12px',
+                                        color: '#fff'
+                                    }}
+                                    itemStyle={{ color: '#fff' }}
+                                />
+                                <Legend verticalAlign="bottom" height={36} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
                 </motion.div>
             </div>
         </div>

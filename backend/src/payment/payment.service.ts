@@ -1,244 +1,118 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { SocketGateway } from 'src/socket/socket.gateway';
-
+import { CollectPaymentDto } from './dto/collect-payment.dto';
+import { JournalEntryStatus } from '@prisma/client';
 
 @Injectable()
 export class PaymentService {
-  constructor(
-    private prisma: PrismaService,
-    private socketGateway: SocketGateway
-  ) {}
+    constructor(private prisma: PrismaService) { }
 
+    private readonly STUDENT_RECEIVABLE_ACCOUNT_ID = 4; // Placeholder
+    private readonly CASH_JOURNAL_ID = 2; // CASH
+    private readonly BANK_JOURNAL_ID = 3; // BANK
 
-  async create(data: Prisma.PaymentUncheckedCreateInput) {
-    const payment = await this.prisma.payment.create({ data });
-    this.socketGateway.emitRefresh();
-    return payment;
-  }
+    async collect(dto: CollectPaymentDto) {
+        return this.prisma.$transaction(async (tx) => {
+            const fee = await tx.fee.findUnique({
+                where: { id: dto.feeId },
+                include: { payments: true },
+            });
 
-  findAll() {
-    return this.prisma.payment.findMany({
-      include: {
-        fee: {
-          include: {
-            student: true,
-            employer: true,
-          },
-        },
-        compte: true,
-      } as any,
-    });
-  }
-
-  findOne(id: number) {
-    return this.prisma.payment.findUnique({
-      where: { id },
-      include: {
-        fee: {
-          include: {
-            student: true,
-            employer: true,
-          },
-        },
-        compte: true,
-      } as any,
-    });
-  }
-
-  async update(id: number, data: Prisma.PaymentUncheckedUpdateInput) {
-    const payment = await this.prisma.payment.update({
-      where: { id },
-      data,
-    });
-    this.socketGateway.emitRefresh();
-    return payment;
-  }
-
-  async remove(id: number) {
-    const deleted = await this.prisma.payment.delete({
-      where: { id },
-    });
-    this.socketGateway.emitRefresh();
-    return deleted;
-  }
-
-  async collectPayment(data: { studentId: number; amount: number; method: Prisma.EnumPaymentMethodFilter | any; date?: Date | string }) {
-    const { studentId, amount, method, date } = data;
-    let remainingAmount = amount;
-    const createdPayments: Prisma.PaymentGetPayload<{}>[] = [];
-
-    // 1. Fetch all fees for the student (direct + class)
-    // We need to fetch fees and check for existing payments to determine pending amount
-    const student = await this.prisma.student.findUnique({
-      where: { studentId },
-      include: {
-        fees: { include: { payments: true } },
-        studentClasses: {
-          include: {
-            Class: {
-              include: {
-                fees: { include: { payments: true } }
-              }
+            if (!fee) {
+                throw new BadRequestException('Fee not found');
             }
-          }
-        }
-      }
-    });
 
-    if (!student) throw new Error('Student not found');
+            const totalPaid = fee.payments.reduce((sum, p) => sum + p.amount, 0);
+            const remaining = Number(fee.amount) - totalPaid;
 
-    // 2. Flatten and calculate pending for each fee
-    const allFees: (Prisma.FeeGetPayload<{ include: { payments: true } }> & { pending: number; type: string })[] = [];
+            if (dto.amount > remaining) {
+                throw new BadRequestException(`Payment exceeds remaining balance (${remaining})`);
+            }
 
-    // Direct fees
-    student.fees.forEach(fee => {
-      const paid = fee.payments
-        .reduce((sum, p) => sum + p.amount, 0);
-      const pending = fee.amount - paid;
-      if (pending > 0) {
-        allFees.push({ ...fee, pending, type: 'DIRECT' });
-      }
-    });
+            // 1. Validate Account
+            if (!dto.compteId) {
+                throw new BadRequestException('Destination account (Caisse/Bank) is required');
+            }
+            const destinationAccountId = dto.compteId;
 
-    // Class fees
-    student.studentClasses.forEach(sc => {
-      sc.Class.fees.forEach(fee => {
-        const paid = fee.payments
-          .reduce((sum, p) => sum + p.amount, 0);
-        const pending = fee.amount - paid;
-        if (pending > 0) {
-          allFees.push({ ...fee, pending, type: 'CLASS' });
-        }
-      });
-    });
+            // 2. Create Payment Record
+            const payment = await tx.payment.create({
+                data: {
+                    amount: dto.amount,
+                    method: dto.method as any || 'CASH',
+                    transactionId: dto.reference,
+                    description: dto.description,
+                    feeId: dto.feeId,
+                    studentId: fee.studentId,
+                    compteId: destinationAccountId,
+                },
+            });
 
-    // 3. Sort fees by due date (oldest first)
-    allFees.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+            // 3. Determine Journal
+            const isCash = dto.method === 'CASH';
+            const journalId = isCash ? this.CASH_JOURNAL_ID : this.BANK_JOURNAL_ID;
 
-    // 4. Distribute payment
-    // Use a transaction to ensure atomicity
-    return this.prisma.$transaction(async (tx) => {
-      for (const fee of allFees) {
-        if (remainingAmount <= 0) break;
+            // 4. Generate Journal Entry
+            await tx.journalEntry.create({
+                data: {
+                    journalId: journalId,
+                    entryNumber: `PAY-${payment.id}-${Date.now()}`,
+                    // ... rest is same
+                    referenceType: 'STUDENT_PAYMENT',
+                    referenceId: payment.id,
+                    description: `Payment for Fee #${fee.id} from Student #${fee.studentId}`,
+                    totalDebit: dto.amount,
+                    totalCredit: dto.amount,
+                    status: JournalEntryStatus.POSTED,
+                    createdBy: 1,
+                    lines: {
+                        create: [
+                            {
+                                lineNumber: 1,
+                                compteId: destinationAccountId,
+                                debit: dto.amount,
+                                credit: 0,
+                            },
+                            {
+                                lineNumber: 2,
+                                compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
+                                debit: 0,
+                                credit: dto.amount,
+                            },
+                        ],
+                    },
+                },
+            });
 
-        const payAmount = Math.min(fee.pending, remainingAmount);
-        
-        const payment = await tx.payment.create({
-          data: {
-            amount: payAmount,
-            method: method as any,
-            date: date ? new Date(date) : new Date(),
-            status: 'COMPLETED',
-            fee: { connect: { id: fee.id } },
-            student: { connect: { studentId } },
-            ...(fee.compteId ? { compte: { connect: { id: fee.compteId } } } : {})
-          }
+            return payment;
         });
-
-        createdPayments.push(payment);
-        remainingAmount -= payAmount;
-      }
-
-      // If there's still remaining amount, it's an overpayment or credit.
-      // For now, we can either throw, ignore, or create a general credit.
-      // Let's just return the created payments.
-      this.socketGateway.emitRefresh();
-      return createdPayments;
-    });
-  }
-
-  async collectGenericPayment(data: { feeId: number; amount: number; method: Prisma.EnumPaymentMethodFilter | any; date?: Date | string }) {
-    const { feeId, amount, method, date } = data;
-
-    // Fetch the fee to verify it exists and is generic
-    const fee = await this.prisma.fee.findUnique({
-      where: { id: feeId },
-      include: { payments: true }
-    });
-
-    if (!fee) throw new Error('Fee not found');
-    if (fee.studentId || fee.classId) throw new Error('This endpoint is only for generic fees');
-
-    // Calculate pending amount
-    const totalPaid = fee.payments.reduce((sum, p) => sum + p.amount, 0);
-    const pending = fee.amount - totalPaid;
-
-    if (amount > pending) {
-      throw new Error(`Payment amount (${amount}) exceeds pending amount (${pending})`);
     }
 
-    // Create payment without student association
-    const payment = await this.prisma.payment.create({
-      data: {
-        amount,
-        method: method as any,
-        date: date ? new Date(date) : new Date(),
-        status: 'COMPLETED',
-        description: `Generic fee payment for: ${fee.title}`,
-        fee: { connect: { id: feeId } },
-        ...(fee.studentId ? { student: { connect: { studentId: fee.studentId } } } : {}),
-        ...((fee as any).employerId ? { employer: { connect: { employerId: (fee as any).employerId } } } : {}),
-        ...(fee.compteId ? { compte: { connect: { id: fee.compteId } } } : {})
-      } as any
-    });
+    async getFeePayments(feeId: number) {
+        return this.prisma.payment.findMany({
+            where: { feeId },
+            orderBy: { date: 'desc' },
+        });
+    }
 
-    this.socketGateway.emitRefresh();
-    return payment;
-  }
+    async getStudentHistory(studentId: number) {
+        const [fees, payments] = await Promise.all([
+            this.prisma.fee.findMany({
+                where: { studentId },
+                orderBy: { createdAt: 'desc' },
+            }),
+            this.prisma.payment.findMany({
+                where: { studentId },
+                orderBy: { date: 'desc' },
+            }),
+        ]);
 
-  async getFinanceHistory() {
-    const payments = await (this.prisma.payment.findMany({
-      include: {
-        fee: true,
-        student: true,
-        employer: true,
-        compte: true,
-      } as any,
-      orderBy: { date: 'desc' },
-    }) as any);
+        // Merge and sort for timeline
+        const history = [
+            ...fees.map(f => ({ type: 'FEE', date: f.createdAt, amount: f.amount, title: f.title, id: f.id })),
+            ...payments.map(p => ({ type: 'PAYMENT', date: p.date, amount: p.amount, method: p.method, id: p.id })),
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const history = payments.map((p) => {
-      const isIncome = p.fee?.type === 'income' || !!p.studentId;
-      const entityName = p.fee?.student 
-        ? `${p.fee.student.firstName} ${p.fee.student.lastName}`
-        : p.student
-        ? `${p.student.firstName} ${p.student.lastName}`
-        : p.fee?.employer
-        ? `${p.fee.employer.firstName} ${p.fee.employer.lastName}`
-        : p.employer
-        ? `${p.employer.firstName} ${p.employer.lastName}`
-        : 'N/A';
-
-      return {
-        id: `p-${p.id}`,
-        type: isIncome ? 'INCOME' : 'EXPENSE',
-        category: p.compte?.name || p.fee?.title || 'General',
-        amount: p.amount,
-        date: p.date,
-        description: p.description || (isIncome ? `Fee payment: ${p.fee?.title || 'N/A'}` : `Expense: ${p.fee?.title || 'N/A'}`),
-        entityName,
-        method: p.method,
-        compteId: p.compteId,
-      };
-    });
-
-    return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }
-
-  async getStudentPayments(studentId: number) {
-    return this.prisma.payment.findMany({
-      where: { 
-        fee: {
-          studentId
-        }
-      },
-      include: { 
-        fee: true,
-        compte: true,
-      },
-      orderBy: { date: 'desc' },
-    });
-  }
+        return history;
+    }
 }

@@ -206,7 +206,6 @@ export class StudentService {
         const now = new Date();
         const month = now.getMonth(); // 0-11
         const year = now.getFullYear();
-        // If current month is before September (0-7), the academic year started in the previous calendar year
         if (month < 8) {
             return `${year - 1}-${year}`;
         }
@@ -320,7 +319,6 @@ export class StudentService {
                 throw new NotFoundException(`Class with ID ${targetClassId} not found`);
             }
 
-            // Check if student is already in this class (don't block update if staying in same full class)
             const currentAssignment = await this.prisma.studentClass.findUnique({
                 where: {
                     studentId_schoolYearId: {
@@ -406,13 +404,23 @@ export class StudentService {
         this.socketGateway.emitRefresh();
     }
 
-    async GetStudent(page: number = 1, limit: number = 10) {
+    async GetStudent(page: number = 1, limit: number = 10, classId?: number, status?: string) {
         const skip = (page - 1) * limit;
 
-        const [students, total] = await this.prisma.$transaction([
-            this.prisma.student.findMany({
-                skip,
-                take: limit,
+        const where: any = {};
+        if (classId) {
+            where.studentClasses = {
+                some: {
+                    classId: Number(classId),
+                    isCurrent: true
+                }
+            };
+        }
+
+        // If filtering by status, we must fetch all matching students first, then filter in memory
+        if (status && status !== 'ALL') {
+             const allStudents = await this.prisma.student.findMany({
+                where,
                 select: {
                     studentId: true,
                     firstName: true,
@@ -429,22 +437,123 @@ export class StudentService {
                                 }
                             }
                         }
+                    },
+                    fees: {
+                        include: { payments: true }
                     }
-                }
-            }),
-            this.prisma.student.count(),
-        ]);
+                },
+                orderBy: { lastName: 'asc' }
+            });
 
-        const studentsWithPhotoUrl = students.map((student) => ({
-            ...student,
-            photoUrl: student.photoFileName ? `/api/student/photo/${student.photoFileName}` : null,
-        }));
+            const filteredStudents = allStudents.map(s => ({
+                ...s,
+                financial: this.calculateFinancialSummary(s.fees)
+            })).filter(s => {
+                if (status === 'PAID') return s.financial.status === 'PAID';
+                if (status === 'UNPAID') return s.financial.status === 'UPCOMING' || s.financial.status === 'OVERDUE';
+                if (status === 'PARTIAL') return s.financial.status === 'PARTIAL';
+                if (status === 'OVERDUE') return s.financial.status === 'OVERDUE';
+                return true;
+            });
+
+            const total = filteredStudents.length;
+            const paginatedStudents = filteredStudents.slice(skip, skip + limit);
+
+            const processedStudents = paginatedStudents.map((s) => ({
+                ...s,
+                photoUrl: s.photoFileName ? `/api/student/photo/${s.photoFileName}` : null,
+            }));
+
+            return {
+                students: processedStudents,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit),
+            };
+
+        } else {
+            // Standard db-side pagination
+            const [students, total] = await this.prisma.$transaction([
+                this.prisma.student.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                    orderBy: { lastName: 'asc' },
+                    select: {
+                        studentId: true,
+                        firstName: true,
+                        lastName: true,
+                        code: true,
+                        gender: true,
+                        photoFileName: true,
+                        studentClasses: {
+                            where: { isCurrent: true },
+                            include: {
+                                Class: {
+                                    select: {
+                                        ClassName: true
+                                    }
+                                }
+                            }
+                        },
+                        fees: {
+                            include: { payments: true }
+                        }
+                    }
+                }),
+                this.prisma.student.count({ where }),
+            ]);
+
+            const processedStudents = students.map((s) => {
+                const financial = this.calculateFinancialSummary(s.fees);
+                return {
+                    ...s,
+                    photoUrl: s.photoFileName ? `/api/student/photo/${s.photoFileName}` : null,
+                    financial,
+                };
+            });
+
+            return {
+                students: processedStudents,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit),
+            };
+        }
+    }
+
+    private calculateFinancialSummary(fees: any[]) {
+        let totalDue = 0;
+        let totalPaid = 0;
+        let hasOverdue = false;
+        const now = new Date();
+
+        const subscriptions = fees.map(f => f.title);
+
+        for (const fee of fees) {
+            const amount = Number(fee.amount);
+            const paid = fee.payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+            totalDue += amount;
+            totalPaid += paid;
+
+            if (paid < amount && new Date(fee.dueDate) < now) {
+                hasOverdue = true;
+            }
+        }
+
+        let status = 'UPCOMING';
+        if (fees.length > 0) {
+            if (totalPaid >= totalDue) status = 'PAID';
+            else if (hasOverdue) status = 'OVERDUE';
+            else if (totalPaid > 0) status = 'PARTIAL';
+        }
 
         return {
-            students: studentsWithPhotoUrl,
-            total,
-            page,
-            totalPages: Math.ceil(total / limit),
+            totalDue,
+            totalPaid,
+            balance: totalDue - totalPaid,
+            status,
+            subscriptions,
         };
     }
 
@@ -498,6 +607,9 @@ export class StudentService {
                         status: true,
                         date: true
                     }
+                },
+                fees: {
+                    include: { payments: true }
                 }
             },
         });
@@ -507,6 +619,7 @@ export class StudentService {
         }
 
         const currentClass = student.studentClasses?.[0];
+        const financial = this.calculateFinancialSummary(student.fees);
 
         return {
             ...student,
@@ -517,6 +630,7 @@ export class StudentService {
             motherName: student.parent?.mother || '',
             fatherPhone: student.parent?.fatherNumber || '',
             motherPhone: student.parent?.motherNumber || '',
+            financial,
         };
     }
 
@@ -562,6 +676,9 @@ export class StudentService {
                                 }
                             }
                         }
+                    },
+                    fees: {
+                        include: { payments: true }
                     }
                 }
             }),
@@ -575,13 +692,14 @@ export class StudentService {
             }),
         ]);
 
-        const studentsWithPhotoUrl = students.map((student) => ({
+        const processedStudents = students.map((student) => ({
             ...student,
             photoUrl: student.photoFileName ? `/api/student/photo/${student.photoFileName}` : null,
+            financial: this.calculateFinancialSummary(student.fees),
         }));
 
         return {
-            students: studentsWithPhotoUrl,
+            students: processedStudents,
             total,
             page,
             totalPages: Math.ceil(total / limit),

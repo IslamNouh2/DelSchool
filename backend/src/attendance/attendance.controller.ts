@@ -109,4 +109,14 @@ async saveStudentAttendance(@Body() body: any) {
   getStudentAttendance(@Param('id', ParseIntPipe) id: number) {
     return this.service.getStudentAttendance(id);
   }
+
+  @Get('global-weekly-chart')
+  getGlobalWeeklyChart() {
+    return this.service.getGlobalWeeklyChartData();
+  }
+
+  @Get('global-daily-summary/:date')
+  getGlobalDailySummary(@Param('date') date: string) {
+    return this.service.getGlobalDailySummaryData(date);
+  }
 }

@@ -34,7 +34,7 @@ function CustomTableComponent<T>({
     const visibleColumns = useMemo(() => columns.filter((col) => col.visible !== false), [columns]);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-blue-50/50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-800">

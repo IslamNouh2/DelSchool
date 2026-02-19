@@ -14,6 +14,7 @@ import {
   GalleryVerticalEnd,
   Map,
   PieChart,
+  Settings,
   Settings2,
   SquareTerminal,
   User2,
@@ -147,15 +148,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       { title: "Exam", url: "/list/exam", icon: FileBadge },
       {
-        title: "Fees",
+        title: "Finance",
         url: "#",
-        icon: Wallet,
+        icon: BadgeDollarSign,
         items: [
-          { title: "Fee", url: "/list/fees", icon: BadgeDollarSign },
-          { title: "Payments", url: "/list/payments", icon: CreditCard },
+          { title: "Dashboard", url: "/finance", icon: SquareTerminal }, // New Link
+          { title: "Fee Student", url: "/list/studentfee", icon: BadgeDollarSign },
+          { title: "Fee Templates", url: "/list/feestemplate", icon: BadgeDollarSign },
+          { title: "Comptes", url: "/list/comptes", icon: BadgeDollarSign },
+          { title: "Payroll", url: "/list/payroll", icon: BadgeDollarSign },
+          { title: "Expenses", url: "/list/expenses", icon: BadgeDollarSign },
         ],
       },
-      { title: "Settings", url: "/list/settings", icon: Settings2 },
+      { title: "Trésorerie", url: "/list/treasury", icon: Wallet },
+      
+      {
+        title: "Settings",
+        url: "#",
+        icon: Settings,
+        items: [
+          { title: "General", url: "/list/settings", icon: Settings2 },
+          { title: "Users", url: "#", icon: User2 },
+          { title: "Roles", url: "#", icon: User2 },
+          { title: "Parameters", url: "/list/settings/parameters", icon: Settings2 },
+        ],
+      },
     ]
   }, [role])
 

@@ -7,92 +7,105 @@ import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 import { motion } from "motion/react";
 
 const CountChartComponent = () => {
-    const [counts, setCounts] = useState({ total: 0, boys: 0, girls: 0 });
+    const [counts, setCounts] = useState<{ boys: number, girls: number }>({ boys: 0, girls: 0 });
     const [loading, setLoading] = useState(true);
 
-    const fetchCounts = useCallback(async () => {
-        try {
-            setLoading(true);
-            const res = await api.get('/student/count');
-            setCounts({
-                total: res.data.total || 0,
-                boys: res.data.boys || Math.round((res.data.total || 0) * 0.55),
-                girls: res.data.girls || Math.round((res.data.total || 0) * 0.45)
-            });
-        } catch (error) {
-            console.error('Error fetching student counts:', error);
-        } finally {
-            setLoading(false);
-        }
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const res = await api.get("/student/counts-by-gender");
+                setCounts(res.data);
+            } catch (error) {
+                console.error("Failed to fetch gender counts", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCounts();
     }, []);
 
-    useEffect(() => {
-        fetchCounts();
-    }, [fetchCounts]);
+    const total = counts.boys + counts.girls;
+    const boysPercent = total > 0 ? (counts.boys / total) * 100 : 0;
+    const girlsPercent = total > 0 ? (counts.girls / total) * 100 : 0;
 
-    const data = useMemo(() => [
-        { name: 'Girls', count: counts.girls, fill: '#fbbf24' },
-        { name: 'Boys', count: counts.boys, fill: '#3b82f6' },
-        { name: 'Total', count: counts.total, fill: '#f3f4f6' }
-    ], [counts]);
+    const realBoysPercent = Math.round(boysPercent);
+    const realGirlsPercent = Math.round(girlsPercent);
 
-    const total = counts.total || 1; 
-    const boysPercent = Math.round((counts.boys / total) * 100);
-    const girlsPercent = Math.round((counts.girls / total) * 100);
+    // Beautiful scaling: Base size + proportional growth
+    const boysSize = 40 + (boysPercent * 0.45);
+    const girlsSize = 40 + (girlsPercent * 0.45);
 
     return (
         <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className='bg-white rounded-3xl w-full h-full p-6 shadow-sm border border-gray-100 flex flex-col'
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className='bg-white dark:bg-[#1a1c2e] rounded-[32px] w-full h-full p-8 shadow-sm dark:shadow-xl border border-gray-100 dark:border-white/5 flex flex-col justify-between transition-all duration-300'
         >
-            <div className='flex justify-between items-center mb-4'>
+            <div className='flex justify-between items-start mb-6'>
                 <div>
-                    <h2 className="text-lg font-bold text-gray-900">Étudiants</h2>
-                    <p className="text-xs text-gray-400 font-medium">Répartition par genre</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-[0.2em] mb-1 transition-colors">Distribution</p>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">Student Gender</h2>
                 </div>
-                <button className="p-2 hover:bg-gray-50 rounded-xl transition-colors">
-                    <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                </button>
-            </div>
-
-            <div className='relative flex-1 w-full min-h-0'>
-                <ResponsiveContainer width="100%" height="100%">
-                    <RadialBarChart cx="50%" cy="50%" innerRadius="40%" outerRadius="100%" barSize={32} data={data}>
-                        <RadialBar
-                            background
-                            dataKey="count"
-                            cornerRadius={16}
-                        />
-                    </RadialBarChart>
-                </ResponsiveContainer>
-                <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center'>
-                    <div className="p-3 bg-gray-50 rounded-2xl mb-1">
-                        <Users className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">{loading ? "..." : counts.total}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</span>
+                <div className="p-2 bg-gray-50 dark:bg-[#0b0d17] rounded-xl border border-gray-100 dark:border-white/5">
+                    <Users className="w-5 h-5 text-[#0052cc]" />
                 </div>
             </div>
 
-            <div className='flex justify-center gap-8 mt-4 pt-4 border-t border-gray-50'>
-                <div className='flex items-center gap-3'>
-                    <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm shadow-blue-200" />
-                    <div>
-                        <p className="text-sm font-bold text-gray-900">{loading ? "..." : counts.boys}</p>
-                        <p className="text-[10px] text-gray-400 font-medium">Garçons ({boysPercent}%)</p>
+            <div className='relative flex-1 flex items-center justify-center my-4'>
+                {/* Decorative Background Rings */}
+                <div className="absolute w-[220px] h-[220px] rounded-full border border-dashed border-gray-100 dark:border-white/5 animate-[spin_20s_linear_infinite]" />
+                <div className="absolute w-[180px] h-[180px] rounded-full border border-gray-50 dark:border-white/5" />
+                
+                <div className="relative w-full aspect-square max-w-[260px] flex items-center justify-center">
+                    {/* Artistic Overlapping Design */}
+                    <motion.div 
+                        style={{ width: `${boysSize}%` }}
+                        animate={{ width: `${boysSize}%` }}
+                        className="absolute left-[8%] aspect-square rounded-full bg-gradient-to-br from-[#0052cc] to-[#003d99] flex flex-col items-center justify-center shadow-[0_20px_40px_rgba(0,82,204,0.3)] z-10 border-4 border-white dark:border-[#1a1c2e] transition-all duration-1000 ease-in-out"
+                    >
+                        <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                            <Users className="w-8 h-8 text-white opacity-90" />
+                        </div>
+                    </motion.div>
+                    
+                    <motion.div 
+                        style={{ width: `${girlsSize}%` }}
+                        animate={{ width: `${girlsSize}%` }}
+                        className="absolute right-[8%] aspect-square rounded-full bg-gradient-to-tr from-[#bf95f9] to-[#9b6cd9] flex flex-col items-center justify-center shadow-[0_20px_40px_rgba(191,149,249,0.3)] z-20 border-4 border-white dark:border-[#1a1c2e] transition-all duration-1000 ease-in-out"
+                    >
+                         <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                            <Users className="w-6 h-6 text-white opacity-90" />
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
+
+            <div className='grid grid-cols-2 gap-4 mt-8'>
+                <div className="bg-gray-50 dark:bg-[#0b0d17] p-4 rounded-2xl border border-gray-100 dark:border-white/5 hover:border-[#0052cc]/30 transition-all cursor-default group">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#0052cc]"></div>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Garçons</span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-black text-gray-900 dark:text-white tabular-nums">{counts.boys}</span>
+                        <span className="text-[10px] font-black text-[#0052cc]">{realBoysPercent}%</span>
                     </div>
                 </div>
-                <div className='flex items-center gap-3'>
-                    <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm shadow-yellow-100" />
-                    <div>
-                        <p className="text-sm font-bold text-gray-900">{loading ? "..." : counts.girls}</p>
-                        <p className="text-[10px] text-gray-400 font-medium">Filles ({girlsPercent}%)</p>
+
+                <div className="bg-gray-50 dark:bg-[#0b0d17] p-4 rounded-2xl border border-gray-100 dark:border-white/5 hover:border-[#bf95f9]/30 transition-all cursor-default group">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#bf95f9]"></div>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filles</span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-black text-gray-900 dark:text-white tabular-nums">{counts.girls}</span>
+                        <span className="text-[10px] font-black text-[#bf95f9]">{realGirlsPercent}%</span>
                     </div>
                 </div>
             </div>
         </motion.div>
     );
-}
+};
 
 export default React.memo(CountChartComponent);

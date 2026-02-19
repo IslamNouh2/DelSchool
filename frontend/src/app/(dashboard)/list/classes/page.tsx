@@ -118,22 +118,26 @@ export default function ClassListPage() {
 
     return (
         <div className="space-y-6 p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground mb-1">Classes</h1>
-                    <p className="text-muted-foreground">Manage all school classes and rooms</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                        Classes
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">
+                        Manage all school classes and rooms
+                    </p>
                 </div>
                 <Button
                     onClick={handleAddClass}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
+                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
                 >
                     <Plus className="w-5 h-5" />
-                    Add Class
+                    <span>Add Class</span>
                 </Button>
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-slate-800">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
@@ -142,33 +146,35 @@ export default function ClassListPage() {
                             placeholder="Search by class name..."
                             value={filterValue}
                             onChange={(e) => setFilterValue(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 dark:bg-slate-800/50 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-500 transition-all"
                         />
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                                <Columns3 className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                                <span className="text-gray-600 dark:text-slate-400">Columns</span>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuCheckboxItem checked={columnVisibility.name} onCheckedChange={() => toggleColumn('name')}>Class Name</DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem checked={columnVisibility.capacity} onCheckedChange={() => toggleColumn('capacity')}>Capacity</DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem checked={columnVisibility.room} onCheckedChange={() => toggleColumn('room')}>Room</DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem checked={columnVisibility.status} onCheckedChange={() => toggleColumn('status')}>Status</DropdownMenuCheckboxItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300">
+                                    <Columns3 className="w-4 h-4" />
+                                    <span>Columns</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 rounded-xl">
+                                <DropdownMenuCheckboxItem checked={columnVisibility.name} onCheckedChange={() => toggleColumn('name')}>Class Name</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={columnVisibility.capacity} onCheckedChange={() => toggleColumn('capacity')}>Capacity</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={columnVisibility.room} onCheckedChange={() => toggleColumn('room')}>Room</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={columnVisibility.status} onCheckedChange={() => toggleColumn('status')}>Status</DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                    <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                        <Filter className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                        <span className="text-gray-600 dark:text-slate-400">Filters</span>
-                    </Button>
-                    <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                        <Download className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                        <span className="text-gray-600 dark:text-slate-400">Export</span>
-                    </Button>
+                        <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300">
+                            <Filter className="w-4 h-4" />
+                            <span>Filters</span>
+                        </Button>
+                        <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300">
+                            <Download className="w-4 h-4" />
+                            <span>Export</span>
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -299,16 +305,20 @@ export default function ClassListPage() {
             />
             {/* Local Form Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                        <DialogTitle>{formType === "create" ? "Add New Class" : "Update Class"}</DialogTitle>
+                <DialogContent className="sm:max-w-[600px] bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-3xl shadow-2xl">
+                    <DialogHeader className="border-b border-gray-100 dark:border-slate-800 pb-4">
+                        <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                            {formType === "create" ? "Add New Class" : "Update Class Details"}
+                        </DialogTitle>
                     </DialogHeader>
-                    <ClassForm
-                        type={formType}
-                        data={selectedClass}
-                        setOpen={setIsDialogOpen}
-                        onSuccess={handleFormSuccess}
-                    />
+                    <div className="pt-4">
+                        <ClassForm
+                            type={formType}
+                            data={selectedClass}
+                            setOpen={setIsDialogOpen}
+                            onSuccess={handleFormSuccess}
+                        />
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

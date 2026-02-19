@@ -23,12 +23,14 @@ import { CreateStudentDto } from './dto/CreateStudentDto';
 import { UpdateStudentDto } from './dto/UpdateStudentDto';
 import * as path from 'path';
 import { LocalService } from 'src/local/local.service';
+import { FeeService } from 'src/fee/fee.service';
 
 @Controller('student')
 export class StudentController {
   constructor(
     private readonly studentService: StudentService,
     private readonly localservice: LocalService,
+    private readonly feeService: FeeService,
   ) { }
 
   @Get('all-locals')
@@ -42,6 +44,11 @@ export class StudentController {
 
   @Get('count')
   async getCountStudent() {
+    return this.studentService.GetCountStudent();
+  }
+
+  @Get('counts-by-gender')
+  async getCountsByGender() {
     return this.studentService.GetCountStudent();
   }
 
@@ -98,9 +105,11 @@ export class StudentController {
   @Get('list')
   async getStudents(
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
+    @Query('limit') limit: number = 10,
+    @Query('classId') classId?: number,
+    @Query('status') status?: string,
   ) {
-    return this.studentService.GetStudent(page, limit);
+    return this.studentService.GetStudent(page, limit, classId, status);
   }
 
   @Get(':id')
@@ -143,6 +152,8 @@ export class StudentController {
     }
   }
 
-
-
+  @Get(':id/pending-fees')
+  async getPendingFees(@Param('id', ParseIntPipe) id: number) {
+    return this.feeService.getPendingFees(id);
+  }
 }

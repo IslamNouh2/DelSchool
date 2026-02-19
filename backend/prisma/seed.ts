@@ -38,6 +38,7 @@ async function main() {
             BG: 0,
             BD: 1,
             level: 0,
+            category: 'GENERAL',
         },
     });
 
@@ -56,6 +57,24 @@ async function main() {
         create: {
             paramName: 'Transition_Mode',
             okActive: false
+        },
+    });
+
+    await prisma.parameter.upsert({
+        where: { paramName: 'School_System_Paid' },
+        update: {},
+        create: {
+            paramName: 'School_System_Paid',
+            okActive: false
+        },
+    });
+
+    await prisma.parameter.upsert({
+        where: { paramName: 'Subscription_Individual_Mode' },
+        update: {},
+        create: {
+            paramName: 'Subscription_Individual_Mode',
+            okActive: true
         },
     });
 
@@ -157,7 +176,90 @@ async function main() {
         }
     });
 
-    console.log('Default root subject, compte, school years, sample locations, and student with grades inserted');
+    // Create Journals
+    const generalJournal = await prisma.journal.upsert({
+        where: { code: 'GEN' },
+        update: {},
+        create: {
+            code: 'GEN',
+            name: 'Journal Général',
+            type: 'GENERAL',
+            createdBy: admin.id
+        }
+    });
+
+    await prisma.journal.upsert({
+        where: { code: 'CASH' },
+        update: {},
+        create: {
+            code: 'CASH',
+            name: 'Journal de Caisse',
+            type: 'CASH',
+            createdBy: admin.id
+        }
+    });
+
+    await prisma.journal.upsert({
+        where: { code: 'BANK' },
+        update: {},
+        create: {
+            code: 'BANK',
+            name: 'Journal de Banque',
+            type: 'BANK',
+            createdBy: admin.id
+        }
+    });
+
+    // Create Base Accounts (Comptes)
+    // 411 - Student Receivables
+    await prisma.compte.upsert({
+        where: { id: 4 },
+        update: {},
+        create: {
+            id: 4,
+            name: 'CLIENTS - ÉLÈVES (CRÉANCES)',
+            parentId: -1,
+            BG: 1,
+            BD: 2,
+            level: 1,
+            category: 'GENERAL',
+            isPosted: true
+        }
+    });
+
+    // 706 - Student Fee Income
+    await prisma.compte.upsert({
+        where: { id: 5 },
+        update: {},
+        create: {
+            id: 5,
+            name: 'PRODUITS DES FRAIS SCOLAIRES',
+            parentId: -1,
+            BG: 3,
+            BD: 4,
+            level: 1,
+            category: 'GENERAL',
+            isPosted: true
+        }
+    });
+
+    // 531 - Cash
+    await prisma.compte.upsert({
+        where: { id: 6 },
+        update: {},
+        create: {
+            id: 6,
+            name: 'CAISSE CENTRALE',
+            parentId: -1,
+            BG: 5,
+            BD: 6,
+            level: 1,
+            category: 'GENERAL',
+            isPosted: true
+        }
+    });
+
+    console.log('Default journals, accounts, root subject, school years, sample locations, and student with grades inserted');
 }
 
 main()

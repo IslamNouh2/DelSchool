@@ -154,222 +154,245 @@ function ExamGradesContent() {
     g.studentCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/list/exam"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-slate-400" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-1">Saisie des Notes</h1>
-            <p className="text-muted-foreground">Gérez les notes des étudiants par examen et par classe</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-            <Download className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-            Exporter
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700 dark:text-slate-300">Examen</Label>
-            <ComboboxDemo
-              frameworks={exams.map((e) => ({
-                value: e.id.toString(),
-                label: e.examName,
-              }))}
-              type="Examen"
-              value={formData.id.toString()}
-              onChange={(val) => {
-                const examId = parseInt(val);
-                setFormData({ ...formData, id: examId });
-                const selectedExam = exams.find((e) => e.id === examId);
-                setSelectedExamsName(selectedExam ? selectedExam.examName : "");
-              }}
-              width="w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700 dark:text-slate-300">Classe</Label>
-            <ComboboxDemo
-              frameworks={classes.map((c) => ({
-                value: c.classId.toString(),
-                label: c.ClassName,
-              }))}
-              type="Classe"
-              value={formData.classId.toString()}
-              onChange={(val) => {
-                const classId = parseInt(val);
-                setFormData((prev) => ({ ...prev, classId }));
-                const selected = classes.find((c) => c.classId === classId);
-                setSelectedClassName(selected ? selected.ClassName : "");
-              }}
-              width="w-full"
-              disabled={formData.id === 0}
-            />
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Main Content */}
-      <div className="min-h-[400px]">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-64 space-y-4">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-600 dark:text-blue-400" />
-            <p className="text-gray-500 dark:text-slate-400 font-medium">Chargement des données...</p>
-          </div>
-        ) : grades.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-6"
-          >
-            {/* Search & Stats Bar */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex-1 relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher un étudiant..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
-                />
-              </div>
-              <div className="flex items-center gap-4 shrink-0">
-                <Badge variant="secondary" className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-900/30 text-sm font-medium">
-                  {grades.length} Étudiants
-                </Badge>
-                <div className="text-sm text-gray-500 dark:text-slate-400">
-                  <span className="font-semibold text-gray-900 dark:text-slate-100">{selectedExamsName}</span> • {selectedClassName}
+    return (
+        <div className="space-y-6 p-6">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <Link
+                        href="/list/exam"
+                        className="p-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-200 shadow-sm group"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                    </Link>
+                    <div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                            Enter Grades
+                        </h1>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1">
+                            Manage student results by exam and class
+                        </p>
+                    </div>
                 </div>
-              </div>
+                <div className="flex items-center gap-3">
+                    <Button 
+                        variant="outline" 
+                        className="flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-700 dark:text-gray-200 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-200"
+                    >
+                        <Download className="w-5 h-5 text-blue-600" />
+                        <span>Export</span>
+                    </Button>
+                </div>
             </div>
 
-            {/* Grades Table */}
-            <CustomTable
-              data={filteredGrades}
-              loading={loading}
-              rowKey={(item) => item.studentId}
-              columns={[
-                {
-                  header: "Code",
-                  key: "studentCode",
-                  className: "font-mono text-xs text-gray-500 dark:text-slate-400",
-                },
-                {
-                  header: "Nom de l'étudiant",
-                  key: "studentName",
-                  className: "font-medium text-gray-900 dark:text-slate-100",
-                },
-                ...subjects.map((subjectName) => ({
-                  header: subjectName,
-                  key: subjectName,
-                  headerClassName: "text-center font-bold text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400",
-                  render: (item: GradeRow) => {
-                    const subject = item.subjects.find(s => s.subjectName === subjectName);
-                    if (!subject) return <div className="text-center text-gray-300 dark:text-slate-700">—</div>;
-
-                    const grade = subject.grade;
-                    const isFailing = grade !== null && grade < 10;
-                    const isExcellent = grade !== null && grade >= 16;
-
-                    return (
-                      <div className="flex justify-center">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={20}
-                          value={subject.grade ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const num = parseFloat(val);
-                            if (!isNaN(num)) {
-                              handleGradeChange(item.studentId, subject.subjectId, num);
-                            } else if (val === "") {
-                              // Handle empty if needed
-                            }
-                          }}
-                          className={`w-16 text-center h-9 transition-all duration-200 rounded-lg bg-white dark:bg-slate-900 text-foreground
-                            ${isFailing ? "text-red-600 dark:text-red-400 font-semibold bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30" : ""}
-                            ${isExcellent ? "text-green-600 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30" : ""}
-                            focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-200 dark:border-slate-800
-                          `}
+            {/* Filters Card */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800"
+            >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700 dark:text-slate-300 ml-1">Evaluation / Exam</Label>
+                        <ComboboxDemo
+                            frameworks={exams.map((e) => ({
+                                value: e.id.toString(),
+                                label: e.examName,
+                            }))}
+                            type="Examen"
+                            value={formData.id.toString()}
+                            onChange={(val) => {
+                                const examId = parseInt(val);
+                                setFormData({ ...formData, id: examId });
+                                const selectedExam = exams.find((e) => e.id === examId);
+                                setSelectedExamsName(selectedExam ? selectedExam.examName : "");
+                            }}
+                            width="w-full"
                         />
-                      </div>
-                    );
-                  }
-                }))
-              ]}
-            />
+                    </div>
 
-            {/* Sticky Save Button */}
-            <div className="fixed bottom-8 right-8 z-50">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  onClick={handleSaveAll}
-                  disabled={isSaving}
-                  size="lg"
-                  className="h-14 px-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-full shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all border-none flex items-center gap-3"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Enregistrement...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      Enregistrer les notes
-                    </>
-                  )}
-                </Button>
-              </motion.div>
+                    <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-700 dark:text-slate-300 ml-1">Target Class</Label>
+                        <ComboboxDemo
+                            frameworks={classes.map((c) => ({
+                                value: c.classId.toString(),
+                                label: c.ClassName,
+                            }))}
+                            type="Classe"
+                            value={formData.classId.toString()}
+                            onChange={(val) => {
+                                const classId = parseInt(val);
+                                setFormData((prev) => ({ ...prev, classId }));
+                                const selected = classes.find((c) => c.classId === classId);
+                                setSelectedClassName(selected ? selected.ClassName : "");
+                            }}
+                            width="w-full"
+                            disabled={formData.id === 0}
+                        />
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Main Content */}
+            <div className="min-h-[400px]">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                        <div className="relative">
+                            <div className="w-12 h-12 border-4 border-blue-100 dark:border-blue-900/30 rounded-full animate-spin border-t-blue-600" />
+                            <Loader2 className="w-6 h-6 text-blue-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </div>
+                        <p className="text-gray-500 dark:text-slate-400 font-medium">Loading grade records...</p>
+                    </div>
+                ) : grades.length > 0 ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="space-y-6"
+                    >
+                        {/* Search & Stats Bar */}
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="flex-1 relative w-full">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Search student by name or code..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 dark:bg-slate-800/50 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-500 transition-all"
+                                />
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0">
+                                <div className="hidden sm:block text-right">
+                                    <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Active Context</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                        {selectedExamsName} <span className="text-blue-600 px-1">•</span> {selectedClassName}
+                                    </p>
+                                </div>
+                                <Badge variant="secondary" className="px-4 py-2 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-none text-sm font-bold">
+                                    {grades.length} Students
+                                </Badge>
+                            </div>
+                        </div>
+
+                        {/* Grades Table */}
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+                            <CustomTable
+                                data={filteredGrades}
+                                loading={loading}
+                                rowKey={(item) => item.studentId}
+                                columns={[
+                                    {
+                                        header: "Code",
+                                        key: "studentCode",
+                                        className: "font-mono text-xs text-gray-400 dark:text-slate-500",
+                                    },
+                                    {
+                                        header: "Student Name",
+                                        key: "studentName",
+                                        className: "font-bold text-gray-900 dark:text-white",
+                                    },
+                                    ...subjects.map((subjectName) => ({
+                                        header: subjectName,
+                                        key: subjectName,
+                                        headerClassName: "text-center font-bold text-xs uppercase tracking-widest text-gray-400 dark:text-slate-500",
+                                        render: (item: GradeRow) => {
+                                            const subject = item.subjects.find(s => s.subjectName === subjectName);
+                                            if (!subject) return <div className="text-center text-gray-200 dark:text-slate-800 font-bold">—</div>;
+
+                                            const grade = subject.grade;
+                                            const isFailing = grade !== null && grade < 10;
+                                            const isExcellent = grade !== null && grade >= 16;
+                                            const isGood = grade !== null && grade >= 12 && grade < 16;
+
+                                            return (
+                                                <div className="flex justify-center py-1">
+                                                    <div className="relative group">
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            max={20}
+                                                            step={0.25}
+                                                            value={subject.grade ?? ""}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                const num = parseFloat(val);
+                                                                if (!isNaN(num)) {
+                                                                    handleGradeChange(item.studentId, subject.subjectId, num);
+                                                                } else if (val === "") {
+                                                                    // allow empty
+                                                                }
+                                                            }}
+                                                            className={`w-16 h-10 text-center font-bold text-sm transition-all duration-200 rounded-xl bg-gray-50 dark:bg-slate-800/50 outline-none border-2
+                                                                ${isFailing ? "text-rose-600 border-rose-100 dark:border-rose-900/30 bg-rose-50 dark:bg-rose-900/10" : 
+                                                                  isExcellent ? "text-emerald-600 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-900/10" :
+                                                                  isGood ? "text-blue-600 border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10" :
+                                                                  "text-gray-900 dark:text-white border-transparent hover:border-gray-200 dark:hover:border-slate-700"}
+                                                                focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/10
+                                                            `}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                    }))
+                                ]}
+                            />
+                        </div>
+
+                        {/* Sticky Save Button */}
+                        <div className="fixed bottom-10 right-10 z-50">
+                            <motion.div
+                                whileHover={{ scale: 1.05, y: -4 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                <Button
+                                    onClick={handleSaveAll}
+                                    disabled={isSaving}
+                                    size="lg"
+                                    className="h-16 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-full shadow-2xl shadow-blue-500/50 hover:shadow-blue-500/70 transition-all border-none flex items-center gap-4 text-base font-bold"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Saving Results...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="p-2 bg-white/20 rounded-full">
+                                                <Save className="w-5 h-5" />
+                                            </div>
+                                            Save All Grades
+                                        </>
+                                    )}
+                                </Button>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center justify-center h-96 text-center space-y-6 bg-gray-50/50 dark:bg-slate-900/50 rounded-[3rem] border-2 border-dashed border-gray-200 dark:border-slate-800 p-12"
+                    >
+                        <div className="p-8 bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-gray-100 dark:border-slate-800 transform -rotate-3">
+                            <GraduationCap className="w-16 h-16 text-blue-500" />
+                        </div>
+                        <div className="space-y-3">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Start Recording Grades</h3>
+                            <p className="text-gray-500 dark:text-slate-400 max-w-sm mx-auto font-medium">
+                                {formData.id === 0 
+                                    ? "Select an evaluation from the dropdown above to begin." 
+                                    : formData.classId === 0 
+                                        ? "Now select a class to load the student registry." 
+                                        : "No students currently enrolled in this class."}
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
             </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center h-80 text-center space-y-6 bg-gray-50/50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-slate-800 p-12"
-          >
-            <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
-              <BookOpen className="w-12 h-12 text-gray-300 dark:text-slate-700" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Aucune donnée affichée</h3>
-              <p className="text-gray-500 dark:text-slate-400 max-w-sm mx-auto">
-                {formData.id === 0 
-                  ? "Veuillez sélectionner un examen pour commencer la saisie des notes." 
-                  : formData.classId === 0 
-                    ? "Veuillez sélectionner une classe pour afficher la liste des étudiants." 
-                    : "Aucun étudiant trouvé pour cette classe."}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
 
 export default function ExamGradesPage() {

@@ -1,0 +1,566 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  username      String         @unique
+  password      String
+  role          Role
+  refreshTokens RefreshToken[]
+  deletedAt     DateTime?
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String // CREATE, UPDATE, DELETE
+  entity    String // Student, User, etc.
+  entityId  Int
+  userId    Int?
+  details   Json?
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+  deviceId  String?
+}
+
+model TokenRevocation {
+  id        Int      @id @default(autoincrement())
+  jti       String   @unique // JWT ID
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Student {
+  studentId         Int                 @id @default(autoincrement())
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime
+  gender            String
+  address           String?
+  parentId          Int
+  code              String              @unique
+  health            String?
+  dateCreate        DateTime            @default(now())
+  dateModif         DateTime            @updatedAt
+  lieuOfBirth       String?
+  bloodType         String?
+  etatCivil         String?
+  cid               String?
+  nationality       String?
+  observation       String?
+  numNumerisation   String?
+  dateInscription   DateTime
+  okBlock           Boolean             @default(false)
+  photoFileName     String?
+  fees              Fee[]
+  payments          Payment[]
+  studentAttendance StudentAttendance[]
+  compte            Compte?
+  studentClasses    StudentClass[]
+  parent            Parent              @relation(fields: [parentId], references: [parentId], onDelete: Cascade)
+
+  @@index([firstName, lastName])
+  @@index([parentId])
+  @@map("students")
+}
+
+model Parent {
+  parentId     Int       @id @default(autoincrement())
+  father       String?
+  mother       String?
+  fatherJob    String?
+  motherJob    String?
+  fatherNumber String?
+  motherNumber String?
+  students     Student[]
+
+  @@map("parents")
+}
+
+model Local {
+  localId       Int             @id @default(autoincrement())
+  name          String
+  code          String          @unique
+  dateCreate    DateTime?
+  dateModif     DateTime?
+  NumClass      Int?
+  size          Int             @default(0)
+  classes       classes[]
+  subject_local subject_local[]
+}
+
+model classes {
+  classId           Int                 @id @default(autoincrement())
+  ClassName         String
+  code              String              @unique
+  dateCreate        DateTime?
+  dateModif         DateTime?
+  NumStudent        Int
+  localId           Int
+  okBlock           String              @default("N")
+  cloture           Boolean             @default(false)
+  fees              Fee[]
+  studentAttendance StudentAttendance[]
+  TeacherCalsses    TeaherClass[]
+  Timetables        Timetable[]
+  local             Local               @relation(fields: [localId], references: [localId])
+  studentClasses    StudentClass[]
+}
+
+model subject {
+  subjectId       Int              @id @default(autoincrement())
+  subjectName     String
+  totalGrads      Float
+  parentId        Int
+  BG              Int
+  BD              Int
+  level           Int?
+  dateCreate      DateTime?
+  dateModif       DateTime?
+  okBlock         Boolean          @default(false)
+  Teachersubjects TeacherSubject[]
+  Timetables      Timetable[]
+  grads           Grads[]
+  parent          subject          @relation("SubjectToParent", fields: [parentId], references: [subjectId])
+  children        subject[]        @relation("SubjectToParent")
+  subject_local   subject_local[]
+}
+
+model parameter {
+  paramId   Int     @id @default(autoincrement())
+  paramName String  @unique
+  okActive  Boolean @default(false)
+}
+
+model subject_local {
+  subjectLocalId Int       @id @default(autoincrement())
+  subjectId      Int
+  localId        Int
+  cloture        Boolean   @default(false)
+  dateCreate     DateTime?
+  dateModif      DateTime?
+  local          Local     @relation(fields: [localId], references: [localId])
+  subject        subject   @relation(fields: [subjectId], references: [subjectId])
+
+  @@unique([subjectId, localId])
+}
+
+model StudentClass {
+  id           Int        @id @default(autoincrement())
+  studentId    Int
+  classId      Int
+  isCurrent    Boolean    @default(false)
+  cloture      Boolean    @default(false)
+  schoolYearId Int
+  grads        Grads[]
+  Class        classes    @relation(fields: [classId], references: [classId])
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
+  Student      Student    @relation(fields: [studentId], references: [studentId])
+
+  @@unique([studentId, schoolYearId])
+  @@map("student_classes")
+}
+
+model SchoolYear {
+  id             Int            @id @default(autoincrement())
+  year           String         @unique
+  startDate      DateTime
+  endDate        DateTime
+  isCurrent      Boolean        @default(false)
+  studentClasses StudentClass[]
+
+  @@map("school_years")
+}
+
+model Employer {
+  employerId         Int                  @id @default(autoincrement())
+  firstName          String
+  lastName           String
+  dateOfBirth        DateTime
+  lieuOfBirth        String?
+  gender             String
+  address            String?
+  fatherName         String?
+  motherName         String?
+  code               String               @unique
+  health             String?
+  dateCreate         DateTime?
+  dateModif          DateTime?
+  bloodType          String?
+  etatCivil          String?
+  cid                String?
+  nationality        String?
+  observation        String?
+  numNumerisation    String?
+  dateInscription    DateTime?
+  okBlock            Boolean              @default(false)
+  type               String
+  photoFileName      String?
+  phone              String?
+  weeklyWorkload     Int                  @default(20)
+  salary             Decimal              @default(0) @db.Decimal(10, 2)
+  employerAttendance EmployerAttendance[]
+  payments           Payment[]
+  payroll            Payroll[]
+  Teachersubjects    TeacherSubject[]
+  TeacherCalsses     TeaherClass?
+  Timetables         Timetable[]
+  compte             Compte?
+
+  @@map("employers")
+}
+
+model TeaherClass {
+  id         Int      @id @default(autoincrement())
+  employerId Int      @unique
+  classId    Int
+  isCurrent  Boolean  @default(false)
+  Class      classes  @relation(fields: [classId], references: [classId])
+  Employer   Employer @relation(fields: [employerId], references: [employerId])
+}
+
+model TeacherSubject {
+  id         Int      @id @default(autoincrement())
+  employerId Int
+  subjectId  Int
+  isCurrent  Boolean  @default(false)
+  Employer   Employer @relation(fields: [employerId], references: [employerId])
+  subject    subject  @relation(fields: [subjectId], references: [subjectId])
+
+  @@unique([employerId, subjectId])
+}
+
+model TimeSlot {
+  id         Int         @id @default(autoincrement())
+  label      String
+  startTime  String
+  endTime    String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  Timetables Timetable[]
+}
+
+model Timetable {
+  id           Int       @id @default(autoincrement())
+  day          String
+  classId      Int
+  subjectId    Int
+  timeSlotId   Int
+  employerId   Int?
+  academicYear String
+  Class        classes   @relation(fields: [classId], references: [classId])
+  teacher      Employer? @relation(fields: [employerId], references: [employerId])
+  subject      subject   @relation(fields: [subjectId], references: [subjectId])
+  timeSlot     TimeSlot  @relation(fields: [timeSlotId], references: [id])
+
+  @@unique([day, timeSlotId, classId, academicYear])
+}
+
+model StudentAttendance {
+  id           Int              @id @default(autoincrement())
+  studentId    Int
+  classId      Int
+  date         DateTime         @default(now())
+  status       AttendanceStatus @default(ABSENT)
+  academicYear String
+  class        classes          @relation(fields: [classId], references: [classId])
+  student      Student          @relation(fields: [studentId], references: [studentId])
+
+  @@unique([studentId, date, academicYear])
+}
+
+model EmployerAttendance {
+  id           Int              @id @default(autoincrement())
+  employerId   Int
+  date         DateTime         @default(now())
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  status       AttendanceStatus @default(ABSENT)
+  remarks      String?
+  academicYear String
+  employer     Employer         @relation(fields: [employerId], references: [employerId])
+
+  @@unique([employerId, date, academicYear])
+}
+
+model Exam {
+  id         Int       @id @default(autoincrement())
+  examName   String
+  dateStart  DateTime
+  dateEnd    DateTime
+  dateCreate DateTime?
+  dateModif  DateTime?
+  publish    Boolean
+  grads      Grads[]
+}
+
+model Grads {
+  id             Int          @id @default(autoincrement())
+  grads          Float
+  dateCreate     DateTime?
+  dateModif      DateTime?
+  examId         Int
+  studentClassId Int
+  subjectId      Int
+  exam           Exam         @relation(fields: [examId], references: [id])
+  studentClass   StudentClass @relation(fields: [studentClassId], references: [id])
+  subject        subject      @relation(fields: [subjectId], references: [subjectId])
+
+  @@unique([examId, studentClassId, subjectId])
+  @@map("grads")
+}
+
+model Compte {
+  id                Int            @id @default(autoincrement())
+  name              String
+  parentId          Int
+  BG                Int
+  BD                Int
+  level             Int?
+  dateCreate        DateTime?      @default(now())
+  dateModif         DateTime?      @updatedAt
+  isPosted          Boolean        @default(false)
+  employerId        Int?           @unique
+  studentId         Int?           @unique
+  code              String?        @unique
+  nameAr            String?
+  selectionCode     String?
+  isFeeCash         Boolean        @default(false)
+  showInParent      Boolean        @default(true)
+  nature            AccountNature  @default(ASSET)
+  category          CompteCategory @default(GENERAL)
+  fees              Fee[]
+  journalEntryLines JournalLine[]
+  payments          Payment[]
+  paymentsSource    Payment[]      @relation("PaymentSource")
+  paymentsDest      Payment[]      @relation("PaymentDest")
+  payrolls          Payroll[]
+  expenses          Expense[]
+  employer          Employer?      @relation(fields: [employerId], references: [employerId])
+  parent            Compte         @relation("CompteToParent", fields: [parentId], references: [id])
+  children          Compte[]       @relation("CompteToParent")
+  student           Student?       @relation(fields: [studentId], references: [studentId])
+
+  @@map("comptes")
+}
+
+model Fee {
+  id                    Int       @id @default(autoincrement())
+  title                 String
+  amount                Decimal   @default(0) @db.Decimal(15, 2)
+  dueDate               DateTime
+  classId               Int?
+  studentId             Int?
+  description           String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  compteId              Int?
+  dateEndConsommation   DateTime?
+  dateStartConsommation DateTime?
+  class                 classes?  @relation(fields: [classId], references: [classId])
+  compte                Compte?   @relation(fields: [compteId], references: [id])
+  student               Student?  @relation(fields: [studentId], references: [studentId])
+  payments              Payment[]
+}
+
+model Payroll {
+  id           Int           @id @default(autoincrement())
+  employerId   Int
+  period_start DateTime
+  period_end   DateTime
+  baseSalary   Decimal       @db.Decimal(10, 2)
+  allowances   Decimal       @default(0) @db.Decimal(10, 2)
+  deductions   Decimal       @default(0) @db.Decimal(10, 2)
+  netSalary    Decimal       @db.Decimal(10, 2)
+  status       PayrollStatus @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  employer     Employer      @relation(fields: [employerId], references: [employerId])
+  compteId     Int?
+  compte       Compte?       @relation(fields: [compteId], references: [id])
+}
+
+model Expense {
+  id                    Int       @id @default(autoincrement())
+  title                 String
+  category              String
+  amount                Decimal   @db.Decimal(10, 2)
+  expenseDate           DateTime
+  description           String?
+  isPaid                Boolean   @default(false)
+  dateStartConsommation DateTime?
+  dateEndConsommation   DateTime?
+  isAmortization        Boolean   @default(false)
+  compteId              Int?
+  compte                Compte?   @relation(fields: [compteId], references: [id])
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  payments              Payment[]
+}
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  feeId          Int?
+  amount         Float
+  date           DateTime      @default(now())
+  method         PaymentMethod @default(CASH)
+  status         PaymentStatus @default(COMPLETED)
+  transactionId  String?
+  description    String?
+  studentId      Int?
+  employerId     Int?
+  compteId       Int?
+  compteSourceId Int?
+  compteDestId   Int?
+  expenseId      Int?
+  compte         Compte?       @relation(fields: [compteId], references: [id])
+  compteSource   Compte?       @relation("PaymentSource", fields: [compteSourceId], references: [id])
+  compteDest     Compte?       @relation("PaymentDest", fields: [compteDestId], references: [id])
+  employer       Employer?     @relation(fields: [employerId], references: [employerId])
+  expense        Expense?      @relation(fields: [expenseId], references: [id])
+  fee            Fee?          @relation(fields: [feeId], references: [id])
+  student        Student?      @relation(fields: [studentId], references: [studentId])
+
+  @@index([studentId])
+  @@index([employerId])
+  @@index([date])
+}
+
+model Journal {
+  id        Int            @id @default(autoincrement())
+  code      String         @unique
+  name      String
+  type      JournalType
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  createdBy Int
+  entries   JournalEntry[]
+
+  @@map("journals")
+}
+
+model JournalEntry {
+  id            Int                @id @default(autoincrement())
+  journalId     Int
+  entryNumber   String             @unique
+  date          DateTime           @default(now())
+  referenceType String?
+  referenceId   Int?
+  description   String?
+  totalDebit    Decimal            @default(0) @db.Decimal(15, 2)
+  totalCredit   Decimal            @default(0) @db.Decimal(15, 2)
+  status        JournalEntryStatus @default(DRAFT)
+  createdAt     DateTime           @default(now())
+  postedAt      DateTime?
+  createdBy     Int
+  postedBy      Int?
+  journal       Journal            @relation(fields: [journalId], references: [id])
+  lines         JournalLine[]
+
+  @@index([date])
+}
+
+model JournalLine {
+  id          Int          @id @default(autoincrement())
+  entryId     Int
+  compteId    Int
+  lineNumber  Int
+  debit       Decimal      @default(0) @db.Decimal(15, 2)
+  credit      Decimal      @default(0) @db.Decimal(15, 2)
+  description String?
+  compte      Compte       @relation(fields: [compteId], references: [id])
+  entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([compteId])
+}
+
+model FiscalYear {
+  id        Int      @id @default(autoincrement())
+  year      String   @unique
+  startDate DateTime
+  endDate   DateTime
+  isClosed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum PayrollStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum JournalEntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+  CANCELLED
+}
+
+enum AccountNature {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum JournalType {
+  CASH
+  BANK
+  PAYROLL
+  GENERAL
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum CompteCategory {
+  GENERAL
+  CAISSE
+  BANQUE
+  RECETTE
+  DEPENSE
+}

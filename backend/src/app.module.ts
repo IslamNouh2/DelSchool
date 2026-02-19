@@ -15,18 +15,30 @@ import { TimetableModule } from './timetable/timetable.module';
 import { TimeSlotModule } from './time-slot/time-slot.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { ExamsModule } from './exams/exams.module';
-import { FeeModule } from './fee/fee.module';
-import { PaymentModule } from './payment/payment.module';
 import { CompteModule } from './compte/compte.module';
 import { SocketModule } from './socket/socket.module';
 import { SchoolYearModule } from './school-year/school-year.module';
 import { TransitionModule } from './transition/transition.module';
+import { PayrollModule } from './payroll/payroll.module';
+import { PrismaModule } from 'prisma/prisma.module';
+import { FeeModule } from './fee/fee.module';
+import { PaymentModule } from './payment/payment.module';
+import { ExpenseModule } from './expense/expense.module';
+import { FinanceModule } from './finance/finance.module';
+
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
+    ThrottlerModule.forRoot([{
+        ttl: 60000,
+        limit: 10,
+    }]),
+    PrismaModule,
     AuthModule,
     SubjectModule,
     ParameterModule,
@@ -41,12 +53,15 @@ import { TransitionModule } from './transition/transition.module';
     TimeSlotModule,
     AttendanceModule,
     ExamsModule,
-    FeeModule,
-    PaymentModule,
     CompteModule,
     SocketModule,
     SchoolYearModule,
-    TransitionModule
+    TransitionModule,
+    FeeModule,
+    PaymentModule,
+    PayrollModule,
+    ExpenseModule,
+    FinanceModule,
   ],
   
 })

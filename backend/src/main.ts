@@ -1,12 +1,23 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import * as dotenv from 'dotenv';
+dotenv.config();
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { PrismaClient } from '@prisma/client';
+import helmet from 'helmet';
+import * as compression from 'compression';
+import { WinstonModule } from 'nest-winston';
+import { winstonConfig } from './common/logger/winston.config';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger(winstonConfig),
+  });
+
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost)));
 
   const config = new DocumentBuilder()
     .setTitle('School Subjects API')
@@ -18,9 +29,14 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('docs', app, document);
 
-  // Enable CORS
+  // Security Middlewares
+  app.use(helmet());
+  app.use(compression());
+  app.use(cookieParser());
+
+  // Enable CORS with strict configuration
   app.enableCors({
     origin: [
       'http://localhost:3000',                 // local dev
@@ -28,12 +44,8 @@ async function bootstrap() {
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   });
-
-  app.use(cookieParser());
-
- 
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
@@ -42,12 +54,10 @@ async function bootstrap() {
     transformOptions: {
       enableImplicitConversion: true,
     },
-    validationError: {
-      target: true,
-      value: true,
-    },
   }));
 
-  await app.listen(47005);
+  const port = process.env.PORT || 47005;
+  await app.listen(port);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

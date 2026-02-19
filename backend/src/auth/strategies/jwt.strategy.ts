@@ -18,7 +18,7 @@ export interface JwtPayload {
 // Custom JWT extractor function to get token from cookies
 const cookieExtractor = (req: Request): string | null => {
     if (req && req.cookies) {
-        return req.cookies['token']; // ✅ match the AuthService
+        return req.cookies['accessToken']; // ✅ match the new AuthService cookie name
     }
     return null;
 };
@@ -35,7 +35,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
                 ExtractJwt.fromAuthHeaderAsBearerToken(), // fallback
             ]),
             ignoreExpiration: false,
-            secretOrKey: configService.getOrThrow<string>('JWT_SECRET')
+            secretOrKey: configService.getOrThrow<string>('JWT_ACCESS_SECRET')
         });
     }
 

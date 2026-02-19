@@ -29,10 +29,22 @@ export class AuthController {
         return this.authService.login(req.user, response);
     }
 
-    @UseGuards(JwtAuthGuard)
+    @Post('refresh')
+    async refresh(
+        @Request() req,
+        @Response({ passthrough: true }) response: ExpressResponse,
+    ) {
+        const refreshToken = req.cookies['refreshToken'];
+        return this.authService.refresh(refreshToken, response);
+    }
+
     @Post('logout')
-    async logout(@Response({ passthrough: true }) response: ExpressResponse) {
-        return this.authService.logout(response);
+    async logout(
+        @Request() req,
+        @Response({ passthrough: true }) response: ExpressResponse,
+    ) {
+        const refreshToken = req.cookies['refreshToken'];
+        return this.authService.logout(response, refreshToken);
     }
 
     @UseGuards(JwtAuthGuard)

@@ -375,269 +375,285 @@ export default function ExamListPage() {
     },
   ], [role, handleTogglePublish, handleEditExam, handleDelete]);
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">Examens & Résultats</h1>
-          <p className="text-muted-foreground">Gérez les examens et visualisez les performances académiques</p>
-        </div>
-        {role?.toLowerCase() === "admin" && (
-          <div className="flex items-center gap-3">
-            <Dialog open={isGradeDialogOpen} onOpenChange={setIsGradeDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white border border-primary rounded-xl shadow-sm hover:bg-primary/80 transition-all"
+    return (
+        <div className="space-y-6 p-6">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                        Exams & Results
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">
+                        Manage exams and visualize academic performance
+                    </p>
+                </div>
+                {role?.toLowerCase() === "admin" && (
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Dialog open={isGradeDialogOpen} onOpenChange={setIsGradeDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-700 dark:text-gray-200 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-200"
+                                >
+                                    <Award className="w-5 h-5 text-blue-600" />
+                                    <span>Enter Grades</span>
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent 
+                                onPointerDownOutside={(e) => e.preventDefault()}
+                                className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl rounded-3xl bg-white dark:bg-slate-900"
+                            >
+                                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                            <Award className="w-6 h-6 text-white" />
+                                            Record New Grades
+                                        </DialogTitle>
+                                        <p className="text-blue-100 mt-1">Enter student results for a specific evaluation</p>
+                                    </DialogHeader>
+                                </div>
+                                <div className="p-6 flex-1 overflow-y-auto bg-white dark:bg-slate-900 custom-scrollbar">
+                                    <GradeForm 
+                                        initialExamId={prefilledExamId}
+                                        onSuccess={() => {
+                                            setIsGradeDialogOpen(false);
+                                            setPrefilledExamId(undefined);
+                                            fetchDashboardData();
+                                            fetchExams(currentPage);
+                                        }} 
+                                        onCancel={() => {
+                                            setIsGradeDialogOpen(false);
+                                            setPrefilledExamId(undefined);
+                                        }} 
+                                    />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+
+                        <Button
+                            onClick={handleAddExam}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span>Add Exam</span>
+                        </Button>
+                    </div>
+                )}
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {statsCards.map((stat, index) => (
+                    <motion.div
+                        key={stat.title}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-md transition-all duration-300"
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className={`p-3 ${stat.bgColor} dark:bg-slate-800/50 rounded-2xl`}>
+                                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+                            </div>
+                            <div
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                    stat.trend === "up"
+                                        ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                                        : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                                }`}
+                            >
+                                <TrendingUp className="w-3.5 h-3.5" />
+                                <span>{stat.change}</span>
+                            </div>
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</h3>
+                        <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">{stat.title}</p>
+                    </motion.div>
+                ))}
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Subject Performance */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800"
                 >
-                  <Award className="w-5 h-5 text-white" />
-                  Saisir des notes
-                </Button>
-              </DialogTrigger>
-              <DialogContent 
-                onPointerDownOutside={(e) => e.preventDefault()}
-                className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl rounded-3xl bg-white dark:bg-slate-900"
-              >
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                      <Award className="w-6 h-6 text-white" />
-                      Enregistrer de Nouvelles Notes
-                    </DialogTitle>
-                    <p className="text-white mt-1">Saisissez les résultats des étudiants pour une évaluation spécifique</p>
-                  </DialogHeader>
-                </div>
-                <div className="p-6 flex-1 overflow-hidden bg-white dark:bg-slate-900">
-                  <GradeForm 
-                    initialExamId={prefilledExamId}
-                    onSuccess={() => {
-                      setIsGradeDialogOpen(false);
-                      setPrefilledExamId(undefined);
-                      fetchDashboardData();
-                      fetchExams(currentPage);
-                    }} 
-                    onCancel={() => {
-                      setIsGradeDialogOpen(false);
-                      setPrefilledExamId(undefined);
-                    }} 
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Performance by Subject</h2>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                                <span className="text-xs font-medium text-gray-500 dark:text-slate-400">Average</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-3 h-3 bg-emerald-500 rounded-full" />
+                                <span className="text-xs font-medium text-gray-500 dark:text-slate-400">Success Rate</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={subjectPerformance}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.1} vertical={false} />
+                                <XAxis 
+                                    dataKey="subject" 
+                                    stroke="#94a3b8" 
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    stroke="#94a3b8" 
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dx={-10}
+                                />
+                                <Tooltip 
+                                    cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
+                                    contentStyle={{ 
+                                        borderRadius: '16px', 
+                                        border: 'none', 
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                        backgroundColor: '#fff',
+                                        padding: '12px'
+                                    }}
+                                />
+                                <Bar
+                                    dataKey="average"
+                                    fill="#3b82f6"
+                                    radius={[6, 6, 0, 0]}
+                                    name="Average"
+                                    barSize={24}
+                                />
+                                <Bar
+                                    dataKey="passing"
+                                    fill="#10b981"
+                                    radius={[6, 6, 0, 0]}
+                                    name="Success Rate %"
+                                    barSize={24}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </motion.div>
 
-            <Button
-              onClick={handleAddExam}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
-            >
-              <Plus className="w-5 h-5" />
-              Ajouter un examen
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsCards.map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`p-3 ${stat.bgColor} dark:bg-slate-800 rounded-xl`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor} dark:text-slate-400`} />
-              </div>
-              <div
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
-                  stat.trend === "up"
-                    ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                    : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
-                }`}
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-sm">{stat.change}</span>
-              </div>
+                {/* Grade Distribution */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800"
+                >
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Grade Distribution</h2>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={gradeDistribution}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.1} vertical={false} />
+                                <XAxis 
+                                    dataKey="grade" 
+                                    stroke="#94a3b8" 
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    stroke="#94a3b8" 
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dx={-10}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        borderRadius: '16px', 
+                                        border: 'none', 
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                        backgroundColor: '#fff',
+                                        padding: '12px'
+                                    }}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="count"
+                                    stroke="#6366f1"
+                                    strokeWidth={4}
+                                    dot={{ fill: "#6366f1", r: 5, strokeWidth: 2, stroke: "#fff" }}
+                                    activeDot={{ r: 8, strokeWidth: 0 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </motion.div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-1">{stat.value}</h3>
-            <p className="text-gray-500 dark:text-slate-400 text-sm">{stat.title}</p>
-          </motion.div>
-        ))}
-      </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subject Performance */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Performance par Matière</h2>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                <span className="text-xs text-gray-500 dark:text-slate-400">Moyenne</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-green-500 rounded-full" />
-                <span className="text-xs text-gray-500 dark:text-slate-400">Réussite</span>
-              </div>
+            {/* Search */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
+                        <input
+                            type="text"
+                            placeholder="Search by exam name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 dark:bg-slate-800/50 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-500 transition-all shadow-sm"
+                        />
+                    </div>
+                </div>
             </div>
-          </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={subjectPerformance}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
-                <XAxis 
-                  dataKey="subject" 
-                  stroke="#9CA3AF" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="#9CA3AF" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    borderRadius: '12px', 
-                    border: 'none', 
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    backgroundColor: 'var(--background)',
-                    color: 'var(--foreground)'
-                  }}
-                />
-                <Bar
-                  dataKey="average"
-                  fill="#3B82F6"
-                  radius={[4, 4, 0, 0]}
-                  name="Moyenne"
-                  barSize={20}
-                />
-                <Bar
-                  dataKey="passing"
-                  fill="#10B981"
-                  radius={[4, 4, 0, 0]}
-                  name="Taux de Réussite %"
-                  barSize={20}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
 
-        {/* Grade Distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800"
-        >
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-6">Distribution des Notes</h2>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={gradeDistribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
-                <XAxis 
-                  dataKey="grade" 
-                  stroke="#9CA3AF" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="#9CA3AF" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    borderRadius: '12px', 
-                    border: 'none', 
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    backgroundColor: 'var(--background)',
-                    color: 'var(--foreground)'
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#8B5CF6"
-                  strokeWidth={3}
-                  dot={{ fill: "#8B5CF6", r: 4, strokeWidth: 2, stroke: "#fff" }}
-                  activeDot={{ r: 6, strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Search */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-800">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher par nom d'examen..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-foreground"
+            {/* Exam Table */}
+            <CustomTable
+                data={exams}
+                loading={loading}
+                rowKey={(item) => item.id}
+                columns={columns}
+                footer={
+                    !loading && totalPages > 1 && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4">
+                            <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">
+                                Showing <span className="text-gray-900 dark:text-white">{(currentPage - 1) * pageSize + 1}</span> to{" "}
+                                <span className="text-gray-900 dark:text-white">{Math.min(currentPage * pageSize, totalCount)}</span> of{" "}
+                                <span className="text-gray-900 dark:text-white">{totalCount}</span> exams
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="border-gray-200 dark:border-slate-700 dark:text-gray-300 rounded-lg h-9"
+                                >
+                                    Previous
+                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-white px-3 py-1.5 bg-gray-100 dark:bg-slate-800 rounded-lg">
+                                        {currentPage}
+                                    </span>
+                                    <span className="text-sm text-gray-400 mx-1">/</span>
+                                    <span className="text-sm text-gray-500 dark:text-slate-400 font-medium">
+                                        {totalPages}
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="border-gray-200 dark:border-slate-700 dark:text-gray-300 rounded-lg h-9"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    )
+                }
             />
-          </div>
-        </div>
-      </div>
-
-      {/* Exam Table */}
-      <CustomTable
-        data={exams}
-        loading={loading}
-        rowKey={(item) => item.id}
-        columns={columns}
-        footer={
-          !loading && totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4">
-              <p className="text-sm text-gray-500">
-                Affichage de {(currentPage - 1) * pageSize + 1} à{" "}
-                {Math.min(currentPage * pageSize, totalCount)} sur {totalCount} examens
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="border-gray-200 dark:border-slate-800 dark:text-slate-100"
-                >
-                  Précédent
-                </Button>
-                <span className="text-sm text-gray-600 dark:text-slate-400">
-                  Page {currentPage} sur {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="border-gray-200 dark:border-slate-800 dark:text-slate-100"
-                >
-                  Suivant
-                </Button>
-              </div>
-            </div>
-          )
-        }
-      />
 
       {/* Exam Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

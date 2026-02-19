@@ -17,6 +17,7 @@ import AttendanceCharts from "@/components/AttendanceCharts";
 import CountChart from "@/components/CountChart";
 import EventCalendar from "@/components/EventCalendar";
 import FinanceChart from "@/components/FinanceChart";
+import FinanceStats from "@/components/FinanceStats";
 import api from "@/lib/api";
 
 interface CountData {
@@ -33,16 +34,19 @@ const AdminPage = () => {
         parentCount: 0,
         staffCount: 0,
     });
+    const [attendanceSummary, setAttendanceSummary] = useState({ present: 0, absent: 0, late: 0 });
     const [loading, setLoading] = useState(true);
 
     const fetchCounts = useCallback(async () => {
         try {
             setLoading(true);
-            const [studentRes, teacherRes, parentRes, staffRes] = await Promise.allSettled([
+            const today = new Date().toISOString().split('T')[0];
+            const [studentRes, teacherRes, parentRes, staffRes, attendanceRes] = await Promise.allSettled([
                 api.get("/student/count"),
                 api.get("/teacher/count"),
                 api.get("/parent/count"),
                 api.get("/staff/count"),
+                api.get(`/attendance/global-daily-summary/${today}`)
             ]);
 
             setCounts({
@@ -51,6 +55,14 @@ const AdminPage = () => {
                 parentCount: parentRes.status === 'fulfilled' ? parentRes.value.data.total || 0 : 0,
                 staffCount: staffRes.status === 'fulfilled' ? staffRes.value.data.total || 0 : 0,
             });
+
+            if (attendanceRes.status === 'fulfilled') {
+                const summary = attendanceRes.value.data;
+                const present = summary.find((i: any) => i.name === 'Present')?.value || 0;
+                const absent = summary.find((i: any) => i.name === 'Absent')?.value || 0;
+                const late = summary.find((i: any) => i.name === 'Late')?.value || 0;
+                setAttendanceSummary({ present, absent, late });
+            }
         } catch (err) {
             console.error("Failed to fetch counts", err);
         } finally {
@@ -63,161 +75,101 @@ const AdminPage = () => {
     }, [fetchCounts]);
 
     const stats = useMemo(() => [
-        {
-            title: "Étudiants",
-            value: counts.studentCount,
-            icon: GraduationCap,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
-            trend: "+2.5%",
-            trendUp: true
-        },
-        {
-            title: "Enseignants",
-            value: counts.teacherCount,
-            icon: Users,
-            color: "text-purple-600",
-            bg: "bg-purple-50",
-            trend: "+1.2%",
-            trendUp: true
-        },
-        {
-            title: "Parents",
-            value: counts.parentCount,
-            icon: UserRound,
-            color: "text-green-600",
-            bg: "bg-green-50",
-            trend: "+0.8%",
-            trendUp: true
-        },
-        {
-            title: "Personnel",
-            value: counts.staffCount,
-            icon: Briefcase,
-            color: "text-orange-600",
-            bg: "bg-orange-50",
-            trend: "-0.5%",
-            trendUp: false
-        }
-    ], [counts]);
+        { title: "Total Students", value: counts.studentCount, icon: <Users className="w-7 h-7" />, growth: 12, isHighlighted: false },
+        { title: "Present Students", value: attendanceSummary.present, icon: <UserRound className="w-7 h-7" />, growth: 8, isHighlighted: true },
+        { title: "Absent Students", value: attendanceSummary.absent, icon: <UserRound className="w-7 h-7" />, growth: -2, isHighlighted: false },
+        { title: "Late Students Today", value: attendanceSummary.late, icon: <Calendar className="w-7 h-7" />, growth: 5, isHighlighted: false },
+    ], [counts, attendanceSummary]);
 
     return (
-        <div className="p-6 space-y-8 bg-gray-50/50 min-h-screen">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className='flex flex-col gap-8'>
+            {/* Header / Title Row */}
+            <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <LayoutDashboard className="w-6 h-6 text-blue-600" />
-                        <h1 className="text-2xl font-bold text-gray-900">Tableau de Bord Admin</h1>
-                    </div>
-                    <p className="text-gray-500">Bienvenue sur votre espace de gestion scolaire</p>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                        Wednesday 18 February
+                    </h2>
+                    <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-widest">School Dashboard Overview</p>
                 </div>
-                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-                    <div className="p-2 bg-blue-50 rounded-xl">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="pr-4">
-                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Aujourd&apos;hui</p>
-                        <p className="text-sm font-bold text-gray-700">{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                    </div>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                    <select className="bg-white dark:bg-[#1a1c2e] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-500 dark:text-gray-400 outline-none shadow-sm dark:shadow-xl focus:ring-2 focus:ring-blue-500/20 transition-all uppercase tracking-wider cursor-pointer hover:border-blue-500/30">
+                        <option>All Classes</option>
+                    </select>
+                    <select className="bg-white dark:bg-[#1a1c2e] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-500 dark:text-gray-400 outline-none shadow-sm dark:shadow-xl focus:ring-2 focus:ring-blue-500/20 transition-all uppercase tracking-wider cursor-pointer hover:border-blue-500/30">
+                        <option>Today</option>
+                    </select>
+                    <button className="bg-white dark:bg-[#1a1c2e] border border-gray-200 dark:border-white/5 rounded-xl px-5 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#252839] flex items-center gap-2 shadow-sm dark:shadow-xl transition-all uppercase tracking-wider">
+                        Download <span className="opacity-50">📊</span>
+                    </button>
+                    <button className="bg-[#0052cc] text-white rounded-xl px-7 py-2.5 text-xs font-black hover:bg-blue-700 flex items-center gap-2 shadow-xl shadow-blue-500/20 transition-all uppercase tracking-widest">
+                        <LayoutDashboard className="w-4 h-4" /> Filter
+                    </button>
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* User Cards Section */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6'>
                 {stats.map((stat, index) => (
                     <motion.div
-                        key={stat.title}
+                        key={index}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group"
+                        whileHover={{ y: -4 }}
+                        className={`${stat.isHighlighted ? 'bg-[#0052cc] shadow-2xl shadow-blue-500/20' : 'bg-white dark:bg-[#1a1c2e] border border-gray-100 dark:border-white/5 shadow-sm dark:shadow-xl'} p-6 rounded-[32px] flex items-center justify-between group cursor-pointer transition-all h-[130px]`}
                     >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className={`p-4 ${stat.bg} rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
-                                <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                            </div>
-                            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${stat.trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                                <TrendingUp className={`w-3 h-3 ${!stat.trendUp && 'rotate-180'}`} />
-                                {stat.trend}
+                        <div className="flex flex-col gap-1">
+                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${stat.isHighlighted ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>{stat.title}</span>
+                            <div className="flex items-baseline gap-2">
+                                <h1 className={`text-3xl font-black tracking-tighter ${stat.isHighlighted ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{loading ? "..." : stat.value}</h1>
+                                <span className={`text-[10px] font-bold ${stat.isHighlighted ? 'text-white/60' : 'text-blue-500 dark:text-blue-400'}`}>+{stat.growth}%</span>
                             </div>
                         </div>
-                        <div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-1">
-                                {loading ? "..." : stat.value}
-                            </h3>
-                            <p className="text-gray-500 font-medium">{stat.title}</p>
+                        <div className={`p-4 rounded-2xl ${stat.isHighlighted ? 'bg-white/10 text-white' : 'bg-blue-50 dark:bg-blue-500/10 text-[#0052cc] dark:text-blue-400'} group-hover:scale-110 transition-transform duration-300`}>
+                            {stat.icon}
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column - Charts */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {/* Count Chart */}
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.4 }}
-                            className="md:col-span-1 h-[450px]"
-                        >
+            {/* Main Visuals Section */}
+            <div className='flex flex-col lg:flex-row gap-8'>
+                {/* Left: Charts Column */}
+                <div className='w-full lg:w-2/3 flex flex-col gap-8'>
+                    {/* Count and Attendance row */}
+                    <div className='flex flex-col md:flex-row gap-8 min-h-[450px]'>
+                        <div className='w-full md:w-1/3 min-h-[450px]'>
                             <CountChart />
-                        </motion.div>
-                        {/* Attendance Chart */}
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.5 }}
-                            className="md:col-span-2 h-[450px]"
-                        >
+                        </div>
+                        <div className='w-full md:w-2/3 min-h-[450px]'>
                             <AttendanceCharts />
-                        </motion.div>
+                        </div>
+                    </div>
+                    
+                    {/* Finance Stats Section */}
+                    <div className="mt-4">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-1.5 h-6 bg-[#0052cc] rounded-full shadow-[0_0_15px_rgba(0,82,204,0.5)]"></div>
+                            <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight uppercase">Aperçu Financier</h2>
+                        </div>
+                        <FinanceStats />
                     </div>
 
-                    {/* Finance Chart */}
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 }}
-                        className="h-[500px]"
-                    >
+                    {/* Full width finance chart */}
+                    <div className='w-full h-[450px]'>
                         <FinanceChart />
-                    </motion.div>
+                    </div>
                 </div>
 
-                {/* Right Column - Calendar & Announcements */}
-                <div className="space-y-8">
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.7 }}
-                        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"
-                    >
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-orange-50 rounded-xl">
-                                <Calendar className="w-5 h-5 text-orange-600" />
-                            </div>
-                            <h2 className="text-lg font-bold text-gray-900">Calendrier</h2>
-                        </div>
+                {/* Right: Calendar & Announcements Column */}
+                <div className='w-full lg:w-1/3 flex flex-col gap-8'>
+                    <div className="bg-white dark:bg-[#1a1c2e] p-8 rounded-[32px] shadow-sm dark:shadow-xl border border-gray-100 dark:border-white/5 transition-all">
                         <EventCalendar />
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.8 }}
-                        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"
-                    >
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-pink-50 rounded-xl">
-                                <Bell className="w-5 h-5 text-pink-600" />
-                            </div>
-                            <h2 className="text-lg font-bold text-gray-900">Annonces</h2>
-                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-[#1a1c2e] p-8 rounded-[32px] shadow-sm dark:shadow-xl border border-gray-100 dark:border-white/5 transition-all">
                         <Announcement />
-                    </motion.div>
+                    </div>
                 </div>
             </div>
         </div>

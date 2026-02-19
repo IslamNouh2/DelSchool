@@ -107,4 +107,9 @@ export class CreateEmployerDto {
     @Min(0)
     @Type(() => Number)
     weeklyWorkload?: number;
+
+    @IsOptional()
+    @Min(0)
+    @Type(() => Number)
+    salary?: number;
 }

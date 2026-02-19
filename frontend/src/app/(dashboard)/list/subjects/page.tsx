@@ -143,21 +143,24 @@ export default function SubjectListPage() {
 
     return (
         <div className="space-y-6 p-6">
-            {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-foreground mb-1">Subjects</h1>
-                    <p className="text-muted-foreground">Manage subjects and their hierarchy</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                        Subjects
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">
+                        Manage academic subjects and their hierarchy
+                    </p>
                 </div>
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <div className="relative flex-1 sm:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
                         <Input 
                             placeholder="Search subjects..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 bg-background"
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-500 transition-all shadow-sm"
                         />
                     </div>
                     
@@ -167,10 +170,10 @@ export default function SubjectListPage() {
                                 setSelectedSubject(null);
                                 setIsCreateOpen(true);
                             }}
-                            className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all rounded-xl"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
                         >
                             <Plus className="w-5 h-5" />
-                            Add Subject
+                            <span>Add Subject</span>
                         </Button>
                     )}
                 </div>

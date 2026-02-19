@@ -13,82 +13,119 @@ import {
 } from "recharts";
 import { motion } from "motion/react";
 import { MoreHorizontal } from "lucide-react";
+import api from "@/lib/api";
+
+import { useTheme } from "next-themes";
 
 const AttendanceChartsComponent = () => {
-    const data = useMemo(() => [
-        { name: "Lun", present: 74, absent: 23 },
-        { name: "Mar", present: 56, absent: 40 },
-        { name: "Mer", present: 90, absent: 10 },
-        { name: "Jeu", present: 32, absent: 83 },
-        { name: "Ven", present: 10, absent: 95 },
-        { name: "Sam", present: 99, absent: 1 }
-    ], []);
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
+
+    const [data, setData] = React.useState<{ day: string; present: number; absent: number }[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await api.get("/attendance/global-weekly-chart");
+                // Match the 'name' field used in XAxis
+                const formattedData = res.data.map((item: any) => ({
+                    name: item.day.toUpperCase(),
+                    present: item.present,
+                    absent: item.absent
+                }));
+                setData(formattedData);
+            } catch (error) {
+                console.error("Failed to fetch weekly attendance", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     return (
         <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className='bg-white rounded-3xl p-6 w-full h-full shadow-sm border border-gray-100 flex flex-col'
+            className='bg-white dark:bg-[#1a1c2e] rounded-[32px] p-8 w-full h-full shadow-sm dark:shadow-xl border border-gray-100 dark:border-white/5 flex flex-col transition-all duration-300'
         >
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h2 className="text-lg font-bold text-gray-900">Présence Hebdomadaire</h2>
-                    <p className="text-xs text-gray-400 font-medium">Statistiques de présence des étudiants</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em] mb-1 transition-colors">Report</p>
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">Present and Absent</h2>
                 </div>
-                <button className="p-2 hover:bg-gray-50 rounded-xl transition-colors">
-                    <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                </button>
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-[#0052cc]"></div>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Present</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-[#bf95f9]"></div>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Absent</span>
+                        </div>
+                    </div>
+                    <select className="bg-gray-50 dark:bg-[#0b0d17] border border-gray-200 dark:border-white/5 rounded-xl text-[10px] font-bold px-3 py-2 outline-none text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors cursor-pointer">
+                        <option>Class 10</option>
+                    </select>
+                    <select className="bg-gray-50 dark:bg-[#0b0d17] border border-gray-200 dark:border-white/5 rounded-xl text-[10px] font-bold px-3 py-2 outline-none text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors cursor-pointer">
+                        <option>This Week</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-8 mb-8 border-b border-gray-100 dark:border-white/5 transition-colors">
+                <button className="pb-4 text-xs font-black text-[#0052cc] border-b-2 border-[#0052cc] uppercase tracking-widest">Students</button>
+                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">Teachers</button>
+                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">Staff</button>
             </div>
             
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data} barSize={16} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                        <XAxis
-                            dataKey="name"
-                            axisLine={false}
-                            tick={{ fill: "#9ca3af", fontSize: 12 }}
-                            tickLine={false}
+                    <BarChart data={data} barGap={12} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#ffffff05" : "#00000005"} vertical={false} />
+                        <XAxis 
+                            dataKey="name" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: isDark ? '#6b7280' : '#9ca3af', fontSize: 10, fontWeight: 700 }} 
                             dy={10}
                         />
                         <YAxis 
                             axisLine={false} 
-                            tick={{ fill: "#9ca3af", fontSize: 12 }} 
                             tickLine={false} 
+                            tick={{ fill: isDark ? '#6b7280' : '#9ca3af', fontSize: 10, fontWeight: 700 }} 
                         />
-                        <Tooltip
+                        <Tooltip 
+                            cursor={{ fill: isDark ? '#ffffff05' : '#00000005' }}
                             contentStyle={{ 
                                 borderRadius: "16px", 
                                 border: "none",
-                                boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                                backgroundColor: isDark ? "#1a1c2e" : "#ffffff",
+                                boxShadow: isDark ? "0 20px 25px -5px rgba(0,0,0,0.5)" : "0 10px 15px -3px rgba(0,0,0,0.1)",
                                 padding: "12px"
                             }}
-                            cursor={{ fill: '#f9fafb' }}
+                            itemStyle={{ fontSize: "12px", fontWeight: "bold", color: isDark ? "#ffffff" : "#111827" }}
                         />
-                        <Legend
-                            align="right"
-                            verticalAlign="top"
-                            wrapperStyle={{ paddingBottom: "30px", fontSize: "12px", fontWeight: "500" }}
-                            iconType="circle"
-                            iconSize={8}
+                        <Bar 
+                            dataKey="present" 
+                            fill="#0052cc" 
+                            radius={[6, 6, 0, 0]} 
+                            barSize={24}
                         />
-                        <Bar
-                            dataKey="present"
-                            fill="#3b82f6"
-                            name="Présent"
-                            radius={[4, 4, 0, 0]}
-                        />
-                        <Bar
-                            dataKey="absent"
-                            fill="#e2e8f0"
-                            name="Absent"
-                            radius={[4, 4, 0, 0]}
+                        <Bar 
+                            dataKey="absent" 
+                            fill="#bf95f9" 
+                            radius={[6, 6, 0, 0]} 
+                            barSize={24}
                         />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
         </motion.div>
     );
-}
+};
 
 export default React.memo(AttendanceChartsComponent);

@@ -1,14 +1,14 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { ChevronDownIcon, Upload, X, Search, BookOpen, Plus, Trash2, ArrowRight } from "lucide-react"
+import { ChevronDownIcon, Upload, X, Save, User, Briefcase, GraduationCap, Heart, MapPin, Users, Search, BookOpen, Plus, Trash2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import {
     Dialog,
     DialogContent,
@@ -18,12 +18,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import api from "@/lib/api"
 import { toast } from "sonner"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface EmployerDialogProps {
     type?: "create" | "update"
@@ -34,18 +34,52 @@ interface EmployerDialogProps {
     hideButton?: boolean
 }
 
-function formatDate(date: Date | undefined) {
-    if (!date) return ""
-    return date.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-    })
+function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-slate-800">
+                {icon}
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
+            </div>
+            {children}
+        </div>
+    );
 }
 
-function isValidDate(date: Date | undefined) {
-    if (!date) return false
-    return !isNaN(date.getTime())
+function FormItem({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+    return (
+        <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">
+                {label} {required && <span className="text-red-500">*</span>}
+            </Label>
+            {children}
+        </div>
+    );
+}
+
+function DatePicker({ value, onChange }: { value?: Date; onChange: (date: Date | undefined) => void }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between font-normal rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800">
+                    {value ? value.toLocaleDateString() : <span className="text-gray-400">Select date</span>}
+                    <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-gray-100 dark:border-slate-800" align="start">
+                <Calendar
+                    mode="single"
+                    selected={value}
+                    captionLayout="dropdown"
+                    onSelect={(date) => {
+                        onChange(date);
+                        setOpen(false);
+                    }}
+                />
+            </PopoverContent>
+        </Popover>
+    );
 }
 
 export default function EmployerDialog({
@@ -78,6 +112,7 @@ export default function EmployerDialog({
         type: "",
         okBlock: false,
         weeklyWorkload: 20,
+        salary: 0,
         photo: null as File | null,
     })
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -235,6 +270,7 @@ export default function EmployerDialog({
                 type: data.type || "",
                 okBlock: data?.okBlock ?? false,
                 weeklyWorkload: data.weeklyWorkload || 20,
+                salary: data.salary || 0,
                 photo: null,
             };
             console.log("Setting teacher form state to:", initialForm);
@@ -269,6 +305,7 @@ export default function EmployerDialog({
                 type: "",
                 okBlock: false,
                 weeklyWorkload: 20,
+                salary: 0,
                 photo: null,
             })
             setBirthDate(undefined)
@@ -350,6 +387,9 @@ export default function EmployerDialog({
             formData.append("phone", form.phone)
             formData.append("type", form.type)
             formData.append("weeklyWorkload", form.weeklyWorkload.toString())
+            if (type === "create") {
+                formData.append("salary", form.salary.toString())
+            }
 
             // ✅ Serialize boolean correctly
             formData.append("okBlock", JSON.stringify(form.okBlock))
@@ -433,6 +473,7 @@ export default function EmployerDialog({
                     type: "",
                     okBlock: false,
                     weeklyWorkload: 20,
+                    salary: 0,
                     photo: null,
                 })
                 setBirthDate(undefined)
@@ -460,196 +501,109 @@ export default function EmployerDialog({
     }
 
     return (
-        <div>
-            <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
-                {!hideButton && (
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Add Employer
-                        </Button>
-                    </DialogTrigger>
-                )}
-                {open && <div className="fixed inset-0 z-40 backdrop-blur-sm bg-black/30 transition-opacity" />}
-                <DialogContent
-                    className="z-50 max-w-4xl overflow-y-auto max-h-screen"
-                    onEscapeKeyDown={(e) => e.preventDefault()}
-                    onPointerDownOutside={(e) => e.preventDefault()}
-                >
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <DialogHeader>
-                            <DialogTitle>{type === "create" ? "Add" : "Update"} Employer</DialogTitle>
-                            <DialogDescription>Enter employer information</DialogDescription>
-                        </DialogHeader>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col relative border border-gray-100 dark:border-slate-800"
+            >
+                {/* Header */}
+                <div className="px-8 py-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-800/50">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {type === "create" ? "Add New Employer" : "Edit Employer Record"}
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {type === "create" ? "Enter the details to add a new employer/teacher" : "Update the employer's information below"}
+                        </p>
+                    </div>
+                    <button
+                        onClick={handleClose}
+                        className="p-2 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md rounded-xl transition-all text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 border border-transparent hover:border-gray-100 dark:hover:border-slate-700"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
 
-                        <div className="flex flex-col items-center space-y-1">
-                            <div className="relative">
-                                {photoPreview ? (
-                                    <div className="relative">
-                                        <Image
-                                            src={photoPreview || "/placeholder.svg"}
-                                            alt="Preview"
-                                            width={96}
-                                            height={96}
-                                            className="h-20 w-20 rounded-full object-cover border-2 border-gray-300"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={removePhoto}
-                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                                            disabled={isLoading}
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="h-20 w-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
-                                        <Upload className="h-8 w-8 text-gray-400" />
-                                    </div>
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                    {/* Photo & Basic Info Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div className="lg:col-span-1 flex flex-col items-center space-y-4">
+                            <div className="relative group">
+                                <div className="w-40 h-40 rounded-3xl overflow-hidden bg-gray-100 dark:bg-slate-800 border-4 border-white dark:border-slate-700 shadow-xl group-hover:shadow-2xl transition-all duration-300">
+                                    {photoPreview ? (
+                                        <div className="relative w-full h-full">
+                                            <Image src={photoPreview} alt="Preview" fill className="object-cover" />
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                            <Upload className="w-10 h-10 mb-2" />
+                                            <span className="text-xs font-medium">Upload Photo</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {photoPreview && (
+                                    <button
+                                        type="button"
+                                        onClick={removePhoto}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors"
+                                    >
+                                        <X size={14} />
+                                    </button>
                                 )}
+                                <label className="absolute inset-0 cursor-pointer">
+                                    <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" onChange={handleChange} className="hidden" />
+                                </label>
                             </div>
-
-                            <Input
-                                type="file"
-                                name="photo"
-                                accept="image/jpeg,image/png,image/webp"
-                                onChange={handleChange}
-                                className="w-full max-w-sm"
-                                disabled={isLoading}
-                            />
-                            <p className="text-xs text-gray-500">Max 5MB. Formats: JPEG, PNG, WebP</p>
+                            <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest font-bold">
+                                JPG, PNG or WebP • Max 5MB
+                            </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                            <div>
-                                <Label>
-                                    Code<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="code"
-                                    value={form.code}
-                                    onChange={handleChange}
-                                    placeholder="Code *"
-                                    required
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    First Name<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="firstName"
-                                    value={form.firstName}
-                                    onChange={handleChange}
-                                    placeholder="First Name"
-                                    required
-                                    disabled={isLoading}
-                                />
-                            </div>
+                        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormItem label="Code" required>
+                                <Input name="code" value={form.code} onChange={handleChange} placeholder="Employer Code" required className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900 focus:ring-blue-500" />
+                            </FormItem>
+                            <FormItem label="First Name" required>
+                                <Input name="firstName" value={form.firstName} onChange={handleChange} placeholder="First Name" required className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
+                            </FormItem>
+                            <FormItem label="Last Name" required>
+                                <Input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Last Name" required className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
+                            </FormItem>
+                            
+                             <FormItem label="Type" required>
+                                <Select value={form.type} onValueChange={(val) => setForm((prev) => ({ ...prev, type: val }))}>
+                                    <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">
+                                        <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="teacher">Teacher</SelectItem>
+                                        <SelectItem value="employer">Employer</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        </div>
+                    </div>
 
-                            <div>
-                                <Label>
-                                    Last Name<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="lastName"
-                                    value={form.lastName}
-                                    onChange={handleChange}
-                                    placeholder="Last Name"
-                                    required
-                                    disabled={isLoading}
-                                />
-                            </div>
-
-                            {/* Date of Birth */}
-                            <div className="flex flex-col gap-3">
-                                <Label htmlFor="dateNaissance" className="px-1">
-                                    Date of Birth
-                                </Label>
-                                <Popover open={openBirth} onOpenChange={setOpenBirth}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-between font-normal bg-transparent"
-                                            disabled={isLoading}
-                                        >
-                                            {birthDate ? birthDate.toLocaleDateString() : "Select date"}
-                                            <ChevronDownIcon />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="z-[1000] w-auto overflow-hidden p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={birthDate}
-                                            captionLayout="dropdown"
-                                            onSelect={(date) => {
-                                                setBirthDate(date)
-                                                setOpenBirth(false)
-                                            }}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-
-                            {/* Registration Date */}
-                            <div className="flex flex-col gap-3">
-                                <Label htmlFor="dateInscription" className="px-1">
-                                    Registration Date
-                                </Label>
-                                <Popover open={openRegister} onOpenChange={setOpenRegister}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-between font-normal bg-transparent"
-                                            disabled={isLoading}
-                                        >
-                                            {registerDate ? registerDate.toLocaleDateString() : "Select date"}
-                                            <ChevronDownIcon />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="z-[1000] w-auto overflow-hidden p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={registerDate}
-                                            captionLayout="dropdown"
-                                            onSelect={(date) => {
-                                                setRegisterDate(date)
-                                                setOpenRegister(false)
-                                            }}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-
-                            <div>
-                                <Label>Place of Birth</Label>
-                                <Input
-                                    name="lieuNaissance"
-                                    value={form.lieuNaissance}
-                                    onChange={handleChange}
-                                    placeholder="Place of Birth"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    Nationality<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="nationality"
-                                    value={form.nationality}
-                                    onChange={handleChange}
-                                    placeholder="Nationality"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    Gender<span className="text-red-600">*</span>
-                                </Label>
+                    {/* Personal Details Section */}
+                    <Section title="Personal Details" icon={<User className="w-5 h-5 text-blue-500" />}>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <FormItem label="Date of Birth">
+                                <DatePicker value={birthDate} onChange={(date) => {
+                                    setBirthDate(date);
+                                }} />
+                            </FormItem>
+                            <FormItem label="Place of Birth">
+                                <Input name="lieuNaissance" value={form.lieuNaissance} onChange={handleChange} placeholder="Place of Birth" className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
+                            </FormItem>
+                            <FormItem label="Nationality" required>
+                                <Input name="nationality" value={form.nationality} onChange={handleChange} placeholder="Nationality" className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
+                            </FormItem>
+                            
+                            <FormItem label="Gender" required>
                                 <Select value={form.gender} onValueChange={(val) => setForm((prev) => ({ ...prev, gender: val }))}>
-                                    <SelectTrigger className="w-full">
+                                    <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">
                                         <SelectValue placeholder="Select gender" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -657,64 +611,15 @@ export default function EmployerDialog({
                                         <SelectItem value="Female">Female</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div>
-                                <Label>
-                                    Phone<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="phone"
-                                    value={form.phone}
-                                    onChange={handleChange}
-                                    placeholder="Phone"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    National ID<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="carteNationale"
-                                    value={form.carteNationale}
-                                    onChange={handleChange}
-                                    placeholder="National ID"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    Marital Status<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="etatCivil"
-                                    value={form.etatCivil}
-                                    onChange={handleChange}
-                                    placeholder="Marital Status"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    Health Status<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="etatSante"
-                                    value={form.etatSante}
-                                    onChange={handleChange}
-                                    placeholder="Health Status"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    Blood Type<span className="text-red-600">*</span>
-                                </Label>
-                                <Select
-                                    value={form.groupeSanguin}
-                                    onValueChange={(val) => setForm((prev) => ({ ...prev, groupeSanguin: val }))}
-                                >
-                                    <SelectTrigger className="w-full">
+                            </FormItem>
+                            
+                             <FormItem label="Marital Status" required>
+                                <Input name="etatCivil" value={form.etatCivil} onChange={handleChange} placeholder="Single/Married" className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
+                            </FormItem>
+                            
+                             <FormItem label="Blood Type" required>
+                                <Select value={form.groupeSanguin} onValueChange={(val) => setForm((prev) => ({ ...prev, groupeSanguin: val }))}>
+                                    <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">
                                         <SelectValue placeholder="Select blood type" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -728,89 +633,25 @@ export default function EmployerDialog({
                                         <SelectItem value="AB-">AB-</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div>
-                                <Label>
-                                    Address<span className="text-red-600">*</span>
-                                </Label>
-                                <Input
-                                    name="address"
-                                    value={form.address}
-                                    onChange={handleChange}
-                                    placeholder="Address"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div>
-                                <Label>
-                                    Type<span className="text-red-600">*</span>
-                                </Label>
-                                <Select value={form.type} onValueChange={(val) => setForm((prev) => ({ ...prev, type: val }))}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="admin">Admin</SelectItem>
-                                        <SelectItem value="teacher">Teacher</SelectItem>
-                                        <SelectItem value="employer">Employer</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div>
-                            <div className="w-full">
-                                <Label className="text-lg font-semibold mb-1">Additional Information</Label>
-                                <Separator />
-                            </div>
+                            </FormItem>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 py-3">
-                                <div>
-                                    <Label>Mother's Name</Label>
+                            {form.type === "teacher" && (
+                                <FormItem label="Base Salary (DA)">
                                     <Input
-                                        name="mereNom"
-                                        value={form.mereNom}
+                                        type="number"
+                                        name="salary"
+                                        value={form.salary}
                                         onChange={handleChange}
-                                        placeholder="Mother's Name"
+                                        placeholder="0.00"
+                                        min={0}
+                                        step="0.01"
                                         disabled={isLoading}
+                                        className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900"
                                     />
-                                </div>
-                                <div>
-                                    <Label>Father's Name</Label>
-                                    <Input
-                                        name="pereNom"
-                                        value={form.pereNom}
-                                        onChange={handleChange}
-                                        placeholder="Father's Name"
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                                {type === "update" && (
-                                    <div className="flex items-center space-x-2 mt-2">
-                                        <Checkbox
-                                            id="okBlock"
-                                            checked={form.okBlock}
-                                            onCheckedChange={(val) => setForm({ ...form, okBlock: val === true })}
-                                            disabled={isLoading}
-                                        />
-                                        <Label htmlFor="okBlock">Block</Label>
-                                    </div>
-                                )}
-                                {form.type === "teacher" && (
-                                    <div>
-                                        <Label>Weekly Workload (Hours/Periods)</Label>
-                                        <Input
-                                            type="number"
-                                            name="weeklyWorkload"
-                                            value={form.weeklyWorkload}
-                                            onChange={handleChange}
-                                            placeholder="20"
-                                            disabled={isLoading}
-                                            min={0}
-                                        />
-                                    </div>
-                                )}
-                            </div>
+                                </FormItem>
+                            )}
                         </div>
+                    </Section>
 
                         <div className="flex flex-col gap-4">
                             <div>
@@ -819,7 +660,7 @@ export default function EmployerDialog({
                             </div>
                         </div>
 
-                        <DialogFooter>
+                        <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-slate-800">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -827,39 +668,40 @@ export default function EmployerDialog({
                                     if (onOpenChange) onOpenChange(false)
                                 }}
                                 disabled={isLoading}
+                                className="rounded-xl border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={isLoading}>
+                            <Button type="submit" disabled={isLoading} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
                                 {isLoading ? "Loading..." : "Submit"}
                             </Button>
-                        </DialogFooter>
+                        </div>
                     </form>
-                </DialogContent>
-            </Dialog>
+            </motion.div>
 
+            {/* Subject Assignment Dialog */}
             {showSubjectDialog && (
                 <Dialog open={showSubjectDialog} onOpenChange={setShowSubjectDialog}>
-                    <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+                    <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-3xl">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                            <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                                 <BookOpen className="w-6 h-6 text-blue-600" />
                                 Assign Subjects
                             </DialogTitle>
-                            <DialogDescription>
-                                Manage the subjects assigned to this teacher. Double-click to move items.
+                            <DialogDescription className="text-gray-500 dark:text-gray-400">
+                                Manage the subjects assigned to this teacher. Click items to move them between lists.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="flex-1 min-h-0 py-4 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Available Subjects Panel */}
-                            <div className="flex flex-col gap-3 h-full border rounded-xl overflow-hidden bg-gray-50/50 dark:bg-slate-900/50">
-                                <div className="p-4 border-b bg-white dark:bg-slate-900">
+                            <div className="flex flex-col gap-3 h-full border rounded-2xl overflow-hidden bg-gray-50/50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-800">
+                                <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                                     <div className="flex items-center justify-between mb-3">
                                         <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-200">
                                             Available Subjects
                                         </h3>
-                                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                        <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded-full font-medium">
                                             {subjects.filter(s => !selectedSubjects.some(sel => sel.subjectId === s.subjectId)).length}
                                         </span>
                                     </div>
@@ -867,14 +709,14 @@ export default function EmployerDialog({
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                         <Input 
                                             placeholder="Search subjects..." 
-                                            className="pl-9 h-9 text-sm"
+                                            className="pl-9 h-9 text-sm rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-800"
                                             value={subjectSearch}
                                             onChange={(e) => setSubjectSearch(e.target.value)}
                                         />
                                     </div>
                                 </div>
                                 
-                                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                                <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
                                     {subjects
                                         .filter(s => 
                                             !selectedSubjects.some(sel => sel.subjectId === s.subjectId) &&
@@ -884,23 +726,23 @@ export default function EmployerDialog({
                                             <div
                                                 key={subject.subjectId}
                                                 onClick={() => setSelectedSubjects([...selectedSubjects, subject])}
-                                                className="group flex items-center justify-between p-3 rounded-lg border border-transparent hover:border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-all duration-200"
+                                                className="group flex items-center justify-between p-3 rounded-xl border border-transparent hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-all duration-200"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border flex items-center justify-center text-gray-500 group-hover:text-blue-600 group-hover:border-blue-200">
+                                                    <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border dark:border-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:border-blue-200 dark:group-hover:border-blue-800">
                                                         <BookOpen size={14} />
                                                     </div>
                                                     <span className="font-medium text-sm text-gray-700 dark:text-gray-200">
                                                         {subject.subjectName}
                                                     </span>
                                                 </div>
-                                                <Plus size={16} className="text-gray-300 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                <Plus size={16} className="text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </div>
                                         ))
                                     }
                                     {subjects.filter(s => !selectedSubjects.some(sel => sel.subjectId === s.subjectId)).length === 0 && (
                                         <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-                                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                                            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mb-2">
                                                 <Search className="w-6 h-6 opacity-30" />
                                             </div>
                                             <p className="text-sm">No subjects available</p>
@@ -909,59 +751,49 @@ export default function EmployerDialog({
                                 </div>
                             </div>
 
-                            {/* Arrow Indicator (Desktop) */}
-                            {/* <div className="hidden md:flex flex-col justify-center items-center text-gray-300">
-                                <ArrowRight size={24} />
-                            </div> */}
-
                             {/* Selected Subjects Panel */}
-                            <div className="flex flex-col gap-3 h-full border rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm ring-1 ring-gray-200 dark:ring-slate-800">
-                                <div className="p-4 border-b bg-green-50/50 dark:bg-green-900/10">
+                            <div className="flex flex-col gap-3 h-full border rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm ring-1 ring-gray-200 dark:ring-slate-800">
+                                <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-green-50/50 dark:bg-green-900/10">
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
                                             Assigned Subjects
                                         </h3>
-                                        <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+                                        <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full font-medium">
                                             {selectedSubjects.length}
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                                <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
                                     {selectedSubjects.length > 0 ? (
                                         selectedSubjects.map(subject => (
                                             <div
                                                 key={subject.subjectId}
                                                 onClick={() => setSelectedSubjects(selectedSubjects.filter(s => s.subjectId !== subject.subjectId))}
-                                                className="group flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-all duration-200"
+                                                className="group flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-slate-800 hover:border-red-200 dark:hover:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-all duration-200"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 flex items-center justify-center font-bold text-xs">
+                                                    <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center font-bold text-xs ring-1 ring-green-100 dark:ring-green-900/30">
                                                         {subject.subjectName.substring(0, 2).toUpperCase()}
                                                     </div>
                                                     <span className="font-medium text-sm text-gray-700 dark:text-gray-200">
                                                         {subject.subjectName}
                                                     </span>
                                                 </div>
-                                                <div className="p-1 rounded-full text-red-400 hover:bg-red-200 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">
+                                                <div className="p-1 rounded-full text-red-400 hover:bg-red-200 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
                                                     <Trash2 size={14} />
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
                                         <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-2">
-                                            <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                            <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-200 dark:border-slate-700 flex items-center justify-center">
                                                 <Plus className="w-8 h-8 opacity-20" />
                                             </div>
                                             <p className="text-sm">Select subjects from the list</p>
                                         </div>
                                     )}
                                 </div>
-                                {selectedSubjects.length > 0 && (
-                                    <div className="p-3 bg-gray-50 border-t text-center text-xs text-gray-500">
-                                        Click item to remove
-                                    </div>
-                                )}
                             </div>
                         </div>
 
@@ -969,14 +801,14 @@ export default function EmployerDialog({
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={handleClose}
+                                onClick={() => setShowSubjectDialog(false)}
                                 disabled={isLoading}
-                                className="w-full sm:w-auto"
+                                className="w-full sm:w-auto rounded-xl border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
                             >
                                 Cancel
                             </Button>
                             <Button
-                                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
+                                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
                                 onClick={async () => {
                                     try {
                                         const employerId = createdEmployerId || data?.employerId;
@@ -985,30 +817,21 @@ export default function EmployerDialog({
                                             return;
                                         }
 
-                                        // Determine subjects to insert (newly selected)
                                         const newSubjectIds = selectedSubjects
                                             .filter(s => !initialAssignedSubjects.some(init => init.subjectId === s.subjectId))
                                             .map(s => s.subjectId);
 
-                                        // Determine subjects to delete (unselected from original)
                                         const removedSubjectIds = initialAssignedSubjects
                                             .filter(init => !selectedSubjects.some(s => s.subjectId === init.subjectId))
                                             .map(s => s.subjectId);
 
-                                        // Assign new subjects
                                         if (newSubjectIds.length > 0) {
-                                            await api.post("/teacher-subject", {
-                                                employerId,
-                                                subjectIds: newSubjectIds,
-                                            });
+                                            await api.post("/teacher-subject", { employerId, subjectIds: newSubjectIds });
                                         }
 
-                                        // Delete removed subjects
                                         if (removedSubjectIds.length > 0) {
                                             await Promise.all(
-                                                removedSubjectIds.map(subjectId =>
-                                                    api.delete(`/teacher-subject/${employerId}/${subjectId}`)
-                                                )
+                                                removedSubjectIds.map(subjectId => api.delete(`/teacher-subject/${employerId}/${subjectId}`))
                                             );
                                         }
 
@@ -1030,16 +853,19 @@ export default function EmployerDialog({
                 </Dialog>
             )}
 
+            {/* Class Assignment Dialog */}
             {showClassDialog && (
                 <Dialog open={showClassDialog} onOpenChange={setShowClassDialog}>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-3xl">
                         <DialogHeader>
-                            <DialogTitle>Assign Class to Teacher</DialogTitle>
-                            <DialogDescription>Select the class this teacher will be responsible for.</DialogDescription>
+                            <DialogTitle className="text-gray-900 dark:text-white">Assign Class to Teacher</DialogTitle>
+                            <DialogDescription className="text-gray-500 dark:text-gray-400">
+                                Select the class this teacher will be responsible for.
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <Label>Select Local</Label>
+                                <Label className="text-gray-700 dark:text-gray-300">Select Local</Label>
                                 <Select 
                                     value={selectedLocalId} 
                                     onValueChange={(val) => {
@@ -1047,7 +873,7 @@ export default function EmployerDialog({
                                         setSelectedClassId("");
                                     }}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-800">
                                         <SelectValue placeholder="Select Local" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1061,13 +887,13 @@ export default function EmployerDialog({
                             </div>
                             
                             <div className="space-y-2">
-                                <Label>Select Class</Label>
+                                <Label className="text-gray-700 dark:text-gray-300">Select Class</Label>
                                 <Select 
                                     value={selectedClassId} 
                                     onValueChange={(val) => setSelectedClassId(val)}
                                     disabled={!selectedLocalId}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-800">
                                         <SelectValue placeholder="Select Class" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1092,6 +918,7 @@ export default function EmployerDialog({
                                     if (onSuccess) onSuccess(); 
                                     if (onOpenChange) onOpenChange(false);
                                 }}
+                                className="rounded-xl border-gray-200 dark:border-slate-700"
                             >
                                 Skip / Cancel
                             </Button>
@@ -1119,6 +946,7 @@ export default function EmployerDialog({
                                     }
                                 }}
                                 disabled={!selectedClassId}
+                                className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white"
                             >
                                 Confirm Assignment
                             </Button>

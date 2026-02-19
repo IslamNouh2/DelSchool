@@ -1,279 +1,312 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { SocketGateway } from 'src/socket/socket.gateway';
-
+import { CreateFeeDto } from './dto/create-fee.dto';
+import { SubscribeStudentDto } from './dto/subscribe-student.dto';
+import { JournalEntryStatus } from '@prisma/client';
 
 @Injectable()
 export class FeeService {
-  constructor(
-    private prisma: PrismaService,
-    private socketGateway: SocketGateway
-  ) {}
+    constructor(private prisma: PrismaService) { }
 
+    // Constants for internal accounting (would ideally be configurable)
+    private readonly STUDENT_RECEIVABLE_ACCOUNT_ID = 4; // Placeholder
+    private readonly INCOME_ACCOUNT_ID = 5; // Placeholder
+    private readonly GENERAL_JOURNAL_ID = 1; // Placeholder
 
-  async create(data: Prisma.FeeUncheckedCreateInput) {
-    // Auto-associate student or employer if compteId is provided
-    if (data.compteId) {
-      const compte = await this.prisma.compte.findUnique({
-        where: { id: data.compteId }
-      });
-      if (compte) {
-        if (compte.studentId) data.studentId = compte.studentId;
-        if (compte.employerId) data.employerId = compte.employerId;
-      }
-    }
-    const fee = await this.prisma.fee.create({ data: data as any });
-    this.socketGateway.emitRefresh();
-    return fee;
-  }
-
-  findAll() {
-    return this.prisma.fee.findMany({
-      include: {
-        class: true,
-        student: true,
-        payments: true,
-        compte: true,
-      },
-    });
-  }
-
-  findOne(id: number) {
-    return this.prisma.fee.findUnique({
-      where: { id },
-      include: {
-        class: true,
-        student: true,
-        payments: true,
-        compte: true,
-      },
-    });
-  }
-
-  async update(id: number, data: Prisma.FeeUpdateInput) {
-    const fee = await this.prisma.fee.update({
-      where: { id },
-      data,
-    });
-    this.socketGateway.emitRefresh();
-    return fee;
-  }
-
-  async remove(id: number) {
-    // Check if fee has payments
-    const fee = await this.prisma.fee.findUnique({
-      where: { id },
-      include: { payments: true },
-    });
-
-    if (fee?.payments && fee.payments.length > 0) {
-      throw new Error('Cannot delete fee with associated payments. Delete payments first.');
-    }
-
-    const deleted = await this.prisma.fee.delete({
-      where: { id },
-    });
-    this.socketGateway.emitRefresh();
-    return deleted;
-  }
-
-  // Dashboard Stats
-  async getDashboardStats() {
-    // 1. Total Collected
-    const payments = await this.prisma.payment.aggregate({
-      _sum: { amount: true },
-      where: { status: 'COMPLETED' }
-    });
-    const totalCollected = payments._sum.amount || 0;
-
-    // 2. Total Expenses
-    const expensePayments = await this.prisma.payment.aggregate({
-      _sum: { amount: true },
-      where: { 
-        status: 'COMPLETED',
-        fee: { type: 'expense' }
-      }
-    });
-    const totalExpenses = expensePayments._sum.amount || 0;
-
-    // 3. Total Expected Fees
-    // We need to fetch all fees and calculate based on assignment
-    const fees = await this.prisma.fee.findMany({
-      include: { class: { include: { studentClasses: true } } }
-    });
-
-    let totalExpected = 0;
-    for (const fee of fees) {
-      if (fee.studentId) {
-        totalExpected += fee.amount;
-      } else if (fee.classId && fee.class) {
-        // Count students in this class (using studentClasses relation)
-        // We should probably filter for current academic year if possible, but schema doesn't strictly enforce it on Fee
-        // Assuming all students in the class are liable
-        const studentCount = fee.class.studentClasses.length; 
-        totalExpected += fee.amount * studentCount;
-      }
-    }
-
-    const pendingFees = totalExpected - totalCollected;
-    const netBalance = totalCollected - totalExpenses;
-
-    // 4. Paid Students Count
-    // This is expensive to calculate perfectly without a materialized view or complex query.
-    // For now, let's approximate or calculate fully if dataset is small.
-    // Let's calculate fully for now.
-    const allStudents = await this.prisma.student.findMany({
-      include: {
-        fees: true, // Direct fees
-        studentClasses: { include: { Class: { include: { fees: true } } } }, // Class fees
-        payments: true
-      }
-    });
-
-    let paidStudentsCount = 0;
-    for (const student of allStudents) {
-      let studentTotalFee = 0;
-      // Direct fees
-      student.fees.forEach(f => studentTotalFee += f.amount);
-      // Class fees
-      student.studentClasses.forEach(sc => {
-        sc.Class.fees.forEach(f => studentTotalFee += f.amount);
-      });
-
-      const studentPaid = student.payments.reduce((sum, p) => sum + p.amount, 0);
-      if (studentPaid >= studentTotalFee && studentTotalFee > 0) {
-        paidStudentsCount++;
-      }
-    }
-
-    // 5. Average Fee (per student)
-    const averageFee = allStudents.length > 0 ? totalExpected / allStudents.length : 0;
-
-    return {
-      totalCollected,
-      totalExpenses,
-      netBalance,
-      pendingFees,
-      paidStudents: paidStudentsCount,
-      averageFee
-    };
-  }
-
-  // Fee Types Distribution
-  async getFeeTypes() {
-    // Group by title? Or we might need a 'type' field in Fee. 
-    // Schema has 'title'. Let's group by title.
-    const fees = await this.prisma.fee.groupBy({
-      by: ['title'],
-      _sum: { amount: true },
-    });
-    
-    // This sum is just the sum of fee definitions, not the total expected revenue from that type.
-    // To get total revenue per type, we need the expansion logic again.
-    // Let's do it manually.
-    const allFees = await this.prisma.fee.findMany({
-        include: { 
-          class: { include: { studentClasses: true } },
-          compte: true
-        }
-    });
-
-    const typeMap = new Map<string, number>();
-
-    for (const fee of allFees) {
-        let amount = 0;
-        if (fee.studentId) {
-            amount = fee.amount;
-        } else if (fee.classId && fee.class) {
-            amount = fee.amount * fee.class.studentClasses.length;
-        }
-        
-        const typeName = fee.compte?.name || fee.title;
-        const current = typeMap.get(typeName) || 0;
-        typeMap.set(typeName, current + amount);
-    }
-
-    // Convert to array and add colors
-    const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899'];
-    return Array.from(typeMap.entries()).map(([name, amount], index) => ({
-        name,
-        amount,
-        color: colors[index % colors.length]
-    }));
-  }
-
-  // Detailed Fee Status List (all individual liabilities)
-  async getDetailedFeeStatus() {
-    const students = await this.prisma.student.findMany({
-      include: {
-        fees: { include: { payments: true, compte: true } },
-        studentClasses: { 
-          include: { 
-            Class: { 
-              include: { 
-                fees: { include: { payments: true, compte: true } } 
-              } 
-            } 
-          } 
-        },
-        payments: true
-      },
-      orderBy: { lastName: 'asc' }
-    });
-
-    const detailedStatus: any[] = [];
-
-    students.forEach(student => {
-      // 1. Direct Fees
-      student.fees.forEach(fee => {
-        const paid = fee.payments
-          .reduce((sum, p) => sum + p.amount, 0);
-        const pending = fee.amount - paid;
-        
-        detailedStatus.push({
-          id: `${student.studentId}-fee-${fee.id}`,
-          studentId: student.studentId,
-          studentName: `${student.firstName} ${student.lastName}`,
-          class: student.studentClasses[0]?.Class.ClassName || 'N/A',
-          feeId: fee.id,
-          feeTitle: fee.title,
-          account: fee.compte?.name || 'N/A',
-          amount: fee.amount,
-          paid,
-          pending: pending > 0 ? pending : 0,
-          status: pending <= 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid'),
-          dueDate: fee.dueDate
+    async createTemplate(dto: CreateFeeDto) {
+        return this.prisma.fee.create({
+            data: {
+                title: dto.title,
+                amount: dto.amount,
+                dueDate: new Date(dto.dueDate),
+                description: dto.description,
+                compteId: dto.compteId,
+                dateStartConsommation: dto.dateStartConsommation ? new Date(dto.dateStartConsommation) : null,
+                dateEndConsommation: dto.dateEndConsommation ? new Date(dto.dateEndConsommation) : null,
+            }
         });
-      });
+    }
 
-      // 2. Class Fees
-      student.studentClasses.forEach(sc => {
-        sc.Class.fees.forEach(fee => {
-          // For class fees, we need to find payments by this student for this specific fee
-          const paid = fee.payments
-            .filter(p => p.studentId === student.studentId)
-            .reduce((sum, p) => sum + p.amount, 0);
-          const pending = fee.amount - paid;
-
-          detailedStatus.push({
-            id: `${student.studentId}-classfee-${fee.id}-${sc.id}`,
-            studentId: student.studentId,
-            studentName: `${student.firstName} ${student.lastName}`,
-            class: sc.Class.ClassName,
-            feeId: fee.id,
-            feeTitle: fee.title,
-            account: fee.compte?.name || 'N/A',
-            amount: fee.amount,
-            paid,
-            pending: pending > 0 ? pending : 0,
-            status: pending <= 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid'),
-            dueDate: fee.dueDate
-          });
+    async findAllTemplates() {
+        return this.prisma.fee.findMany({
+            where: {
+                studentId: null,
+                classId: null,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
         });
-      });
-    });
+    }
 
-    return detailedStatus;
-  }
+    async subscribeStudent(dto: SubscribeStudentDto) {
+        return this.prisma.$transaction(async (tx) => {
+            const templates = await tx.fee.findMany({
+                where: {
+                    id: { in: dto.templateIds },
+                },
+            });
+
+            if (templates.length !== dto.templateIds.length) {
+                throw new NotFoundException('Some fee templates not found');
+            }
+
+            const results: any[] = [];
+            for (const template of templates) {
+                // Check if already subscribed
+                const existing = await tx.fee.findFirst({
+                    where: {
+                        studentId: dto.studentId,
+                        title: template.title,
+                        amount: template.amount,
+                        dueDate: new Date(dto.dueDate || template.dueDate),
+                    }
+                });
+
+                if (existing) {
+                    // Skip if already exists to prevent duplicate (or throw error if strict)
+                    // The user asked to "check if fee is add not add for second time", implying idempotency is preferred over error, 
+                    // but usually feedback is good. Let's skip and maybe inform.
+                    // However, returning a result that implies success might be misleading if we skip.
+                    // Use case: user clicks confirm twice. We should just return the existing one or skip.
+                    // For now, let's skip but add to results so front end thinks it's processed (idempotent).
+                    results.push(existing);
+                    continue; 
+                }
+
+                const studentFee = await tx.fee.create({
+                    data: {
+                        title: template.title,
+                        amount: template.amount,
+                        dueDate: new Date(dto.dueDate || template.dueDate),
+                        description: template.description,
+                        studentId: dto.studentId,
+                        compteId: template.compteId,
+                        dateStartConsommation: template.dateStartConsommation,
+                        dateEndConsommation: template.dateEndConsommation,
+                    },
+                });
+
+                await tx.journalEntry.create({
+                    data: {
+                        journalId: this.GENERAL_JOURNAL_ID,
+                        entryNumber: `FEE-${studentFee.id}-${Date.now()}`,
+                        referenceType: 'STUDENT_FEE',
+                        referenceId: studentFee.id,
+                        description: `Fee: ${template.title} for Student #${dto.studentId}`,
+                        totalDebit: template.amount,
+                        totalCredit: template.amount,
+                        status: JournalEntryStatus.POSTED,
+                        createdBy: 1,
+                        lines: {
+                            create: [
+                                {
+                                    lineNumber: 1,
+                                    compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
+                                    debit: template.amount,
+                                    credit: 0,
+                                },
+                                {
+                                    lineNumber: 2,
+                                    compteId: template.compteId || this.INCOME_ACCOUNT_ID,
+                                    debit: 0,
+                                    credit: template.amount,
+                                },
+                            ],
+                        },
+                    },
+                });
+                results.push(studentFee);
+            }
+            return results;
+        });
+    }
+
+    async subscribeAll(templateId: number, dueDate: string) {
+        return this.prisma.$transaction(async (tx) => {
+            const template = await tx.fee.findUnique({ where: { id: templateId } });
+            if (!template) throw new NotFoundException('Template not found');
+
+            const students = await tx.student.findMany({ select: { studentId: true } });
+            
+            const results: any[] = [];
+            for (const student of students) {
+                const studentFee = await tx.fee.create({
+                    data: {
+                        title: template.title,
+                        amount: template.amount,
+                        dueDate: new Date(dueDate),
+                        description: template.description,
+                        studentId: student.studentId,
+                        compteId: template.compteId,
+                        dateStartConsommation: template.dateStartConsommation,
+                        dateEndConsommation: template.dateEndConsommation,
+                    },
+                });
+
+                await tx.journalEntry.create({
+                    data: {
+                        journalId: this.GENERAL_JOURNAL_ID,
+                        entryNumber: `BULK-${studentFee.id}-${Date.now()}`,
+                        referenceType: 'STUDENT_FEE',
+                        referenceId: studentFee.id,
+                        description: `Bulk Fee: ${template.title} for Student #${student.studentId}`,
+                        totalDebit: template.amount,
+                        totalCredit: template.amount,
+                        status: JournalEntryStatus.POSTED,
+                        createdBy: 1,
+                        lines: {
+                            create: [
+                                {
+                                    lineNumber: 1,
+                                    compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
+                                    debit: template.amount,
+                                    credit: 0,
+                                },
+                                {
+                                    lineNumber: 2,
+                                    compteId: template.compteId || this.INCOME_ACCOUNT_ID,
+                                    debit: 0,
+                                    credit: template.amount,
+                                },
+                            ],
+                        },
+                    },
+                });
+                results.push(studentFee);
+            }
+            return results;
+        });
+    }
+
+    async createManualFee(dto: CreateFeeDto) {
+        // Check for duplicate fee
+        const existingFee = await this.prisma.fee.findFirst({
+            where: {
+                studentId: dto.studentId,
+                title: dto.title,
+                amount: dto.amount,
+                dueDate: new Date(dto.dueDate),
+            }
+        });
+
+        if (existingFee) {
+            throw new BadRequestException('A fee with this title, amount and due date already exists for this student.');
+        }
+
+        return this.prisma.$transaction(async (tx) => {
+             const fee = await tx.fee.create({
+                data: {
+                    title: dto.title,
+                    amount: dto.amount,
+                    dueDate: new Date(dto.dueDate),
+                    description: dto.description,
+                    studentId: dto.studentId,
+                    compteId: dto.compteId,
+                    dateStartConsommation: dto.dateStartConsommation ? new Date(dto.dateStartConsommation) : null,
+                    dateEndConsommation: dto.dateEndConsommation ? new Date(dto.dateEndConsommation) : null,
+                }
+            });
+
+            await tx.journalEntry.create({
+                data: {
+                    journalId: this.GENERAL_JOURNAL_ID,
+                    entryNumber: `MANUAL-FEE-${fee.id}-${Date.now()}`,
+                    referenceType: 'STUDENT_FEE',
+                    referenceId: fee.id,
+                    description: `Manual Fee: ${dto.title}`,
+                    totalDebit: dto.amount,
+                    totalCredit: dto.amount,
+                    status: JournalEntryStatus.POSTED,
+                    createdBy: 1,
+                    lines: {
+                        create: [
+                            {
+                                lineNumber: 1,
+                                compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
+                                debit: dto.amount,
+                                credit: 0,
+                            },
+                            {
+                                lineNumber: 2,
+                                compteId: dto.compteId || this.INCOME_ACCOUNT_ID,
+                                debit: 0,
+                                credit: dto.amount,
+                            },
+                        ],
+                    },
+                },
+            });
+            return fee;
+        });
+    }
+
+    async getStudentFees(studentId: number) {
+        return this.prisma.fee.findMany({
+            where: { studentId },
+            include: {
+                payments: true,
+            },
+            orderBy: {
+                dueDate: 'asc',
+            },
+        });
+    }
+
+    async getPendingFees(studentId: number) {
+        const fees = await this.prisma.fee.findMany({
+            where: { studentId },
+            include: {
+                payments: true,
+            },
+        });
+
+        return fees.map(fee => {
+            const totalPaid = fee.payments.reduce((sum, p) => sum + p.amount, 0);
+            const remaining = Number(fee.amount) - totalPaid;
+            return {
+                ...fee,
+                totalPaid,
+                remaining,
+            };
+        }).filter(fee => fee.remaining > 0);
+    }
+
+    async getStudentFinancialStatus(studentId: number) {
+        const fees = await this.prisma.fee.findMany({
+            where: { studentId },
+            include: {
+                payments: true,
+            },
+        });
+
+        if (fees.length === 0) return 'UPCOMING';
+
+        let totalDue = 0;
+        let totalPaid = 0;
+        let hasOverdue = false;
+        const now = new Date();
+
+        for (const fee of fees) {
+            const feeAmount = Number(fee.amount);
+            const feePaid = fee.payments.reduce((sum, p) => sum + p.amount, 0);
+            totalDue += feeAmount;
+            totalPaid += feePaid;
+
+            if (feePaid < feeAmount && new Date(fee.dueDate) < now) {
+                hasOverdue = true;
+            }
+        }
+
+        if (totalPaid >= totalDue) return 'PAID';
+        if (hasOverdue) return 'OVERDUE';
+        if (totalPaid > 0) return 'PARTIAL';
+        return 'UPCOMING';
+    }
+
+    async deleteFee(id: number) {
+        return this.prisma.fee.delete({
+            where: { id },
+        });
+    }
 }

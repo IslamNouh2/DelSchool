@@ -1,48 +1,46 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { FeeService } from './fee.service';
-import { Prisma } from '@prisma/client';
+import { CreateFeeDto } from './dto/create-fee.dto';
+import { SubscribeStudentDto } from './dto/subscribe-student.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('fees')
+@UseGuards(JwtAuthGuard)
 export class FeeController {
-  constructor(private readonly feeService: FeeService) {}
+    constructor(private readonly feeService: FeeService) { }
 
-  @Post()
-  create(@Body() createFeeDto: Prisma.FeeCreateInput) {
-    return this.feeService.create(createFeeDto);
-  }
+    @Post('templates')
+    createTemplate(@Body() dto: CreateFeeDto) {
+        return this.feeService.createTemplate(dto);
+    }
 
-  @Get()
-  findAll() {
-    return this.feeService.findAll();
-  }
+    @Get('templates')
+    findAllTemplates() {
+        return this.feeService.findAllTemplates();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.feeService.findOne(+id);
-  }
+    @Post('subscribe')
+    subscribeStudent(@Body() dto: SubscribeStudentDto) {
+        return this.feeService.subscribeStudent(dto);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFeeDto: Prisma.FeeUpdateInput) {
-    return this.feeService.update(+id, updateFeeDto);
-  }
+    @Post('subscribe-all')
+    subscribeAll(@Body() body: { templateId: number, dueDate: string }) {
+        return this.feeService.subscribeAll(body.templateId, body.dueDate);
+    }
 
-  @Get('dashboard/stats')
-  getDashboardStats() {
-    return this.feeService.getDashboardStats();
-  }
+    @Post('manual')
+    createManualFee(@Body() dto: CreateFeeDto) {
+        return this.feeService.createManualFee(dto);
+    }
 
-  @Get('dashboard/types')
-  getFeeTypes() {
-    return this.feeService.getFeeTypes();
-  }
+    @Get('student/:id')
+    getStudentFees(@Param('id', ParseIntPipe) id: number) {
+        return this.feeService.getStudentFees(id);
+    }
 
-  @Get('dashboard/student-status')
-  getStudentFeeStatus() {
-    return this.feeService.getDetailedFeeStatus();
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.feeService.remove(+id);
-  }
+    @Delete(':id')
+    deleteFee(@Param('id', ParseIntPipe) id: number) {
+        return this.feeService.deleteFee(id);
+    }
 }

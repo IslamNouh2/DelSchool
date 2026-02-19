@@ -239,21 +239,21 @@ const StudentForm: React.FC<StudentFormProps> = ({
             <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col relative border border-gray-100"
+                className="bg-white dark:bg-[#1a1c2e] rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col relative border border-gray-100 dark:border-white/5"
             >
                 {/* Header */}
-                <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="px-8 py-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-[#0b0d17]/50">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                             {type === "create" ? "Add New Student" : "Edit Student Record"}
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             {type === "create" ? "Enter the details to enroll a new student" : "Update the student's information below"}
                         </p>
                     </div>
                     <button
                         onClick={() => setOpen(false)}
-                        className="p-2 hover:bg-white hover:shadow-md rounded-xl transition-all text-gray-400 hover:text-gray-600 border border-transparent hover:border-gray-100"
+                        className="p-2 hover:bg-white dark:hover:bg-[#1a1c2e] hover:shadow-md rounded-xl transition-all text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 border border-transparent hover:border-gray-100 dark:hover:border-white/10"
                     >
                         <X className="w-6 h-6" />
                     </button>
@@ -264,11 +264,11 @@ const StudentForm: React.FC<StudentFormProps> = ({
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                         <div className="lg:col-span-1 flex flex-col items-center space-y-4">
                             <div className="relative group">
-                                <div className="w-40 h-40 rounded-3xl overflow-hidden bg-gray-100 border-4 border-white shadow-xl group-hover:shadow-2xl transition-all duration-300">
+                                <div className="w-40 h-40 rounded-3xl overflow-hidden bg-gray-100 dark:bg-[#0b0d17] border-4 border-white dark:border-[#1a1c2e] shadow-xl group-hover:shadow-2xl transition-all duration-300">
                                     {photoPreview ? (
                                         <Image src={photoPreview} alt="Preview" fill className="object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-600">
                                             <Upload className="w-10 h-10 mb-2" />
                                             <span className="text-xs font-medium">Upload Photo</span>
                                         </div>
@@ -294,13 +294,13 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
                         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormItem label="Student Code" required>
-                                <Input name="code" value={form.code} onChange={handleChange} placeholder="e.g. STU001" required className="rounded-xl border-gray-200 focus:ring-blue-500" />
+                                <Input name="code" value={form.code} onChange={handleChange} placeholder="e.g. STU001" required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label="First Name" required>
-                                <Input name="nom" value={form.nom} onChange={handleChange} placeholder="First Name" required className="rounded-xl border-gray-200" />
+                                <Input name="nom" value={form.nom} onChange={handleChange} placeholder="First Name" required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label="Last Name" required>
-                                <Input name="prenom" value={form.prenom} onChange={handleChange} placeholder="Last Name" required className="rounded-xl border-gray-200" />
+                                <Input name="prenom" value={form.prenom} onChange={handleChange} placeholder="Last Name" required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label="Gender">
                                 <ComboboxDemo
@@ -324,10 +324,10 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                 }} />
                             </FormItem>
                             <FormItem label="Lieu de Naissance">
-                                <Input name="lieuNaissance" value={form.lieuNaissance} onChange={handleChange} placeholder="City/Country" className="rounded-xl border-gray-200" />
+                                <Input name="lieuNaissance" value={form.lieuNaissance} onChange={handleChange} placeholder="City/Country" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label="Nationality">
-                                <Input name="nationalite" value={form.nationalite} onChange={handleChange} placeholder="Nationality" className="rounded-xl border-gray-200" />
+                                <Input name="nationalite" value={form.nationalite} onChange={handleChange} placeholder="Nationality" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label="Blood Group">
                                 <ComboboxDemo
@@ -339,10 +339,10 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                 />
                             </FormItem>
                             <FormItem label="National ID (CID)">
-                                <Input name="carteNationale" value={form.carteNationale} onChange={handleChange} placeholder="ID Number" className="rounded-xl border-gray-200" />
+                                <Input name="carteNationale" value={form.carteNationale} onChange={handleChange} placeholder="ID Number" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label="Civil Status">
-                                <Input name="etatCivil" value={form.etatCivil} onChange={handleChange} placeholder="Single/Married" className="rounded-xl border-gray-200" />
+                                <Input name="etatCivil" value={form.etatCivil} onChange={handleChange} placeholder="Single/Married" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                         </div>
                     </Section>
@@ -376,7 +376,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                 />
                             </FormItem>
                             <FormItem label="School Identifier">
-                                <Input name="identifiantScolaire" value={form.identifiantScolaire} onChange={handleChange} placeholder="Numerisation Number" className="rounded-xl border-gray-200" />
+                                <Input name="identifiantScolaire" value={form.identifiantScolaire} onChange={handleChange} placeholder="Numerisation Number" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                         </div>
                     </Section>
@@ -386,10 +386,10 @@ const StudentForm: React.FC<StudentFormProps> = ({
                         <Section title="Health Information" icon={<Heart className="w-5 h-5 text-red-500" />}>
                             <div className="space-y-4">
                                 <FormItem label="Health Status">
-                                    <Input name="etatSante" value={form.etatSante} onChange={handleChange} placeholder="General health notes" className="rounded-xl border-gray-200" />
+                                    <Input name="etatSante" value={form.etatSante} onChange={handleChange} placeholder="General health notes" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                                 </FormItem>
                                 <FormItem label="Observations">
-                                    <Textarea name="observation" value={form.observation} onChange={handleChange} placeholder="Any additional notes..." className="rounded-xl border-gray-200 min-h-[100px]" />
+                                    <Textarea name="observation" value={form.observation} onChange={handleChange} placeholder="Any additional notes..." className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
                                 </FormItem>
                             </div>
                         </Section>
@@ -397,7 +397,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                         <Section title="Contact & Address" icon={<MapPin className="w-5 h-5 text-green-500" />}>
                             <div className="space-y-4">
                                 <FormItem label="Full Address">
-                                    <Textarea name="adresse" value={form.adresse} onChange={handleChange} placeholder="Street, City, Country" className="rounded-xl border-gray-200 min-h-[100px]" />
+                                    <Textarea name="adresse" value={form.adresse} onChange={handleChange} placeholder="Street, City, Country" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
                                 </FormItem>
                             </div>
                         </Section>
@@ -406,20 +406,20 @@ const StudentForm: React.FC<StudentFormProps> = ({
                     {/* Parent Information Section */}
                     <Section title="Parent/Guardian Information" icon={<Users className="w-5 h-5 text-orange-500" />}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4 p-6 bg-blue-50/30 rounded-2xl border border-blue-100">
-                                <h4 className="text-sm font-bold text-blue-700 uppercase tracking-wider">Father's Details</h4>
+                            <div className="space-y-4 p-6 bg-blue-50/30 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                                <h4 className="text-sm font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">Father's Details</h4>
                                 <div className="grid grid-cols-1 gap-4">
-                                    <Input name="pereNom" value={form.pereNom} onChange={handleChange} placeholder="Father's Full Name" className="rounded-xl bg-white" />
-                                    <Input name="pereTel" value={form.pereTel} onChange={handleChange} placeholder="Phone Number" className="rounded-xl bg-white" />
-                                    <Input name="pereEmploi" value={form.pereEmploi} onChange={handleChange} placeholder="Occupation" className="rounded-xl bg-white" />
+                                    <Input name="pereNom" value={form.pereNom} onChange={handleChange} placeholder="Father's Full Name" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="pereTel" value={form.pereTel} onChange={handleChange} placeholder="Phone Number" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="pereEmploi" value={form.pereEmploi} onChange={handleChange} placeholder="Occupation" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
                                 </div>
                             </div>
-                            <div className="space-y-4 p-6 bg-pink-50/30 rounded-2xl border border-pink-100">
-                                <h4 className="text-sm font-bold text-pink-700 uppercase tracking-wider">Mother's Details</h4>
+                            <div className="space-y-4 p-6 bg-pink-50/30 dark:bg-pink-500/5 rounded-2xl border border-pink-100 dark:border-pink-500/20">
+                                <h4 className="text-sm font-bold text-pink-700 dark:text-pink-400 uppercase tracking-wider">Mother's Details</h4>
                                 <div className="grid grid-cols-1 gap-4">
-                                    <Input name="mereNom" value={form.mereNom} onChange={handleChange} placeholder="Mother's Full Name" className="rounded-xl bg-white" />
-                                    <Input name="mereTel" value={form.mereTel} onChange={handleChange} placeholder="Phone Number" className="rounded-xl bg-white" />
-                                    <Input name="mereEmploi" value={form.mereEmploi} onChange={handleChange} placeholder="Occupation" className="rounded-xl bg-white" />
+                                    <Input name="mereNom" value={form.mereNom} onChange={handleChange} placeholder="Mother's Full Name" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="mereTel" value={form.mereTel} onChange={handleChange} placeholder="Phone Number" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="mereEmploi" value={form.mereEmploi} onChange={handleChange} placeholder="Occupation" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
                                 </div>
                             </div>
                         </div>
@@ -427,13 +427,13 @@ const StudentForm: React.FC<StudentFormProps> = ({
                 </form>
 
                 {/* Footer Actions */}
-                <div className="px-8 py-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
+                <div className="px-8 py-6 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0b0d17]/50 flex justify-end gap-4">
                     <Button
                         type="button"
                         variant="outline"
                         onClick={() => setOpen(false)}
                         disabled={isLoading}
-                        className="rounded-xl px-6 py-2.5 border-gray-200 hover:bg-white hover:shadow-sm"
+                        className="rounded-xl px-6 py-2.5 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-[#1a1c2e] hover:shadow-sm dark:text-gray-300 transition-all"
                     >
                         Cancel
                     </Button>
@@ -463,9 +463,9 @@ const StudentForm: React.FC<StudentFormProps> = ({
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+            <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-white/5">
                 {icon}
-                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
             </div>
             {children}
         </div>
@@ -475,7 +475,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 function FormItem({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
     return (
         <div className="space-y-2">
-            <Label className="text-sm font-semibold text-gray-700 ml-1">
+            <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
             {children}
@@ -488,12 +488,12 @@ function DatePicker({ value, onChange }: { value?: Date; onChange: (date: Date |
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-between font-normal rounded-xl border-gray-200 hover:bg-gray-50">
+                <Button variant="outline" className="w-full justify-between font-normal rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white hover:bg-gray-50 dark:hover:bg-[#1a1c2e] transition-colors">
                     {value ? value.toLocaleDateString() : <span className="text-gray-400">Select date</span>}
                     <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-gray-100" align="start">
+            <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-gray-100 dark:border-white/5 dark:bg-[#1a1c2e]" align="start">
                 <Calendar
                     mode="single"
                     selected={value}

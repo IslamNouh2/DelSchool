@@ -97,6 +97,14 @@ export class AttendanceService {
         return this.repo.getStudentDailySummaryData(classId, date);
     }
 
+    async getGlobalWeeklyChartData() {
+        return this.repo.getGlobalWeeklyChartData();
+    }
+
+    async getGlobalDailySummaryData(date: string) {
+        return this.repo.getGlobalDailySummaryData(date);
+    }
+
     getStudentAttendance(studentId: number) {
         return this.repo.getStudentAttendance(studentId);
     }
