@@ -5,8 +5,10 @@ import api from '@/lib/api';
 import { MoreHorizontal, Users } from 'lucide-react';
 import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 
 const CountChartComponent = () => {
+    const t = useTranslations("dashboard");
     const [counts, setCounts] = useState<{ boys: number, girls: number }>({ boys: 0, girls: 0 });
     const [loading, setLoading] = useState(true);
 
@@ -44,8 +46,8 @@ const CountChartComponent = () => {
         >
             <div className='flex justify-between items-start mb-6'>
                 <div>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-[0.2em] mb-1 transition-colors">Distribution</p>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">Student Gender</h2>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-[0.2em] mb-1 transition-colors">{t("gender_distribution")}</p>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">{t("student_gender")}</h2>
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-[#0b0d17] rounded-xl border border-gray-100 dark:border-white/5">
                     <Users className="w-5 h-5 text-[#0052cc]" />
@@ -85,7 +87,7 @@ const CountChartComponent = () => {
                 <div className="bg-gray-50 dark:bg-[#0b0d17] p-4 rounded-2xl border border-gray-100 dark:border-white/5 hover:border-[#0052cc]/30 transition-all cursor-default group">
                     <div className="flex items-center gap-2 mb-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#0052cc]"></div>
-                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Garçons</span>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("boys")}</span>
                     </div>
                     <div className="flex items-baseline gap-2">
                         <span className="text-xl font-black text-gray-900 dark:text-white tabular-nums">{counts.boys}</span>
@@ -96,7 +98,7 @@ const CountChartComponent = () => {
                 <div className="bg-gray-50 dark:bg-[#0b0d17] p-4 rounded-2xl border border-gray-100 dark:border-white/5 hover:border-[#bf95f9]/30 transition-all cursor-default group">
                     <div className="flex items-center gap-2 mb-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#bf95f9]"></div>
-                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filles</span>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("girls")}</span>
                     </div>
                     <div className="flex items-baseline gap-2">
                         <span className="text-xl font-black text-gray-900 dark:text-white tabular-nums">{counts.girls}</span>

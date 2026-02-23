@@ -25,8 +25,10 @@ import { FeeModule } from './fee/fee.module';
 import { PaymentModule } from './payment/payment.module';
 import { ExpenseModule } from './expense/expense.module';
 import { FinanceModule } from './finance/finance.module';
+import { EventModule } from './event/event.module';
 
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -34,6 +36,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{
         ttl: 60000,
         limit: 10,
@@ -62,6 +65,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     PayrollModule,
     ExpenseModule,
     FinanceModule,
+    EventModule,
   ],
   
 })

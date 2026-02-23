@@ -122,6 +122,22 @@ export class AttendanceRepository {
         });
     }
 
+    getEmployerAttendanceById(id: number) {
+        return this.prisma.employerAttendance.findUnique({
+            where: { id },
+        });
+    }
+
+    getEmployerConfig(employerId: number) {
+        return this.prisma.employer.findUnique({
+            where: { employerId },
+            select: {
+                checkInTime: true,
+                checkOutTime: true,
+            } as any,
+        });
+    }
+
     // Basic employers list to take attendance
     getAllEmployerBasics() {
         return this.prisma.employer.findMany({
@@ -130,7 +146,9 @@ export class AttendanceRepository {
                 firstName: true,
                 lastName: true,
                 code: true,
-            },
+                checkInTime: true,
+                checkOutTime: true,
+            } as any,
             orderBy: { lastName: 'asc' },
         });
     }
@@ -398,6 +416,80 @@ export class AttendanceRepository {
         return this.prisma.studentAttendance.findMany({
             where: { studentId },
             orderBy: { date: 'desc' }
+        });
+    }
+
+    async getEmployerWeeklyChartData() {
+        const result: { day: string; present: number; absent: number }[] = [];
+        const today = new Date();
+        
+        const totalEmployers = await this.prisma.employer.count();
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const startOfDay = new Date(d.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(d.setHours(23, 59, 59, 999));
+
+            const records = await this.prisma.employerAttendance.findMany({
+                where: {
+                    date: {
+                        gte: startOfDay,
+                        lte: endOfDay,
+                    },
+                },
+                select: { status: true },
+            });
+
+            const nonPresentCount = records.length;
+            const absent = records.filter(r => r.status === 'ABSENT').length;
+            const present = Math.max(0, totalEmployers - nonPresentCount);
+            
+            const dayName = startOfDay.toLocaleDateString('en-US', { weekday: 'short' });
+
+            result.push({
+                day: dayName,
+                present,
+                absent
+            });
+        }
+        return result;
+    }
+
+    async getEmployerDailySummaryData(date: string) {
+        const targetDate = new Date(date);
+        const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+        const [records, totalEmployers] = await Promise.all([
+            this.prisma.employerAttendance.findMany({
+                where: {
+                    date: {
+                        gte: startOfDay,
+                        lte: endOfDay,
+                    },
+                },
+                select: { status: true },
+            }),
+            this.prisma.employer.count()
+        ]);
+
+        const absent = records.filter(r => r.status === 'ABSENT').length;
+        const late = records.filter(r => r.status === 'LATE').length;
+        const explicitlyPresent = records.filter(r => r.status === 'PRESENT').length;
+        const present = Math.max(0, (totalEmployers - records.length) + explicitlyPresent);
+
+        return [
+            { name: 'Present', value: present, color: '#0052cc' },
+            { name: 'Absent', value: absent, color: '#ef4444' },
+            { name: 'Late', value: late, color: '#f59e0b' },
+        ];
+    }
+
+    async getEmployerAttendanceByEmployerId(employerId: number) {
+        return this.prisma.employerAttendance.findMany({
+            where: { employerId },
+            orderBy: { date: 'desc' },
         });
     }
 }

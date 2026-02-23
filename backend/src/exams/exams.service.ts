@@ -111,6 +111,10 @@ export class ExamService {
         return this.examRepository.getGradeDistribution();
     }
 
+    async getClassPerformance() {
+        return this.examRepository.getClassPerformance();
+    }
+
     async getStudentGrades(studentId: number) {
         return this.examRepository.getStudentGrades(studentId);
     }

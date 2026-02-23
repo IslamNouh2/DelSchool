@@ -22,6 +22,7 @@ import { Wallet, Banknote, Landmark, Globe, Loader2, ArrowRight } from "lucide-r
 import { StudentWithFinance } from "./types";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { useTranslations, useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface PaymentModalProps {
@@ -31,14 +32,18 @@ interface PaymentModalProps {
     onSuccess: () => void;
 }
 
-const paymentMethods = [
-    { id: "CASH", label: "Espèces", icon: Banknote, color: "text-emerald-600 bg-emerald-50" },
-    { id: "BANK_TRANSFER", label: "Virement", icon: Landmark, color: "text-blue-600 bg-blue-50" },
-    { id: "CARD", label: "Carte", icon: Wallet, color: "text-indigo-600 bg-indigo-50" },
-    { id: "ONLINE", label: "En Ligne", icon: Globe, color: "text-amber-600 bg-amber-50" },
-];
-
 export function PaymentModal({ open, onOpenChange, student, onSuccess }: PaymentModalProps) {
+    const t = useTranslations("finance.studentFees.modals.payment");
+    const locale = useLocale();
+    const isRtl = locale === 'ar';
+
+    const paymentMethods = [
+        { id: "CASH", label: t("methods.CASH"), icon: Banknote, color: "text-emerald-600 bg-emerald-50" },
+        { id: "BANK_TRANSFER", label: t("methods.BANK_TRANSFER"), icon: Landmark, color: "text-blue-600 bg-blue-50" },
+        { id: "CARD", label: t("methods.CARD"), icon: Wallet, color: "text-indigo-600 bg-indigo-50" },
+        { id: "ONLINE", label: t("methods.ONLINE"), icon: Globe, color: "text-amber-600 bg-amber-50" },
+    ];
+
     const [amount, setAmount] = React.useState<string>("");
     const [method, setMethod] = React.useState<string>("CASH");
     const [reference, setReference] = React.useState<string>("");
@@ -81,7 +86,7 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
             }
         } catch (error) {
             console.error("Failed to fetch accounts", error);
-            toast.error("Impossible de charger les comptes de trésorerie");
+            toast.error(t("error_load_accounts"));
         }
     };
 
@@ -119,7 +124,7 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
     const handleSubmit = async () => {
         if (!selectedFeeId || !amount || parseFloat(amount) <= 0) return;
         if (!selectedCompteId) {
-            toast.error("Veuillez sélectionner un compte de destination");
+            toast.error(t("error_account"));
             return;
         }
 
@@ -132,7 +137,7 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                 reference,
                 compteId: parseInt(selectedCompteId)
             });
-            toast.success("Paiement enregistré avec succès");
+            toast.success(t("success"));
             onSuccess();
             onOpenChange(false);
         } catch (error: any) {
@@ -152,9 +157,9 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                     <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12">
                         <Wallet size={120} />
                     </div>
-                    <DialogHeader className="text-left relative z-10">
+                    <DialogHeader className={cn("relative z-10", isRtl ? "text-right" : "text-left")}>
                         <DialogTitle className="text-3xl font-black uppercase tracking-tighter text-white mb-2">
-                            Encaisser un Paiement
+                            {t("title")}
                         </DialogTitle>
                         <DialogDescription className="text-emerald-100 font-bold text-xs uppercase tracking-widest opacity-80">
                             {student?.lastName} {student?.firstName} • {student?.code}
@@ -162,12 +167,12 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                     </DialogHeader>
                     
                     <div className="mt-8 grid grid-cols-2 gap-4 relative z-10">
-                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                            <p className="text-[10px] font-black uppercase text-emerald-200 tracking-widest mb-1">Balance Totale</p>
+                        <div className={cn("bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20", isRtl && "text-right")}>
+                            <p className="text-[10px] font-black uppercase text-emerald-200 tracking-widest mb-1">{t("balance")}</p>
                             <p className="text-2xl font-black">{student?.financial.balance.toLocaleString()} <span className="text-xs">DA</span></p>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                            <p className="text-[10px] font-black uppercase text-emerald-200 tracking-widest mb-1">Déjà Payé</p>
+                        <div className={cn("bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20", isRtl && "text-right")}>
+                            <p className="text-[10px] font-black uppercase text-emerald-200 tracking-widest mb-1">{t("total_paid")}</p>
                             <p className="text-2xl font-black">{student?.financial.totalPaid.toLocaleString()} <span className="text-xs">DA</span></p>
                         </div>
                     </div>
@@ -177,19 +182,19 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                     {loadingFees ? (
                         <div className="flex flex-col items-center justify-center py-10 gap-3">
                             <Loader2 className="animate-spin text-emerald-600 dark:text-emerald-400" />
-                            <p className="text-[10px] font-black uppercase text-emerald-900 dark:text-emerald-200 tracking-widest">Calcul des créances...</p>
+                            <p className="text-[10px] font-black uppercase text-emerald-900 dark:text-emerald-200 tracking-widest">{t("loading_fees")}</p>
                         </div>
                     ) : pendingFees.length > 0 ? (
                         <div className="space-y-6">
                             <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Compte de Destination</Label>
+                                <Label className={cn("text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1", isRtl && "text-right block")}>{t("destination_account")}</Label>
                                 <Select value={selectedCompteId} onValueChange={setSelectedCompteId}>
-                                    <SelectTrigger className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black text-gray-900 dark:text-gray-100 shadow-sm bg-gray-50/50 dark:bg-slate-950/50 hover:bg-gray-50 dark:hover:bg-slate-950 transition-colors">
-                                        <SelectValue placeholder="Sélectionner un compte (Caisse/Banque)" />
+                                    <SelectTrigger className={cn("rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black text-gray-900 dark:text-gray-100 shadow-sm bg-gray-50/50 dark:bg-slate-950/50 hover:bg-gray-50 dark:hover:bg-slate-950 transition-colors", isRtl && "flex-row-reverse")}>
+                                        <SelectValue placeholder={t("placeholder_account")} />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-2xl border-gray-100 dark:border-slate-800 shadow-2xl dark:bg-slate-900 dark:text-gray-200">
                                         {comptes.map(c => (
-                                            <SelectItem key={c.id} value={String(c.id)} className="font-bold py-4 rounded-xl focus:bg-emerald-50 dark:focus:bg-emerald-900/20">
+                                            <SelectItem key={c.id} value={String(c.id)} className={cn("font-bold py-4 rounded-xl focus:bg-emerald-50 dark:focus:bg-emerald-900/20", isRtl && "flex-row-reverse text-right")}>
                                                 <div className="flex flex-col">
                                                     <span>{c.name}</span>
                                                     <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-tighter mt-0.5">{c.category}</span>
@@ -201,17 +206,17 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                             </div>
 
                             <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Facture / Échéance</Label>
+                                <Label className={cn("text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1", isRtl && "text-right block")}>{t("invoice")}</Label>
                                 <Select value={selectedFeeId} onValueChange={handleFeeChange}>
-                                    <SelectTrigger className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black text-gray-900 dark:text-gray-100 shadow-sm bg-gray-50/50 dark:bg-slate-950/50 hover:bg-gray-50 dark:hover:bg-slate-950 transition-colors">
-                                        <SelectValue placeholder="Sélectionner une facture" />
+                                    <SelectTrigger className={cn("rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black text-gray-900 dark:text-gray-100 shadow-sm bg-gray-50/50 dark:bg-slate-950/50 hover:bg-gray-50 dark:hover:bg-slate-950 transition-colors", isRtl && "flex-row-reverse")}>
+                                        <SelectValue placeholder={t("placeholder_invoice")} />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-2xl border-gray-100 dark:border-slate-800 shadow-2xl dark:bg-slate-900 dark:text-gray-200">
                                         {pendingFees.map(f => (
-                                            <SelectItem key={f.id} value={String(f.id)} className="font-bold py-4 rounded-xl focus:bg-emerald-50 dark:focus:bg-emerald-900/20">
+                                            <SelectItem key={f.id} value={String(f.id)} className={cn("font-bold py-4 rounded-xl focus:bg-emerald-50 dark:focus:bg-emerald-900/20", isRtl && "flex-row-reverse text-right")}>
                                                 <div className="flex flex-col">
                                                     <span>{f.title}</span>
-                                                    <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-tighter mt-0.5">Reste: {f.remaining.toLocaleString()} DA</span>
+                                                    <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-tighter mt-0.5">{isRtl ? "المتبقي" : "Reste"}: {f.remaining.toLocaleString()} DA</span>
                                                 </div>
                                             </SelectItem>
                                         ))}
@@ -221,26 +226,26 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
 
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-3">
-                                    <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Montant à Encaisser</Label>
+                                    <Label className={cn("text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1", isRtl && "text-right block")}>{t("amount_to_collect")}</Label>
                                     <div className="relative">
                                         <Input 
                                             type="number" 
                                             value={amount} 
                                             onChange={(e) => handleAmountChange(e.target.value)}
-                                            className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black text-2xl text-emerald-600 dark:text-emerald-400 shadow-sm bg-gray-50/50 dark:bg-slate-950/50 pl-6 pr-12 focus-visible:ring-emerald-500 transition-colors"
+                                            className={cn("rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black text-2xl text-emerald-600 dark:text-emerald-400 shadow-sm bg-gray-50/50 dark:bg-slate-950/50 focus-visible:ring-emerald-500 transition-colors", isRtl ? "pr-6 pl-12 text-right" : "pl-6 pr-12")}
                                         />
-                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-300 dark:text-emerald-900">DA</span>
+                                        <span className={cn("absolute top-1/2 -translate-y-1/2 text-xs font-black text-emerald-300 dark:text-emerald-900", isRtl ? "left-6" : "right-6")}>DA</span>
                                     </div>
                                 </div>
                                 <div className="space-y-3">
-                                    <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Mode de Règlement</Label>
+                                    <Label className={cn("text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1", isRtl && "text-right block")}>{t("payment_method")}</Label>
                                     <Select value={method} onValueChange={setMethod}>
-                                        <SelectTrigger className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black shadow-sm bg-gray-50/50 dark:bg-slate-950/50 dark:text-gray-100">
+                                        <SelectTrigger className={cn("rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-black shadow-sm bg-gray-50/50 dark:bg-slate-950/50 dark:text-gray-100", isRtl && "flex-row-reverse")}>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-2xl border-gray-100 dark:border-slate-800 shadow-2xl dark:bg-slate-900 dark:text-gray-200">
                                             {paymentMethods.map(m => (
-                                                <SelectItem key={m.id} value={m.id} className="font-bold py-4 rounded-xl focus:bg-blue-50 dark:focus:bg-blue-900/20">
+                                                <SelectItem key={m.id} value={m.id} className={cn("font-bold py-4 rounded-xl focus:bg-blue-50 dark:focus:bg-blue-900/20", isRtl && "flex-row-reverse text-right")}>
                                                     <div className="flex items-center gap-3">
                                                         <m.icon className={cn("w-4 h-4", m.color.split(' ')[0])} />
                                                         <span>{m.label}</span>
@@ -252,16 +257,16 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                                 </div>
                             </div>
 
-                            {amount && selectedFee && (
+                             {amount && selectedFee && (
                                 <div className="bg-gray-50 dark:bg-slate-950/40 rounded-3xl p-6 flex items-center justify-between border border-gray-100 dark:border-slate-800 overflow-hidden relative group transition-colors">
-                                    <div className="relative z-10">
-                                        <p className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest mb-1">Reste après paiement</p>
+                                    <div className={cn("relative z-10", isRtl && "text-right")}>
+                                        <p className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest mb-1">{t("remaining_after")}</p>
                                         <p className="text-2xl font-black text-gray-900 dark:text-gray-100">{remainingAfter.toLocaleString()} <span className="text-xs">DA</span></p>
                                     </div>
                                     <div className="relative z-10 w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                        <ArrowRight className="text-emerald-500 dark:text-emerald-400" />
+                                        <ArrowRight className={cn("text-emerald-500 dark:text-emerald-400", isRtl && "rotate-180")} />
                                     </div>
-                                    <div className="absolute top-0 right-0 h-full w-1/3 bg-gradient-to-l from-emerald-50/50 dark:from-emerald-900/10 to-transparent pointer-events-none" />
+                                    <div className={cn("absolute top-0 h-full w-1/3 bg-gradient-to-l from-emerald-50/50 dark:from-emerald-900/10 to-transparent pointer-events-none", isRtl ? "left-0 rotate-180" : "right-0")} />
                                 </div>
                             )}
 
@@ -273,7 +278,7 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                                 {loading ? (
                                     <Loader2 className="animate-spin h-6 w-6" />
                                 ) : (
-                                    "Confirmer l'Encaissement"
+                                    t("confirm")
                                 )}
                             </Button>
                         </div>
@@ -282,9 +287,9 @@ export function PaymentModal({ open, onOpenChange, student, onSuccess }: Payment
                              <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full mx-auto flex items-center justify-center text-emerald-200 dark:text-emerald-900 shadow-sm mb-6">
                                 <Banknote size={40} />
                             </div>
-                            <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-2 uppercase tracking-tight">Compte à Zéro</h3>
+                            <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-2 uppercase tracking-tight">{t("no_fees_title")}</h3>
                             <p className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest max-w-[250px] mx-auto leading-relaxed">
-                                Cet élève n'a aucune facture en attente de paiement pour le moment.
+                                {t("no_fees_desc")}
                             </p>
                         </div>
                     )}

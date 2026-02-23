@@ -301,6 +301,32 @@ export class ExamRepository {
         });
     }
 
+    async getClassPerformance() {
+        const classesData = await this.prisma.classes.findMany({
+            include: {
+                studentClasses: {
+                    include: {
+                        grads: {
+                            select: { grads: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        return classesData.map(c => {
+            const allGrads = c.studentClasses.flatMap(sc => sc.grads.map(g => g.grads));
+            const avg = allGrads.length > 0 
+                ? allGrads.reduce((acc, curr) => acc + curr, 0) / allGrads.length 
+                : 0;
+            
+            return {
+                className: c.ClassName,
+                average: parseFloat(avg.toFixed(2)),
+            };
+        });
+    }
+
     async getGradeDistribution() {
         const grades = await this.prisma.grads.findMany({
             select: { grads: true },

@@ -23,4 +23,7 @@ export class CreateClassDto {
 
     @IsOptional()
     cloture: boolean;
+
+    @IsOptional()
+    translations?: Record<string, string>;
 }

@@ -119,4 +119,19 @@ async saveStudentAttendance(@Body() body: any) {
   getGlobalDailySummary(@Param('date') date: string) {
     return this.service.getGlobalDailySummaryData(date);
   }
+
+  @Get('employer-weekly-chart')
+  getEmployerWeeklyChart() {
+    return this.service.getEmployerWeeklyChartData();
+  }
+
+  @Get('employer-daily-summary/:date')
+  getEmployerDailySummary(@Param('date') date: string) {
+    return this.service.getEmployerDailySummaryData(date);
+  }
+
+  @Get('employer/:id/stats')
+  async getEmployerStats(@Param('id', ParseIntPipe) id: number) {
+    return this.service.getEmployerStats(id);
+  }
 }

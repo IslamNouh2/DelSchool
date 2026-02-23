@@ -42,4 +42,16 @@ export class UpdateEmployerDto {
         return value;
     })
     weeklyWorkload?: number;
+
+    @IsOptional()
+    @Min(0)
+    @Transform(({ value }) => {
+        if (typeof value === 'string') return parseFloat(value);
+        return value;
+    })
+    salary?: number;
+
+    @IsOptional() @IsString() salaryBasis?: string;
+    @IsOptional() @IsString() checkInTime?: string;
+    @IsOptional() @IsString() checkOutTime?: string;
 }

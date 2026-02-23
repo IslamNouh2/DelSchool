@@ -9,6 +9,7 @@ import {
     Plus, 
     User
 } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { 
     Table, 
     TableBody, 
@@ -39,14 +40,17 @@ interface StudentTableProps {
     loading?: boolean;
 }
 
-const statusConfig: Record<FinancialStatus, { label: string, color: string }> = {
-    PAID: { label: "Payé", color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50" },
-    PARTIAL: { label: "Partiel", color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50" },
-    OVERDUE: { label: "En Retard", color: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-900/50" },
-    UPCOMING: { label: "À Venir", color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50" },
+const statusConfig: Record<FinancialStatus, { key: string, color: string }> = {
+    PAID: { key: "status.PAID", color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50" },
+    PARTIAL: { key: "status.PARTIAL", color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50" },
+    OVERDUE: { key: "status.OVERDUE", color: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-900/50" },
+    UPCOMING: { key: "status.UPCOMING", color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50" },
 };
 
 export function StudentTable({ students, onSubscribe, onPay, onViewHistory, loading }: StudentTableProps) {
+    const t = useTranslations("finance.studentFees");
+    const locale = useLocale();
+    const isRtl = locale === 'ar';
 
 
     return (
@@ -54,13 +58,13 @@ export function StudentTable({ students, onSubscribe, onPay, onViewHistory, load
             <Table>
                     <TableHeader className="bg-gray-50/50 dark:bg-slate-950/50">
                         <TableRow className="border-b border-gray-100 dark:border-slate-800 hover:bg-transparent">
-                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest pl-8 py-4">Élève</TableHead>
-                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Classe</TableHead>
-                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Abonnements</TableHead>
-                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest text-right">Total Dû</TableHead>
-                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest text-right">Payé</TableHead>
-                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest text-center">Status</TableHead>
-                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest text-right pr-8">Actions</TableHead>
+                            <TableHead className={cn("font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest py-4", isRtl ? "pr-8 text-right" : "pl-8 text-left")}>{t("table.student")}</TableHead>
+                            <TableHead className={cn("font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest", isRtl ? "text-right" : "text-left")}>{t("table.class")}</TableHead>
+                            <TableHead className={cn("font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest", isRtl ? "text-right" : "text-left")}>{t("table.subscriptions")}</TableHead>
+                            <TableHead className={cn("font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest text-right", isRtl ? "text-left" : "text-right")}>{t("table.total_due")}</TableHead>
+                            <TableHead className={cn("font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest text-right", isRtl ? "text-left" : "text-right")}>{t("table.paid")}</TableHead>
+                            <TableHead className="font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest text-center">{t("table.status")}</TableHead>
+                            <TableHead className={cn("font-bold text-gray-400 dark:text-slate-500 uppercase text-[10px] tracking-widest pr-8", isRtl ? "pl-8 text-left" : "pr-8 text-right")}>{t("table.actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -77,14 +81,14 @@ export function StudentTable({ students, onSubscribe, onPay, onViewHistory, load
                                         <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-slate-800 flex items-center justify-center">
                                             <Search className="h-8 w-8 text-gray-200 dark:text-slate-700" />
                                         </div>
-                                        <p className="font-bold uppercase text-xs tracking-widest">Aucun élève trouvé</p>
+                                        <p className="font-bold uppercase text-xs tracking-widest">{t("empty_search")}</p>
                                     </div>
                                 </TableCell>
                             </TableRow>
                         ) : (
                             students.map((student) => (
                                 <TableRow key={student.studentId} className="group hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-50 dark:border-slate-800 last:border-0">
-                                    <TableCell className="pl-8 py-5">
+                                    <TableCell className={cn("py-5", isRtl ? "pr-8" : "pl-8")}>
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 border border-blue-100 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
                                                 {student.photoUrl ? (
@@ -133,39 +137,39 @@ export function StudentTable({ students, onSubscribe, onPay, onViewHistory, load
                                             "rounded-full px-3 py-1 text-[9px] font-black border uppercase shadow-sm",
                                             statusConfig[student.financial.status].color
                                         )}>
-                                            {statusConfig[student.financial.status].label}
+                                            {t(statusConfig[student.financial.status].key)}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="pr-8 text-right">
+                                    <TableCell className={cn(isRtl ? "pl-8 text-left" : "pr-8 text-right")}>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
                                                     <MoreHorizontal className="h-4 w-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="rounded-2xl p-2 border-gray-100 dark:border-slate-800 shadow-2xl dark:bg-slate-900 dark:text-slate-300">
-                                                <DropdownMenuLabel className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 px-3 py-2">Actions Finance</DropdownMenuLabel>
+                                            <DropdownMenuContent align={isRtl ? "start" : "end"} className="rounded-2xl p-2 border-gray-100 dark:border-slate-800 shadow-2xl dark:bg-slate-900 dark:text-slate-300">
+                                                <DropdownMenuLabel className={cn("text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 px-3 py-2", isRtl && "text-right")}>{t("actions.finance")}</DropdownMenuLabel>
                                                 <DropdownMenuItem 
                                                     onClick={() => onSubscribe(student)}
-                                                    className="rounded-xl px-3 py-2 cursor-pointer focus:bg-blue-50 dark:focus:bg-blue-900/30 focus:text-blue-600 dark:focus:text-blue-400 transition-colors"
+                                                    className={cn("rounded-xl px-3 py-2 cursor-pointer focus:bg-blue-50 dark:focus:bg-blue-900/30 focus:text-blue-600 dark:focus:text-blue-400 transition-colors", isRtl && "flex-row-reverse text-right")}
                                                 >
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    <span className="font-bold text-xs uppercase">Abonner</span>
+                                                    <Plus className={cn("h-4 w-4", isRtl ? "ml-2" : "mr-2")} />
+                                                    <span className="font-bold text-xs uppercase">{t("actions.subscribe")}</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem 
                                                     onClick={() => onPay(student)}
-                                                    className="rounded-xl px-3 py-2 cursor-pointer focus:bg-emerald-50 dark:focus:bg-emerald-900/30 focus:text-emerald-600 dark:focus:text-emerald-400 transition-colors"
+                                                    className={cn("rounded-xl px-3 py-2 cursor-pointer focus:bg-emerald-50 dark:focus:bg-emerald-900/30 focus:text-emerald-600 dark:focus:text-emerald-400 transition-colors", isRtl && "flex-row-reverse text-right")}
                                                 >
-                                                    <CreditCard className="mr-2 h-4 w-4" />
-                                                    <span className="font-bold text-xs uppercase">Encaisser</span>
+                                                    <CreditCard className={cn("h-4 w-4", isRtl ? "ml-2" : "mr-2")} />
+                                                    <span className="font-bold text-xs uppercase">{t("actions.collect")}</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator className="bg-gray-50 dark:bg-slate-800 my-1" />
                                                 <DropdownMenuItem 
                                                     onClick={() => onViewHistory(student)}
-                                                    className="rounded-xl px-3 py-2 cursor-pointer focus:bg-gray-100 dark:focus:bg-slate-800 transition-colors"
+                                                    className={cn("rounded-xl px-3 py-2 cursor-pointer focus:bg-gray-100 dark:focus:bg-slate-800 transition-colors", isRtl && "flex-row-reverse text-right")}
                                                 >
-                                                    <History className="mr-2 h-4 w-4" />
-                                                    <span className="font-bold text-xs uppercase">Historique</span>
+                                                    <History className={cn("h-4 w-4", isRtl ? "ml-2" : "mr-2")} />
+                                                    <span className="font-bold text-xs uppercase">{t("actions.history")}</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>

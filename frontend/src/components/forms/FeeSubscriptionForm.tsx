@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface FeeSubscriptionFormProps {
     student: any;
@@ -15,6 +16,9 @@ interface FeeSubscriptionFormProps {
 }
 
 export default function FeeSubscriptionForm({ student, setOpen, onSuccess }: FeeSubscriptionFormProps) {
+    const t = useTranslations("finance.studentFees.modals.new_fee");
+    const commonT = useTranslations("finance.studentFees.messages");
+
     const [templates, setTemplates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
@@ -34,7 +38,7 @@ export default function FeeSubscriptionForm({ student, setOpen, onSuccess }: Fee
                     const res = await api.get("/fees?limit=50");
                     setTemplates(res.data.fees || []);
                 } catch (e) {
-                    toast.error("Failed to load fee templates");
+                    toast.error(commonT("load_error"));
                 }
             } finally {
                 setLoading(false);
@@ -45,7 +49,7 @@ export default function FeeSubscriptionForm({ student, setOpen, onSuccess }: Fee
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.templateId) return toast.error("Please select a fee");
+        if (!formData.templateId) return toast.error(commonT("select_fee_error"));
 
         const selectedTemplate = templates.find(t => String(t.id) === formData.templateId);
         if (!selectedTemplate) return;
@@ -59,21 +63,21 @@ export default function FeeSubscriptionForm({ student, setOpen, onSuccess }: Fee
                 compteId: selectedTemplate.compteId,
                 type: "income",
             });
-            toast.success("Subscription created successfully");
+            toast.success(commonT("bulk_success"));
             onSuccess();
             setOpen(false);
         } catch (error) {
-            toast.error("Failed to create subscription");
+            toast.error(commonT("bulk_error"));
         }
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-                <Label>Fee Template</Label>
+                <Label>{t("labels.template")}</Label>
                 <Select value={formData.templateId} onValueChange={(v) => setFormData({ ...formData, templateId: v })}>
                     <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Select a fee" />
+                        <SelectValue placeholder={t("placeholders.template")} />
                     </SelectTrigger>
                     <SelectContent>
                         {templates.map((t) => (
@@ -85,7 +89,7 @@ export default function FeeSubscriptionForm({ student, setOpen, onSuccess }: Fee
                 </Select>
             </div>
             <div className="space-y-2">
-                <Label>Due Date</Label>
+                <Label>{t("labels.due_date")}</Label>
                 <Input
                     type="date"
                     value={formData.dueDate}
@@ -98,7 +102,7 @@ export default function FeeSubscriptionForm({ student, setOpen, onSuccess }: Fee
                 className="w-full bg-blue-600 hover:bg-blue-700 h-11 rounded-xl font-bold mt-2"
                 disabled={loading}
             >
-                Confirm Subscription
+                {t("submit_subscription")}
             </Button>
         </form>
     );

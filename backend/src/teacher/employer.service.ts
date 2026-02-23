@@ -22,6 +22,25 @@ export class EmployerService {
         this.ensureUploadDirectory();
     }
 
+    async GetCountTeacher() {
+        const total = await this.prisma.employer.count({
+            where: { type: { equals: 'teacher', mode: 'insensitive' } }
+        });
+        return { total };
+    }
+
+    async GetCountStaff() {
+        const total = await this.prisma.employer.count({
+            where: {
+                type: {
+                    in: ['employer', 'admin'],
+                    mode: 'insensitive'
+                }
+            }
+        });
+        return { total };
+    }
+
     private async ensureUploadDirectory() {
         try {
             await fs.access(this.uploadPath);
@@ -75,9 +94,10 @@ export class EmployerService {
     async CreateEmployer(dto: CreateEmployerDto, photo?: Express.Multer.File) {
         const {
             firstName, lastName, dateOfBirth, lieuOfBirth, gender, address,
-            fatherName, code, motherName, health, dateCreate, dateModif,
+            fatherName,  motherName, health, dateCreate, dateModif,
             bloodType, etatCivil, cid, nationality, observation, numNumerisation,
-            dateInscription, okBlock, type, phone, weeklyWorkload, salary
+            dateInscription, okBlock, type, phone, weeklyWorkload, salary,
+            salaryBasis, checkInTime, checkOutTime
         } = dto;
 
         let photoFileName: string | null = null;
@@ -147,6 +167,9 @@ export class EmployerService {
                     photoFileName,
                     type,
                     weeklyWorkload: weeklyWorkload || 20,
+                    salaryBasis: salaryBasis || "DAILY",
+                    checkInTime: checkInTime || "08:00",
+                    checkOutTime: checkOutTime || "16:00",
                 },
             });
 
@@ -218,6 +241,10 @@ export class EmployerService {
                     okBlock: dto.okBlock ?? false,
                     type: dto.type,
                     weeklyWorkload: dto.weeklyWorkload !== undefined ? dto.weeklyWorkload : undefined,
+                    salary: dto.salary !== undefined ? dto.salary : undefined,
+                    salaryBasis: dto.salaryBasis,
+                    checkInTime: dto.checkInTime,
+                    checkOutTime: dto.checkOutTime,
                     photoFileName: photoFileName,
                 },
             });
@@ -377,6 +404,10 @@ export class EmployerService {
                 okBlock: true,
                 type: true,
                 weeklyWorkload: true,
+                salary: true,
+                salaryBasis: true,
+                checkInTime: true,
+                checkOutTime: true,
                 photoFileName: true,
                 compte: {
                     select: {

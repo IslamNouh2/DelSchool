@@ -16,6 +16,7 @@ import { TimetableSlot, TimetableEntry } from "@/app/(dashboard)/list/timetable/
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useSocket } from "@/providers/SocketProvider";
+import { useTranslations } from "next-intl";
 
 interface TimeSlot {
     id: number;
@@ -24,9 +25,11 @@ interface TimeSlot {
     endTime: string;
 }
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const days_keys = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function TimetableCalendar() {
+    const t = useTranslations("timetable");
+    const tForm = useTranslations("timetable.form");
     const [showSlotManager, setShowSlotManager] = useState(false);
     const [showEntryDialog, setShowEntryDialog] = useState(false);
     const [timetableData, setTimetableData] = useState<TimetableEntry[]>([]);
@@ -63,7 +66,7 @@ export default function TimetableCalendar() {
         classId: 0,
         employerId: 0,
         timeSlotId: 0,
-        day: "Monday",
+        day: days_keys[0],
         academicYear: "2025-2026",
     });
 
@@ -95,7 +98,7 @@ export default function TimetableCalendar() {
             .catch(() => {
                 toast({
                     variant: "destructive",
-                    title: "Error loading base data",
+                    title: t("messages.load_error"),
                 });
             });
     }, [refreshKey]);
@@ -158,8 +161,8 @@ export default function TimetableCalendar() {
                     if (!isLunch && data.some((item: any) => item.isFull)) {
                          toast({
                             variant: "destructive",
-                            title: "All teachers full",
-                            description: "All teachers for this subject have reached their weekly workload.",
+                            title: t("messages.teachers_full_title"),
+                            description: t("messages.teachers_full_desc"),
                         });
                     }
                 }
@@ -179,7 +182,9 @@ export default function TimetableCalendar() {
     const ensureLunchSubject = async () => {
         let lunchSubject = subjects.find(s => 
             s.subjectName.toLowerCase() === 'lunch' || 
-            s.subjectName.toLowerCase() === 'break'
+            s.subjectName.toLowerCase() === 'break' ||
+            s.subjectName.toLowerCase() === 'pause' ||
+            s.subjectName.toLowerCase() === 'استراحة'
         );
         
         if (!lunchSubject) {
@@ -191,10 +196,10 @@ export default function TimetableCalendar() {
                 });
                 lunchSubject = res.data;
                 setSubjects(prev => [...prev, lunchSubject]);
-                toast({ title: "Created 'Break' subject automatically" });
+                toast({ title: t("messages.create_break_auto") });
             } catch (error) {
                 console.error("Failed to create break subject", error);
-                toast({ variant: "destructive", title: "Failed to create Break subject" });
+                toast({ variant: "destructive", title: t("messages.load_error") }); 
                 return null;
             }
         }
@@ -216,7 +221,7 @@ export default function TimetableCalendar() {
         if (!subjectId || !classId || !timeSlotId || (!employerId && !isLunch)) {
             toast({
                 variant: "destructive",
-                title: "Missing data",
+                title: t("messages.missing_data"),
             });
             return;
         }
@@ -256,13 +261,13 @@ export default function TimetableCalendar() {
                     });
                 }
 
-                toast({ title: "Saved successfully" });
+                toast({ title: t("messages.save_success") });
 
                 await fetchTimetable(); // sync real data
             } catch (error) {
                 toast({
                     variant: "destructive",
-                    title: "Error saving",
+                    title: t("messages.save_error"),
                 });
 
                 await fetchTimetable(); // rollback by refetch
@@ -274,15 +279,15 @@ export default function TimetableCalendar() {
 
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure?")) return;
+        if (!confirm(t("messages.confirm_delete"))) return;
 
         startTransition(async () => {
             try {
                 await api.delete(`/timetable/${id}`);
-                toast({ title: "Deleted" });
+                toast({ title: t("messages.delete_success") });
                 fetchTimetable();
             } catch {
-                toast({ variant: "destructive", title: "Error deleting" });
+                toast({ variant: "destructive", title: t("messages.delete_error") });
             }
         });
     };
@@ -298,10 +303,10 @@ export default function TimetableCalendar() {
                 subjectId: slot.subjectId,
                 employerId: slot.employerId 
             });
-            toast({ title: "Moved successfully" });
+            toast({ title: t("messages.move_success") });
             fetchTimetable();
         } catch (error) {
-            toast({ variant: "destructive", title: "Failed to move entry" });
+            toast({ variant: "destructive", title: t("messages.move_error") });
         }
     };
 
@@ -311,7 +316,7 @@ export default function TimetableCalendar() {
             id: 0,
             subjectId: 0,
             employerId: 0,
-            day: day || "Monday",
+            day: day || days_keys[0],
             timeSlotId: timeSlotId || (timeSlots[0]?.id || 0)
         }));
         setShowEntryDialog(true);
@@ -373,10 +378,10 @@ export default function TimetableCalendar() {
                             <div className="p-3 bg-lamaYellow rounded-2xl shadow-lg shadow-yellow-500/20 text-white">
                                 <CalendarIcon size={24} />
                             </div>
-                            Timetable Management
+                            {t("title")}
                         </h1>
                         <p className="text-gray-500 font-medium mt-2 max-w-lg">
-                            Manage class schedules for <span className="font-medium text-blue-600">{formData.academicYear}</span>
+                            {t("subtitle", { year: formData.academicYear })}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -385,7 +390,7 @@ export default function TimetableCalendar() {
                             onChange={(e) => setFormData(prev => ({ ...prev, classId: +e.target.value }))}
                             className="px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-background text-foreground"
                         >
-                            <option value={0}>Select Class</option>
+                            <option value={0}>{t("select_class")}</option>
                             {classes.map((c) => (
                                 <option key={c.classId} value={c.classId}>
                                     {c.ClassName}
@@ -398,7 +403,7 @@ export default function TimetableCalendar() {
                             variant="outline"
                             className="gap-2"
                         >
-                            Manage Slots
+                            {t("manage_slots")}
                         </Button>
 
                         <Button 
@@ -407,7 +412,7 @@ export default function TimetableCalendar() {
                             disabled={formData.classId === 0}
                         >
                             <Plus className="w-5 h-5" />
-                            Add Period
+                            {t("add_period")}
                         </Button>
 
                         <Button
@@ -416,7 +421,7 @@ export default function TimetableCalendar() {
                             className="gap-2 rounded-xl"
                             disabled={formData.classId === 0}
                         >
-                            Export PDF
+                            {t("export_pdf")}
                         </Button>
                     </div>
                 </div>
@@ -425,7 +430,7 @@ export default function TimetableCalendar() {
                 {formData.classId === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[400px] bg-card rounded-2xl border border-dashed border-border">
                         <CalendarIcon className="w-12 h-12 text-muted-foreground mb-4" />
-                        <p className="text-muted-foreground">Please select a class to view the timetable</p>
+                        <p className="text-muted-foreground">{t("select_class_prompt")}</p>
                     </div>
                 ) : (
                     <motion.div
@@ -440,12 +445,12 @@ export default function TimetableCalendar() {
                                 <div className="p-3 bg-muted/50 rounded-xl">
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <CalendarIcon className="w-5 h-5" />
-                                        <span>Time</span>
+                                        <span>{t("time_header")}</span>
                                     </div>
                                 </div>
-                                {days.map((day) => (
+                                {days_keys.map((day) => (
                                     <div key={day} className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl">
-                                        <p className="text-foreground text-center font-medium">{day}</p>
+                                        <p className="text-foreground text-center font-medium">{t(`days.${day}`)}</p>
                                     </div>
                                 ))}
 
@@ -456,7 +461,7 @@ export default function TimetableCalendar() {
                                             <span className="text-foreground font-medium text-sm">{time.label}</span>
                                             <span className="text-muted-foreground text-xs">{time.startTime} - {time.endTime}</span>
                                         </div>
-                                        {days.map((day) => (
+                                        {days_keys.map((day) => (
                                             <TimetableSlot
                                                 key={`${day}-${time.id}`}
                                                 slot={getSlot(day, time.id)}
@@ -482,19 +487,19 @@ export default function TimetableCalendar() {
                     transition={{ delay: 0.2 }}
                     className="bg-card rounded-2xl p-6 shadow-sm border border-border"
                 >
-                    <h2 className="text-foreground mb-4 font-medium">Legend</h2>
+                    <h2 className="text-foreground mb-4 font-medium">{t("legend.title")}</h2>
                     <div className="flex flex-wrap gap-4">
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded"></div>
-                            <span className="text-muted-foreground text-sm">Scheduled Class</span>
+                            <span className="text-muted-foreground text-sm">{t("legend.scheduled")}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 bg-muted border border-border rounded"></div>
-                            <span className="text-muted-foreground text-sm">Break / Lunch</span>
+                            <span className="text-muted-foreground text-sm">{t("legend.break")}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 bg-muted/30 border border-dashed border-border rounded"></div>
-                            <span className="text-muted-foreground text-sm">Available Slot</span>
+                            <span className="text-muted-foreground text-sm">{t("legend.available")}</span>
                         </div>
                     </div>
                 </motion.div>
@@ -510,24 +515,24 @@ export default function TimetableCalendar() {
                 <Dialog open={showEntryDialog} onOpenChange={setShowEntryDialog}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>{formData.id > 0 ? "Edit Timetable Entry" : "Add Timetable Entry"}</DialogTitle>
+                            <DialogTitle>{formData.id > 0 ? tForm("edit_title") : tForm("add_title")}</DialogTitle>
                             <DialogDescription>
-                                Fill in the details below to schedule a class or break.
+                                {tForm("description")}
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
+                        <div className="space-y-4 py-4 text-start">
                             <div className="grid gap-2">
-                                <Label>Day</Label>
+                                <Label>{tForm("day_label")}</Label>
                                 <select
                                     value={formData.day}
                                     onChange={(e) => setFormData({ ...formData, day: e.target.value })}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 >
-                                    {days.map(d => <option key={d} value={d}>{d}</option>)}
+                                    {days_keys.map(d => <option key={d} value={d}>{t(`days.${d}`)}</option>)}
                                 </select>
                             </div>
                             <div className="grid gap-2">
-                                <Label>Time Slot</Label>
+                                <Label>{tForm("slot_label")}</Label>
                                 <select
                                     value={formData.timeSlotId}
                                     onChange={(e) => setFormData({ ...formData, timeSlotId: +e.target.value })}
@@ -550,11 +555,11 @@ export default function TimetableCalendar() {
                                             const lunchSubject = await ensureLunchSubject();
                                             if (lunchSubject) {
                                                 handleSubjectSelect(lunchSubject.subjectId);
-                                                toast({ title: `Selected: ${lunchSubject.subjectName}` });
+                                                toast({ title: `${t("messages.save_success")}: ${lunchSubject.subjectName}` });
                                             }
                                         }}
                                     >
-                                        Set as Lunch Break
+                                        {tForm("set_break")}
                                     </Button>
                                 </div>
                                 <select
@@ -562,20 +567,20 @@ export default function TimetableCalendar() {
                                     onChange={(e) => handleSubjectSelect(+e.target.value)}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 >
-                                    <option value={0}>Select Subject</option>
+                                    <option value={0}>{t("select_class")}</option>
                                     {subjects.map(s => (
                                         <option key={s.subjectId} value={s.subjectId}>{s.subjectName}</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="grid gap-2">
-                                <Label>Teacher</Label>
+                                <Label>{tForm("teacher_label")}</Label>
                                 <select
                                     value={formData.employerId}
                                     onChange={(e) => setFormData({ ...formData, employerId: +e.target.value })}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 >
-                                    <option value={0}>Select Teacher</option>
+                                    <option value={0}>{t("slot.no_teacher")}</option>
                                     {teachers.map(t => (
                                         <option key={t.employerId} value={t.employerId}>{t.firstName} {t.lastName}</option>
                                     ))}
@@ -584,11 +589,11 @@ export default function TimetableCalendar() {
                             <Button onClick={handleSave} className="w-full" disabled={isPending}>
                                 {isPending ? (
                                     <>
-                                        <Loader2 className="animate-spin w-4 h-4 mr-2" />
-                                        Saving...
+                                        <Loader2 className="animate-spin w-4 h-4 me-2" />
+                                        {tForm("saving")}
                                     </>
                                 ) : (
-                                    "Save Entry"
+                                    tForm("save_button")
                                 )}
                             </Button>
                         </div>

@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/popover";
 import { ChevronDownIcon, Upload, X, Save, User, GraduationCap, Heart, Users, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
+import { useTranslateError } from "@/hooks/useTranslateError";
+import { toast } from "sonner";
 
 type StudentFormProps = {
     type: "create" | "update";
@@ -39,6 +42,10 @@ const StudentForm: React.FC<StudentFormProps> = ({
     setOpen,
     onSuccess,
 }) => {
+    const t = useTranslations("students");
+    const actionsT = useTranslations("actions");
+    const { translateError } = useTranslateError();
+
     const [form, setForm] = useState({
         code: "",
         nom: "",
@@ -79,7 +86,6 @@ const StudentForm: React.FC<StudentFormProps> = ({
     const [locals, setLocals] = useState<Local[]>([]);
 
     useEffect(() => {
-        console.log("StudentForm useEffect - type:", type, "data:", data);
         if (type === "update" && data) {
             const initialForm = {
                 code: data.code || "",
@@ -92,7 +98,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                 genre: data.gender || "",
                 groupeSanguin: data.bloodType || "",
                 carteNationale: data.cid || "",
-                etatCivil: data.etatCivil || "",
+                etatCivil: data.civilStatus || "",
                 etatSante: data.health || "",
                 identifiantScolaire: data.numNumerisation || "",
                 adresse: data.address || "",
@@ -111,7 +117,6 @@ const StudentForm: React.FC<StudentFormProps> = ({
                 classId: data.classId ? String(data.classId) : "",
                 academicYear: '', 
             };
-            console.log("Setting form state to:", initialForm);
             setForm(initialForm);
 
             if (data.dateOfBirth) setBirthDate(new Date(data.dateOfBirth));
@@ -139,7 +144,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
             const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
             if (!allowedTypes.includes(file.type)) return;
 
-            setForm((prev) => ({ ...prev, [name]: file }));
+            setForm((prev) => ({ ...prev, photo: file }));
             const reader = new FileReader();
             reader.onload = (e) => setPhotoPreview(e.target?.result as string);
             reader.readAsDataURL(file);
@@ -160,11 +165,11 @@ const StudentForm: React.FC<StudentFormProps> = ({
         e.preventDefault();
         
         if (!form.dateNaissance) {
-            alert("Date of Birth is required");
+            toast.error(t("messages.dob_required"));
             return;
         }
         if (!form.localId) {
-            alert("Local (Assigned Local) is required");
+            toast.error(t("messages.local_required"));
             return;
         }
 
@@ -212,11 +217,10 @@ const StudentForm: React.FC<StudentFormProps> = ({
             const { studentId, localId } = response.data;
             setOpen(false);
             if (onSuccess) onSuccess({ studentId, localId });
+            toast.success(type === "create" ? t("messages.create_success") : t("messages.update_success"));
         } catch (err: any) {
             console.error("Error during form submission:", err);
-            const message = err.response?.data?.message || err.message || "Unknown error";
-            alert(`Error: ${Array.isArray(message) ? message.join(", ") : message}`);
-
+            toast.error(translateError(err));
         } finally {
             setIsLoading(false);
         }
@@ -245,10 +249,10 @@ const StudentForm: React.FC<StudentFormProps> = ({
                 <div className="px-8 py-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-[#0b0d17]/50">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {type === "create" ? "Add New Student" : "Edit Student Record"}
+                            {type === "create" ? t("add_dialog_title") : t("update_dialog_title")}
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            {type === "create" ? "Enter the details to enroll a new student" : "Update the student's information below"}
+                            {type === "create" ? t("add_dialog_subtitle") : t("update_dialog_subtitle")}
                         </p>
                     </div>
                     <button
@@ -270,7 +274,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-600">
                                             <Upload className="w-10 h-10 mb-2" />
-                                            <span className="text-xs font-medium">Upload Photo</span>
+                                            <span className="text-xs font-medium">{t("form.upload_photo")}</span>
                                         </div>
                                     )}
                                 </div>
@@ -288,24 +292,24 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                 </label>
                             </div>
                             <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest font-bold">
-                                JPG, PNG or WebP • Max 5MB
+                                {t("form.photo_rules")}
                             </p>
                         </div>
 
                         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormItem label="Student Code" required>
-                                <Input name="code" value={form.code} onChange={handleChange} placeholder="e.g. STU001" required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.student_code")} required>
+                                <Input name="code" value={form.code} onChange={handleChange} placeholder={t("form.placeholders.student_code")} required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
-                            <FormItem label="First Name" required>
-                                <Input name="nom" value={form.nom} onChange={handleChange} placeholder="First Name" required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.first_name")} required>
+                                <Input name="nom" value={form.nom} onChange={handleChange} placeholder={t("form.placeholders.first_name")} required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
-                            <FormItem label="Last Name" required>
-                                <Input name="prenom" value={form.prenom} onChange={handleChange} placeholder="Last Name" required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.last_name")} required>
+                                <Input name="prenom" value={form.prenom} onChange={handleChange} placeholder={t("form.placeholders.last_name")} required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
-                            <FormItem label="Gender">
+                            <FormItem label={t("form.labels.gender")}>
                                 <ComboboxDemo
-                                    frameworks={[{ value: "Male", label: "Male" }, { value: "Female", label: "Female" }]}
-                                    type="Gender"
+                                    frameworks={[{ value: "Male", label: t("form.labels.gender_male") || "Male" }, { value: "Female", label: t("form.labels.gender_female") || "Female" }]}
+                                    type={t("form.labels.gender")}
                                     value={form.genre}
                                     onChange={(val) => setForm(prev => ({ ...prev, genre: val }))}
                                     width="w-full"
@@ -315,111 +319,111 @@ const StudentForm: React.FC<StudentFormProps> = ({
                     </div>
 
                     {/* Personal Details Section */}
-                    <Section title="Personal Details" icon={<User className="w-5 h-5 text-blue-500" />}>
+                    <Section title={t("form.sections.personal")} icon={<User className="w-5 h-5 text-blue-500" />}>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FormItem label="Date of Birth" required>
-                                <DatePicker value={birthDate} onChange={(date) => {
+                            <FormItem label={t("form.labels.dob")} required>
+                                <DatePicker value={birthDate} placeholder={t("form.placeholders.select_date")} onChange={(date) => {
                                     setBirthDate(date);
                                     if (date) setForm(prev => ({ ...prev, dateNaissance: date.toISOString() }));
                                 }} />
                             </FormItem>
-                            <FormItem label="Lieu de Naissance">
-                                <Input name="lieuNaissance" value={form.lieuNaissance} onChange={handleChange} placeholder="City/Country" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.pob")}>
+                                <Input name="lieuNaissance" value={form.lieuNaissance} onChange={handleChange} placeholder={t("form.placeholders.pob")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
-                            <FormItem label="Nationality">
-                                <Input name="nationalite" value={form.nationalite} onChange={handleChange} placeholder="Nationality" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.nationality")}>
+                                <Input name="nationalite" value={form.nationalite} onChange={handleChange} placeholder={t("form.placeholders.nationality")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
-                            <FormItem label="Blood Group">
+                            <FormItem label={t("form.labels.blood_group")}>
                                 <ComboboxDemo
                                     frameworks={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(t => ({ value: t, label: t }))}
-                                    type="Blood Type"
+                                    type={t("form.labels.blood_group")}
                                     value={form.groupeSanguin}
                                     onChange={(val) => setForm(prev => ({ ...prev, groupeSanguin: val }))}
                                     width="w-full"
                                 />
                             </FormItem>
-                            <FormItem label="National ID (CID)">
-                                <Input name="carteNationale" value={form.carteNationale} onChange={handleChange} placeholder="ID Number" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.cid")}>
+                                <Input name="carteNationale" value={form.carteNationale} onChange={handleChange} placeholder={t("form.placeholders.cid")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
-                            <FormItem label="Civil Status">
-                                <Input name="etatCivil" value={form.etatCivil} onChange={handleChange} placeholder="Single/Married" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.civil_status")}>
+                                <Input name="etatCivil" value={form.etatCivil} onChange={handleChange} placeholder={t("form.placeholders.civil_status")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                         </div>
                     </Section>
 
                     {/* Academic Section */}
-                    <Section title="Academic & Enrollment" icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}>
+                    <Section title={t("form.sections.academic")} icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FormItem label="Enrollment Date">
-                                <DatePicker value={registerDate} onChange={(date) => {
+                            <FormItem label={t("form.labels.enrollment_date")}>
+                                <DatePicker value={registerDate} placeholder={t("form.placeholders.select_date")} onChange={(date) => {
                                     setRegisterDate(date);
                                     if (date) setForm(prev => ({ ...prev, dateInscription: date.toISOString() }));
                                 }} />
                             </FormItem>
-                            <FormItem label="Assigned Local">
+                            <FormItem label={t("form.labels.assigned_local")}>
                                 <ComboboxDemo
                                     frameworks={localOptions}
-                                    type="Local"
+                                    type={t("form.labels.assigned_local")}
                                     value={form.localId}
                                     onChange={(val) => setForm(prev => ({ ...prev, localId: val, classId: "" }))}
                                     width="w-full"
                                 />
                             </FormItem>
-                            <FormItem label="Assigned Class">
+                            <FormItem label={t("form.labels.assigned_class")}>
                                 <ComboboxDemo
                                     frameworks={classOptions}
-                                    type="Class"
+                                    type={t("form.labels.assigned_class")}
                                     value={form.classId}
                                     onChange={(val) => setForm(prev => ({ ...prev, classId: val }))}
                                     width="w-full"
                                     disabled={!form.localId}
                                 />
                             </FormItem>
-                            <FormItem label="School Identifier">
-                                <Input name="identifiantScolaire" value={form.identifiantScolaire} onChange={handleChange} placeholder="Numerisation Number" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                            <FormItem label={t("form.labels.school_id")}>
+                                <Input name="identifiantScolaire" value={form.identifiantScolaire} onChange={handleChange} placeholder={t("form.placeholders.school_id")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                         </div>
                     </Section>
 
                     {/* Health & Address Section */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <Section title="Health Information" icon={<Heart className="w-5 h-5 text-red-500" />}>
+                        <Section title={t("form.sections.health")} icon={<Heart className="w-5 h-5 text-red-500" />}>
                             <div className="space-y-4">
-                                <FormItem label="Health Status">
-                                    <Input name="etatSante" value={form.etatSante} onChange={handleChange} placeholder="General health notes" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                                <FormItem label={t("form.labels.health_status")}>
+                                    <Input name="etatSante" value={form.etatSante} onChange={handleChange} placeholder={t("form.placeholders.health_status")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                                 </FormItem>
-                                <FormItem label="Observations">
-                                    <Textarea name="observation" value={form.observation} onChange={handleChange} placeholder="Any additional notes..." className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
+                                <FormItem label={t("form.labels.observations")}>
+                                    <Textarea name="observation" value={form.observation} onChange={handleChange} placeholder={t("form.placeholders.observations")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
                                 </FormItem>
                             </div>
                         </Section>
 
-                        <Section title="Contact & Address" icon={<MapPin className="w-5 h-5 text-green-500" />}>
+                        <Section title={t("form.sections.contact")} icon={<MapPin className="w-5 h-5 text-green-500" />}>
                             <div className="space-y-4">
-                                <FormItem label="Full Address">
-                                    <Textarea name="adresse" value={form.adresse} onChange={handleChange} placeholder="Street, City, Country" className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
+                                <FormItem label={t("form.labels.full_address")}>
+                                    <Textarea name="adresse" value={form.adresse} onChange={handleChange} placeholder={t("form.placeholders.full_address")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
                                 </FormItem>
                             </div>
                         </Section>
                     </div>
 
                     {/* Parent Information Section */}
-                    <Section title="Parent/Guardian Information" icon={<Users className="w-5 h-5 text-orange-500" />}>
+                    <Section title={t("form.sections.parents")} icon={<Users className="w-5 h-5 text-orange-500" />}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4 p-6 bg-blue-50/30 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/20">
-                                <h4 className="text-sm font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">Father's Details</h4>
+                                <h4 className="text-sm font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">{t("form.labels.father_details")}</h4>
                                 <div className="grid grid-cols-1 gap-4">
-                                    <Input name="pereNom" value={form.pereNom} onChange={handleChange} placeholder="Father's Full Name" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
-                                    <Input name="pereTel" value={form.pereTel} onChange={handleChange} placeholder="Phone Number" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
-                                    <Input name="pereEmploi" value={form.pereEmploi} onChange={handleChange} placeholder="Occupation" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="pereNom" value={form.pereNom} onChange={handleChange} placeholder={t("form.placeholders.father_name")} className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="pereTel" value={form.pereTel} onChange={handleChange} placeholder={t("form.placeholders.phone")} className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="pereEmploi" value={form.pereEmploi} onChange={handleChange} placeholder={t("form.placeholders.job")} className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
                                 </div>
                             </div>
                             <div className="space-y-4 p-6 bg-pink-50/30 dark:bg-pink-500/5 rounded-2xl border border-pink-100 dark:border-pink-500/20">
-                                <h4 className="text-sm font-bold text-pink-700 dark:text-pink-400 uppercase tracking-wider">Mother's Details</h4>
+                                <h4 className="text-sm font-bold text-pink-700 dark:text-pink-400 uppercase tracking-wider">{t("form.labels.mother_details")}</h4>
                                 <div className="grid grid-cols-1 gap-4">
-                                    <Input name="mereNom" value={form.mereNom} onChange={handleChange} placeholder="Mother's Full Name" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
-                                    <Input name="mereTel" value={form.mereTel} onChange={handleChange} placeholder="Phone Number" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
-                                    <Input name="mereEmploi" value={form.mereEmploi} onChange={handleChange} placeholder="Occupation" className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="mereNom" value={form.mereNom} onChange={handleChange} placeholder={t("form.placeholders.mother_name")} className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="mereTel" value={form.mereTel} onChange={handleChange} placeholder={t("form.placeholders.phone")} className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
+                                    <Input name="mereEmploi" value={form.mereEmploi} onChange={handleChange} placeholder={t("form.placeholders.job")} className="rounded-xl bg-white dark:bg-[#0b0d17] dark:border-white/10 dark:text-white focus:ring-blue-500/50" />
                                 </div>
                             </div>
                         </div>
@@ -433,24 +437,24 @@ const StudentForm: React.FC<StudentFormProps> = ({
                         variant="outline"
                         onClick={() => setOpen(false)}
                         disabled={isLoading}
-                        className="rounded-xl px-6 py-2.5 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-[#1a1c2e] hover:shadow-sm dark:text-gray-300 transition-all"
+                        className="rounded-xl px-6 py-2.5 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-[#1a1c2e] hover:shadow-sm dark:text-gray-300 transition-all font-bold"
                     >
-                        Cancel
+                        {actionsT("cancel")}
                     </Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={isLoading}
-                        className="rounded-xl px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
+                        className="rounded-xl px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none font-bold"
                     >
                         {isLoading ? (
                             <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Saving...
+                                {t("form.saving")}
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Save className="w-4 h-4" />
-                                {type === "create" ? "Create Student" : "Update Record"}
+                                {type === "create" ? t("form.submit_create") : t("form.submit_update")}
                             </div>
                         )}
                     </Button>
@@ -465,7 +469,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
         <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-white/5">
                 {icon}
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">{title}</h3>
             </div>
             {children}
         </div>
@@ -475,7 +479,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 function FormItem({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
     return (
         <div className="space-y-2">
-            <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">
+            <Label className="text-sm font-bold text-gray-700 dark:text-gray-300 ms-1 uppercase tracking-wide">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
             {children}
@@ -483,13 +487,13 @@ function FormItem({ label, required, children }: { label: string; required?: boo
     );
 }
 
-function DatePicker({ value, onChange }: { value?: Date; onChange: (date: Date | undefined) => void }) {
+function DatePicker({ value, onChange, placeholder }: { value?: Date; onChange: (date: Date | undefined) => void; placeholder?: string }) {
     const [open, setOpen] = useState(false);
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-between font-normal rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white hover:bg-gray-50 dark:hover:bg-[#1a1c2e] transition-colors">
-                    {value ? value.toLocaleDateString() : <span className="text-gray-400">Select date</span>}
+                <Button variant="outline" className="w-full justify-between font-normal rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white hover:bg-gray-50 dark:hover:bg-[#1a1c2e] transition-colors h-auto py-3">
+                    {value ? value.toLocaleDateString() : <span className="text-gray-400">{placeholder || "Select date"}</span>}
                     <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                 </Button>
             </PopoverTrigger>

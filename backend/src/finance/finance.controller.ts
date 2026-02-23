@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { FinanceService } from './finance.service';
 
 @Controller('finance')
@@ -11,8 +11,8 @@ export class FinanceController {
   }
 
   @Get('chart')
-  getChartData() {
-    return this.financeService.getChartData();
+  getChartData(@Query('period') period?: string) {
+    return this.financeService.getChartData(period);
   }
 
   @Get('recent')

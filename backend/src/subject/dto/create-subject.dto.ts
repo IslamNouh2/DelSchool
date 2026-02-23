@@ -21,4 +21,8 @@ export class CreateSubjectDto {
     @IsOptional()
     @IsBoolean()
     okBlock?: boolean;
+
+    @ApiProperty({ example: { en: 'Math', ar: 'رياضيات', fr: 'Maths' }, required: false })
+    @IsOptional()
+    translations?: Record<string, string>;
 }

@@ -15,9 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Plus } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import dynamic from "next/dynamic";
 import api from "@/lib/api";
+import { useTranslations } from "next-intl";
 
 // Lazy load Combobox
 const ComboboxDemo = dynamic(
@@ -94,6 +95,7 @@ export default function SubjectDialog({
     onSuccess,
     hideButton = false,
 }: SubjectDialogProps) {
+    const t = useTranslations("subjects.form");
     const [form, setForm] = useState({
         subjectName: "",
         totalGrads: 0,
@@ -135,11 +137,7 @@ export default function SubjectDialog({
                 //console.log("✅ Loaded sub subjects:", hierarchical);
             } catch (err) {
                 console.error("❌ Failed to load sub subjects:", err);
-                toast({
-                    variant: "destructive",
-                    title: "Failed to load sub subjects",
-                    description: "Check your backend route /subject/sub",
-                });
+                sonnerToast.error(t("load_parent_error"));
             }
         };
         fetchSubSubjects();
@@ -175,31 +173,23 @@ export default function SubjectDialog({
             if (type === "create") {
                 console.log("✅ subjects:", payload);
                 await api.post("/subject/createSub", payload, { withCredentials: true });
-                toast({ title: "Subject created successfully" });
+                sonnerToast.success("Subject created successfully"); // Keys exist in common or I can use static if needed but better to use localized
             } else {
                 const id = data.subjectId ?? data.SubjectId;
                 if (!id) {
                     console.error("❌ Missing subject ID in data:", data);
-                    toast({
-                        variant: "destructive",
-                        title: "Error",
-                        description: "Missing subject ID — cannot update.",
-                    });
+                    sonnerToast.error(t("missing_id"));
                     setLoading(false);
                     return;
                 }
 
                 await api.patch(`/subject/${id}`, payload, { withCredentials: true });
-                toast({ title: "Subject updated successfully" });
+                sonnerToast.success("Subject updated successfully");
             }
             onOpenChange?.(false);
             onSuccess?.();
         } catch (err: any) {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: err.response?.data?.message || "An error occurred",
-            });
+            sonnerToast.error(err.response?.data?.message || "An error occurred");
         } finally {
             setLoading(false);
         }
@@ -210,7 +200,7 @@ export default function SubjectDialog({
             {!hideButton && (
                 <DialogTrigger asChild>
                     <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Add Subject
+                        <Plus className="me-2 h-4 w-4" /> {t("create")}
                     </Button>
                 </DialogTrigger>
             )}
@@ -219,17 +209,16 @@ export default function SubjectDialog({
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <DialogHeader>
                         <DialogTitle>
-                            {type === "create" ? "Create" : "Update"} Subject
+                            {type === "create" ? t("create_title") : t("update_title")}
                         </DialogTitle>
                         <DialogDescription>
-                            Fill out the form to {type === "create" ? "add" : "edit"} a
-                            subject.
+                            {type === "create" ? t("description_create") : t("description_update")}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <Label>Subject Name</Label>
+                            <Label>{t("name_label")}</Label>
                             <Input
                                 name="subjectName"
                                 value={form.subjectName}
@@ -237,11 +226,12 @@ export default function SubjectDialog({
                                     setForm((prev) => ({ ...prev, subjectName: e.target.value }))
                                 }
                                 required
+                                className="rounded-xl border-gray-200 dark:border-slate-800"
                             />
                         </div>
 
                         <div>
-                            <Label>Total Points</Label>
+                            <Label>{t("points_label")}</Label>
                             <Input
                                 type="number"
                                 name="totalGrads"
@@ -253,12 +243,13 @@ export default function SubjectDialog({
                                     }))
                                 }
                                 required
+                                className="rounded-xl border-gray-200 dark:border-slate-800"
                             />
                         </div>
 
                         {showSubSubject && (
                             <div>
-                                <Label>Parent Subject</Label>
+                                <Label>{t("parent_label")}</Label>
                                 <ComboboxDemo
                                     frameworks={subSubjects}
                                     value={
@@ -272,37 +263,41 @@ export default function SubjectDialog({
                                 />
                             </div>
                         )}
-
-                        <div className="flex items-center space-x-2">
+                        
+                        <div className="flex items-center space-s-3 bg-gray-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-gray-100 dark:border-slate-800 self-end">
                             <Checkbox
                                 id="okBlock"
                                 checked={form.okBlock}
                                 onCheckedChange={(checked) =>
                                     setForm((prev) => ({ ...prev, okBlock: checked === true }))
                                 }
+                                className="rounded-md border-gray-300 dark:border-slate-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                             />
-                            <Label htmlFor="okBlock">Block this subject</Label>
+                            <Label htmlFor="okBlock" className="text-sm font-medium leading-none cursor-pointer">
+                                {t("block_label")}
+                            </Label>
                         </div>
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="gap-2 sm:gap-0">
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => onOpenChange?.(false)}
                             disabled={loading}
+                            className="rounded-xl"
                         >
-                            Cancel
+                            {t("cancel")}
                         </Button>
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading} className="px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all border-none font-bold">
                             {loading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                                    <Loader2 className="me-2 h-4 w-4 animate-spin" /> {t("processing")}
                                 </>
                             ) : type === "create" ? (
-                                "Create"
+                                t("create")
                             ) : (
-                                "Update"
+                                t("update")
                             )}
                         </Button>
                     </DialogFooter>

@@ -1,0 +1,974 @@
+{
+  "common": {
+    "title": "École Del",
+    "dashboard": "Tableau de bord",
+    "settings": "Paramètres",
+    "logout": "Déconnexion",
+    "language": "Langue",
+    "search": "Rechercher...",
+    "today": "Aujourd'hui",
+    "username": "Nom d'utilisateur",
+    "admin": "Admin",
+    "theme_light": "Clair",
+    "theme_dark": "Sombre",
+    "theme_system": "Système",
+    "welcome": "Bon retour"
+  },
+  "menu": {
+    "dashboard": "Tableau de bord",
+    "employers": "Employeurs",
+    "students": "Étudiants",
+    "timetable": "Emploi du temps",
+    "subjects": "Matières",
+    "classes": "Classes",
+    "levels": "Niveaux",
+    "attendance": {
+      "title": "Présence",
+      "employer": "Employeur",
+      "student": "Étudiant"
+    },
+    "exam": "Examen",
+    "events": "Événements",
+    "finance": {
+      "title": "Finance",
+      "dashboard": "Tableau de bord",
+      "fee_student": "Frais Étudiant",
+      "fee_templates": "Modèles de frais",
+      "comptes": "Comptes",
+      "payroll": "Paie",
+      "expenses": "Dépenses",
+      "fees": {
+        "title": "Modèles de Frais",
+        "subtitle": "Gérer les types de frais et services",
+        "add_template": "Nouveau Modèle",
+        "table": {
+          "title": "Désignation",
+          "amount": "Montant",
+          "account": "Compte de Revenu",
+          "auto_subscribe": "Auto-Abonnement"
+        },
+        "form": {
+          "add_title": "Ajout de Modèle",
+          "edit_title": "Modifier Modèle",
+          "label_title": "Libellé du frais",
+          "label_amount": "Montant par défaut (DA)",
+          "label_account": "Compte de revenu",
+          "label_auto": "Abonnement automatique",
+          "placeholder_title": "Ex: Scolarité, Cantine...",
+          "placeholder_amount": "0.00"
+        }
+      },
+      "studentFees": {
+        "title": "Frais Étudiant",
+        "description": "Gérez les paiements, abonnements et dettes scolaires des élèves.",
+        "tabs": {
+          "status": "Par Status",
+          "classes": "Par Classe",
+          "history": "Historique"
+        },
+        "stats": {
+          "total_due": "Total Dû",
+          "collected": "Collecté",
+          "pending": "En Attente"
+        },
+        "table": {
+          "student": "Élève",
+          "class": "Classe",
+          "subscriptions": "Abonnements",
+          "total_due": "Total Dû",
+          "paid": "Payé",
+          "status": "Statut",
+          "actions": "Actions",
+          "empty": "Aucun élève trouvé"
+        },
+        "status": {
+          "PAID": "Payé",
+          "PARTIAL": "Partiel",
+          "OVERDUE": "En Retard",
+          "UPCOMING": "À Venir"
+        },
+        "actions": {
+          "subscribe": "Abonner",
+          "collect": "Encaisser",
+          "history": "Historique",
+          "bulk_subscribe": "Abonnement Groupé"
+        },
+        "modals": {
+          "payment": {
+            "title": "Encaisser un Paiement",
+            "account_label": "Compte de Destination",
+            "invoice_label": "Facture / Échéance",
+            "amount_label": "Montant à Encaisser",
+            "method_label": "Mode de Règlement",
+            "methods": {
+              "cash": "Espèces",
+              "transfer": "Virement",
+              "card": "Carte",
+              "online": "En Ligne"
+            },
+            "confirm": "Confirmer l'Encaissement",
+            "no_fees": "Aucun frais en attente pour cet élève."
+          },
+          "new_fee": {
+            "title": "Nouveau Frais",
+            "description": "Assigner une charge individuelle à un élève.",
+            "labels": {
+              "student": "Élève Cible",
+              "template": "Prestation (Modèle)",
+              "start_date": "Début de Service",
+              "end_date": "Fin de Service",
+              "amount": "Montant Estimé",
+              "due_date": "Échéance"
+            },
+            "placeholders": {
+              "student": "Choisir un élève...",
+              "template": "Choisir une prestation..."
+            },
+            "confirm": "Confirmer l'Engagement",
+            "submit_subscription": "Confirmer l'Abonnement"
+          },
+          "bulk": {
+            "title": "Abonnement Groupé",
+            "description": "Inscrire tous les élèves à un service.",
+            "alert_title": "Attention",
+            "alert_description": "Cette action va générer des frais pour tous les élèves. Cette action est irréversible.",
+            "confirm": "Lancer la Génération en Masse"
+          },
+          "history": {
+            "title": "Historique",
+            "types": {
+              "fee_created": "Frais Créé",
+              "payment_received": "Paiement Reçu"
+            },
+            "delete_confirm": "Êtes-vous sûr de vouloir supprimer ce frais ?",
+            "empty": "Aucune transaction enregistrée"
+          }
+        },
+        "messages": {
+          "load_error": "Échec du chargement des modèles de frais",
+          "select_fee_error": "Veuillez choisir un frais",
+          "bulk_success": "Abonnement créé avec succès",
+          "bulk_error": "Échec de la création de l'abonnement"
+        }
+      },
+      "accounts": {
+        "title": "Plan Comptable",
+        "subtitle": "Structure Financière & Architecture",
+        "new_account": "Nouveau Compte",
+        "refresh": "Rafraîchir",
+        "filter_placeholder": "FILTRER LES COMPTES PAR NOM OU TYPE...",
+        "table": {
+          "name": "Désignation",
+          "parent": "Parent",
+          "category": "Catégorie",
+          "status": "Statut",
+          "actions": "Actions",
+          "validated": "Validé",
+          "draft": "Brouillon"
+        },
+        "form": {
+          "add_title": "Ajout de Compte",
+          "edit_title": "Modifier Compte",
+          "subtitle": "Paramétrage de la structure financière",
+          "nature_label": "Nature Comptable (Logique financière)",
+          "classification_label": "Classification (Interface)",
+          "code": "Code",
+          "designation": "Désignation",
+          "designation_ar": "Désignation Arabe",
+          "parent_account": "Compte Parent",
+          "all_accounts": "TOUS LES COMPTES",
+          "selection_code": "Code de sélection",
+          "none": "AUCUN",
+          "flags": {
+              "fee_cash": "Frais/Caisse",
+              "show_parent": "Visible Parent"
+          },
+          "validate": "Valider",
+          "cancel": "Annuler",
+          "placeholder_code": "Ex: 5121...",
+          "placeholder_name": "Désignation du compte",
+          "placeholder_name_ar": "Nom du compte en arabe",
+          "placeholder_selection": "Choisir..."
+        },
+        "natures": {
+          "asset": "Actif",
+          "liability": "Passif",
+          "equity": "Capitaux",
+          "income": "Produits",
+          "expense": "Charges"
+        },
+        "categories": {
+          "general": "Général",
+          "caisse": "Caisse",
+          "banque": "Banque",
+          "recette": "Recette",
+          "depense": "Dépense"
+        },
+        "types": {
+          "employer": "Employé",
+          "student": "Étudiant"
+        },
+        "messages": {
+          "delete_confirm": "Êtes-vous sûr de vouloir supprimer ce compte ?",
+          "delete_success": "Compte supprimé avec succès",
+          "delete_error": "Erreur lors de la suppression",
+          "update_success": "Compte mis à jour",
+          "create_success": "Compte créé avec succès",
+          "save_error": "Erreur lors de l'enregistrement",
+          "preparing_form": "Préparation du formulaire...",
+          "operation_in_progress": "Opération en cours...",
+          "transaction": "Transaction"
+        }
+      }
+    },
+    "treasury": "Trésorerie",
+    "settings": {
+      "title": "Paramètres",
+      "general": "Général",
+      "users": "Utilisateurs",
+      "roles": "Rôles",
+      "parameters": "Paramètres"
+    },
+    "enterprise": "Entreprise",
+    "startup": "Startup",
+    "free": "Gratuit",
+    "admin": "Admin"
+  },
+  "actions": {
+    "add": "Ajouter",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "view": "Voir",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "export": "Exporter",
+    "columns": "Colonnes",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "save": "Enregistrer",
+    "updating": "Mise à jour...",
+    "creating": "Création...",
+    "actions": "Actions"
+  },
+  "classes": {
+    "title": "Classes",
+    "subtitle": "Gérer toutes les classes et salles de l'école",
+    "add_title": "Ajouter une classe",
+    "add_dialog_title": "Ajouter une nouvelle classe",
+    "update_dialog_title": "Modifier les détails de la classe",
+    "search_placeholder": "Rechercher par nom de classe...",
+    "table": {
+      "name": "Nom de la classe",
+      "capacity": "Capacité",
+      "room": "Salle",
+      "status": "Statut",
+      "actions": "Actions",
+      "active": "Active",
+      "blocked": "Bloquée",
+      "table_info": "Affichage de {start} à {end} sur {total} classes"
+    },
+    "messages": {
+      "fetch_error": "Échec de la récupération des classes",
+      "delete_success": "Classe supprimée avec succès",
+      "delete_error": "Échec de la suppression de la classe",
+      "delete_confirm_title": "Êtes-vous absolument sûr ?",
+      "delete_confirm_desc": "Cette action ne peut pas être annulée. Elle supprimera définitivement cette classe.",
+      "fetch_locals_error": "Échec du chargement des emplacements de classe",
+      "select_local_error": "Veuillez sélectionner un emplacement de classe",
+      "positive_students_error": "Le nombre d'étudiants doit être un nombre positif"
+    },
+    "form": {
+      "name_label": "Nom de la classe",
+      "name_placeholder": "Entrez le nom de la classe",
+      "code_label": "Code de la classe",
+      "code_placeholder": "Entrez le code de la classe",
+      "students_label": "Nombre d'étudiants",
+      "students_placeholder": "Entrez le nombre d'étudiants",
+      "location_label": "Emplacement de la salle",
+      "block_label": "Bloquer cette classe",
+      "submit_create": "Créer la classe",
+      "submit_update": "Mettre à jour la classe",
+      "processing": "Traitement..."
+    }
+  },
+  "auth": {
+    "login": "Connexion",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "welcome": "Bienvenue"
+  },
+  "dashboard": {
+    "title": "Aperçu du tableau de bord",
+    "students": "Total Étudiants",
+    "teachers": "Total Enseignants",
+    "parents": "Total Parents",
+    "staff": "Total Personnel",
+    "today": "Aujourd'hui",
+    "gender_distribution": "Distribution",
+    "student_gender": "Sexe des élèves",
+    "boys": "Garçons",
+    "girls": "Filles",
+    "report": "Rapport",
+    "present_absent": "Présents et Absents",
+    "present": "Présent",
+    "absent": "Absent",
+    "calendar_title": "Calendrier scolaire",
+    "add_new_event": "Ajouter",
+    "events_title": "Événements",
+    "announcements_title": "Annonces",
+    "view_all": "Tout afficher",
+    "performance_by_class": "Performance par classe"
+  },
+  "nav": {
+    "upgrade_pro": "Passer Pro",
+    "account": "Compte",
+    "billing": "Facturation",
+    "notifications": "Notifications",
+    "logout": "Déconnexion",
+    "teams_label": "Équipes",
+    "add_team": "Ajouter une équipe",
+    "platform": "Plateforme",
+    "projects": "Projets",
+    "view_project": "Voir le projet",
+    "share_project": "Partager le projet",
+    "delete_project": "Supprimer le projet",
+    "more": "Plus",
+    "enterprise": "Entreprise"
+  },
+  "errors": {
+    "local_not_found": "Local non trouvé",
+    "Unauthorized": "Non autorisé"
+  },
+  "students": {
+    "title": "Étudiants",
+    "subtitle": "Gérer tous les dossiers et informations des étudiants",
+    "total_count": "{count} Au total",
+    "add_title": "Ajouter un étudiant",
+    "add_dialog_title": "Ajouter un nouvel étudiant",
+    "add_dialog_subtitle": "Entrez les détails pour inscrire un nouvel étudiant",
+    "update_dialog_title": "Modifier le dossier de l'étudiant",
+    "update_dialog_subtitle": "Mettez à jour les informations de l'étudiant ci-dessous",
+    "search_placeholder": "Rechercher par nom, code ou e-mail...",
+    "table": {
+      "photo": "Photo",
+      "code": "Code",
+      "name": "Nom",
+      "gender": "Genre",
+      "class": "Classe",
+      "custom": "Personnalisé",
+      "status": "Statut",
+      "actions": "Actions",
+      "active": "Actif",
+      "blocked": "Bloqué",
+      "table_info": "Affichage de {start} à {end} sur {total} étudiants"
+    },
+    "messages": {
+      "fetch_error": "Échec de la récupération des étudiants",
+      "delete_confirm": "Êtes-vous sûr de vouloir supprimer cet étudiant ? Cette action est irréversible.",
+      "delete_success": "Étudiant supprimé avec succès",
+      "delete_error": "Échec de la suppression de l'étudiant",
+      "dob_required": "La date de naissance est requise",
+      "local_required": "L'identifiant local est requis",
+      "create_success": "Étudiant créé avec succès",
+      "update_success": "Étudiant mis à jour avec succès"
+    },
+    "form": {
+      "upload_photo": "Charger une photo",
+      "photo_rules": "JPG, PNG ou WebP • Max 5MB",
+      "sections": {
+        "personal": "Détails personnels",
+        "academic": "Académique & Inscription",
+        "health": "Informations sur la santé",
+        "contact": "Contact & Adresse",
+        "parents": "Informations sur les parents/tuteurs"
+      },
+      "labels": {
+        "student_code": "Code étudiant",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "gender": "Genre",
+        "dob": "Date de naissance",
+        "pob": "Lieu de naissance",
+        "nationality": "Nationalité",
+        "gender_male": "Masculin",
+        "gender_female": "Féminin",
+        "blood_group": "Groupe sanguin",
+        "cid": "Identité nationale (CID)",
+        "civil_status": "État civil",
+        "enrollment_date": "Date d'inscription",
+        "assigned_local": "Local assigné",
+        "assigned_class": "Classe assignée",
+        "school_id": "Identifiant scolaire",
+        "health_status": "État de santé",
+        "observations": "Observations",
+        "full_address": "Adresse complète",
+        "father_details": "Détails du père",
+        "mother_details": "Détails de la mère",
+        "parent_name": "Nom complet",
+        "parent_phone": "Numéro de téléphone",
+        "parent_job": "Profession"
+      },
+      "placeholders": {
+        "student_code": "ex. STU001",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "gender": "Sélectionner le genre",
+        "pob": "Ville/Pays",
+        "nationality": "Nationalité",
+        "blood_group": "Sélectionner le groupe sanguin",
+        "cid": "Numéro d'identification",
+        "civil_status": "Célibataire/Marié",
+        "school_id": "Numéro de numérisation",
+        "health_status": "Notes sur la santé générale",
+        "observations": "Toutes notes supplémentaires...",
+        "full_address": "Rue, Ville, Pays",
+        "father_name": "Nom complet du père",
+        "mother_name": "Nom complet de la mère",
+        "phone": "Numéro de téléphone",
+        "job": "Profession",
+        "select_date": "Sélectionner une date"
+      },
+      "submit_create": "Créer l'étudiant",
+      "submit_update": "Mettre à jour le dossier",
+      "saving": "Enregistrement..."
+    }
+  },
+  "employers": {
+    "title": "Enseignants",
+    "subtitle": "Gérer tous les dossiers et informations des enseignants",
+    "total_count": "{count} Au total",
+    "add_title": "Ajouter un enseignant",
+    "add_dialog_title": "Ajouter un nouvel employeur",
+    "add_dialog_subtitle": "Entrez les détails pour ajouter un nouvel employeur/enseignant",
+    "update_dialog_title": "Modifier le dossier de l'employeur",
+    "update_dialog_subtitle": "Mettez à jour les informations de l'employeur ci-dessous",
+    "search_placeholder": "Rechercher par nom ou code...",
+    "table": {
+      "photo": "Photo",
+      "code": "Code",
+      "name": "Nom",
+      "type": "Type",
+      "gender": "Genre",
+      "phone": "Téléphone",
+      "status": "Statut",
+      "actions": "Actions",
+      "active": "Actif",
+      "blocked": "Bloqué",
+      "table_info": "Affichage de {start} à {end} sur {total} enseignants"
+    },
+    "messages": {
+      "fetch_error": "Échec de la récupération des enseignants",
+      "delete_confirm": "Êtes-vous sûr de vouloir supprimer cet enseignant ? Cette action est irréversible.",
+      "delete_success": "Employeur supprimé avec succès",
+      "delete_error": "Échec de la suppression de l'employeur",
+      "create_success": "Employeur créé avec succès !",
+      "update_success": "Employeur mis à jour avec succès !"
+    },
+    "form": {
+      "upload_photo": "Charger une photo",
+      "photo_rules": "JPG, PNG ou WebP • Max 5MB",
+      "sections": {
+        "personal": "Détails personnels",
+        "subjects": "Assigner des matières",
+        "parents": "Informations sur les parents/tuteurs"
+      },
+      "labels": {
+        "code": "Code",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "type": "Type",
+        "dob": "Date de naissance",
+        "pob": "Lieu de naissance",
+        "nationality": "Nationalité",
+        "gender": "Genre",
+        "gender_male": "Masculin",
+        "gender_female": "Féminin",
+        "marital_status": "État civil",
+        "blood_type": "Groupe sanguin",
+        "salary": "Salaire de base (DA)",
+        "phone": "Numéro de téléphone",
+        "cid": "Identité nationale (CID)",
+        "father_name": "Nom complet du père",
+        "mother_name": "Nom complet de la mère",
+        "health_status": "État de santé",
+        "numerical_id": "Numéro de numérisation",
+        "enrollment_date": "Date d'inscription",
+        "weekly_workload": "Charge de travail (H/Semaine)",
+        "observations": "Observations",
+        "type_admin": "Admin",
+        "type_teacher": "Enseignant",
+        "type_employer": "Employeur",
+        "address": "Adresse"
+      },
+      "placeholders": {
+        "code": "Code employeur",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "type": "Sélectionner le type",
+        "pob": "Lieu de naissance",
+        "nationality": "Nationalité",
+        "gender": "Sélectionner le genre",
+        "marital_status": "Célibataire/Marié",
+        "blood_type": "Sélectionner le groupe sanguin",
+        "salary": "0.00",
+        "phone": "0X XX XX XX XX",
+        "cid": "Numéro CID",
+        "father_name": "Nom du père",
+        "mother_name": "Nom de la mère",
+        "health_status": "Notes sur la santé",
+        "numerical_id": "Numérisation",
+        "search_subjects": "Rechercher des matières...",
+        "address": "Adresse",
+        "observations": "Observations" 
+      },
+      "subjects": {
+        "available": "Matières disponibles",
+        "assigned": "Matières assignées",
+        "no_subjects": "Aucune matière disponible",
+        "move_hint": "Gérer les matières assignées à cet enseignant. Cliquez sur les éléments pour les déplacer entre les listes."
+      }
+    },
+    "profile": {
+      "title": "Profil du personnel",
+      "subtitle": "Gérer les informations et les performances du personnel",
+      "edit_profile": "Modifier le profil",
+      "export_info": "Exporter les infos",
+      "upload_doc": "Charger doc",
+      "no_email": "Pas d'email",
+      "no_phone": "Pas de téléphone",
+      "no_address": "Pas d'adresse",
+      "joined": "Rejoint le : {date}",
+      "stats": {
+        "experience": "Expérience",
+        "attendance": "Présence",
+        "students": "Étudiants",
+        "rating": "Note"
+      },
+      "tabs": {
+        "overview": "Aperçu",
+        "classes": "Classes",
+        "timetable": "Emploi du temps",
+        "attendance": "Présence",
+        "financial": "Financier",
+        "documents": "Documents"
+      },
+      "overview": {
+        "performance": "Note de performance",
+        "upcoming": "Calendrier à venir",
+        "workload": "Répartition de la charge de travail (Heures/Semaine)",
+        "activities": "Activités récentes"
+      },
+      "classes": {
+        "title": "Classes assignées",
+        "students": "{count} Étudiants",
+        "hours": "{count} Heures/Semaine"
+      },
+      "timetable": {
+        "coming_soon": "L'intégration de l'emploi du temps arrive bientôt"
+      },
+      "attendance": {
+        "title": "Registre de présence",
+        "present": "Présent ({percent}%)",
+        "absent": "Absent ({percent}%)",
+        "log_placeholder": "Le journal de présence détaillé sera affiché ici."
+      },
+      "financial": {
+        "title": "Paie & Finances",
+        "linked_account": "Compte lié : {name}",
+        "no_account": "Aucun compte financier lié",
+        "table": {
+          "month": "Mois",
+          "date": "Date",
+          "amount": "Montant",
+          "status": "Statut",
+          "slip": "Bulletin",
+          "paid": "Payé",
+          "download": "Télécharger"
+        }
+      },
+      "documents": {
+        "title": "Documents",
+        "upload": "Charger"
+      }
+    }
+  },
+  "attendance": {
+    "staff": {
+      "title": "Présence du personnel",
+      "subtitle": "Gérer et suivre la présence des employés",
+      "record_presence": "Enregistrer la présence",
+      "select_date": "Sélectionner une date pour marquer la présence du personnel",
+      "date_label": "Date de présence",
+      "mark_attendance": "Marquer la présence",
+      "history": "Historique de 7 jours",
+      "dialog_title": "Présence du personnel : {date}",
+      "loading": "Chargement...",
+      "stats": {
+        "total_staff": "Total du personnel",
+        "present_today": "Présents aujourd'hui",
+        "absent_today": "Absents aujourd'hui",
+        "success_rate": "Taux de réussite quotidien"
+      },
+      "registry": {
+        "title": "Registre de présence du personnel",
+        "subtitle": "Sélectionner la date pour marquer la présence du personnel",
+        "check_in": "Entrée",
+        "check_out": "Sortie",
+        "shift": "Horaire"
+      },
+      "charts": {
+        "weekly_trend": "Tendance hebdomadaire",
+        "weekly_subtitle": "Flux de présence pour les 7 derniers jours",
+        "daily_distribution": "Distribution quotidienne",
+        "daily_subtitle": "Répartition de la présence du personnel",
+        "present": "Présent",
+        "absent": "Absent"
+      },
+      "form": {
+        "present": "Présent",
+        "absent": "Absent",
+        "late": "En retard",
+        "excused": "Excusé",
+        "observation": "Observation",
+        "save_success": "Présence enregistrée avec succès",
+        "save_error": "Échec de l'enregistrement de la présence",
+        "no_staff": "Aucun membre du personnel trouvé",
+        "submit": "Soumettre la présence",
+        "update": "Mettre à jour la présence",
+        "save": "Enregistrer les modifications"
+      }
+    }
+  },
+  "subjects": {
+    "title": "Matières",
+    "subtitle": "Gérer les matières académiques et leur hiérarchie",
+    "search_placeholder": "Rechercher des matières...",
+    "add_subject": "Ajouter une matière",
+    "no_subjects": "Aucune matière trouvée.",
+    "delete_success": "Matière supprimée avec succès",
+    "delete_error": "Erreur lors de la suppression de la matière",
+    "load_error": "Erreur lors du chargement des matières",
+    "card": {
+      "sub_subjects": "{count} Sous-matières",
+      "no_sub_subjects": "Aucune sous-matière",
+      "points": "{count} Points",
+      "delete_title": "Supprimer la matière ?",
+      "delete_description": "Êtes-vous sûr de vouloir supprimer \"{name}\" ? Cette action est irréversible.",
+      "add_sub_subject": "Ajouter une sous-matière"
+    },
+    "form": {
+      "create_title": "Créer une matière",
+      "update_title": "Mettre à jour la matière",
+      "description_create": "Remplissez le formulaire pour ajouter une matière.",
+      "description_update": "Remplissez le formulaire pour modifier une matière.",
+      "name_label": "Nom de la matière",
+      "points_label": "Total des points",
+      "parent_label": "Matière parente",
+      "block_label": "Bloquer cette matière",
+      "processing": "Traitement...",
+      "create": "Créer",
+      "update": "Mettre à jour",
+      "cancel": "Annuler",
+      "missing_id": "ID de matière manquant — impossible de mettre à jour.",
+      "load_parent_error": "Échec du chargement des sous-matières"
+    }
+  },
+  "timetable": {
+    "title": "Gestion de l'emploi du temps",
+    "subtitle": "Gérer les horaires des classes pour {year}",
+    "select_class": "Sélectionner une classe",
+    "manage_slots": "Gérer les créneaux",
+    "add_period": "Ajouter une période",
+    "export_pdf": "Exporter PDF",
+    "select_class_prompt": "Veuillez sélectionner une classe pour afficher l'emploi du temps",
+    "time_header": "Heure",
+    "legend": {
+      "title": "Légende",
+      "scheduled": "Cours programmé",
+      "break": "Pause / Déjeuner",
+      "available": "Créneau disponible"
+    },
+    "days": {
+      "Monday": "Lundi",
+      "Tuesday": "Mardi",
+      "Wednesday": "Mercredi",
+      "Thursday": "Jeudi",
+      "Friday": "Vendredi",
+      "Saturday": "Samedi"
+    },
+    "messages": {
+      "load_error": "Erreur lors du chargement des données de base",
+      "save_success": "Enregistré avec succès",
+      "save_error": "Erreur lors de l'enregistrement",
+      "delete_success": "Supprimé",
+      "delete_error": "Erreur lors de la suppression",
+      "move_success": "Déplacé avec succès",
+      "move_error": "Échec du déplacement de l'entrée",
+      "missing_data": "Données manquantes",
+      "teachers_full_title": "Tous les enseignants sont au complet",
+      "teachers_full_desc": "Tous les enseignants pour cette matière ont atteint leur charge de travail hebdomadaire.",
+      "create_break_auto": "Sujet 'Pause' créé automatiquement",
+      "confirm_delete": "Êtes-vous sûr ?"
+    },
+    "slots": {
+      "title": "Gérer les créneaux horaires",
+      "label_placeholder": "Libellé (ex. Matin)",
+      "add_button": "Ajouter un créneau",
+      "adding": "Ajout...",
+      "no_slots": "Pas encore de créneaux horaires",
+      "table_label": "Libellé",
+      "table_start": "Début",
+      "table_end": "Fin",
+      "delete": "Supprimer",
+      "confirm_delete": "Supprimer ce créneau horaire ?",
+      "load_error": "Échec du chargement des créneaux horaires",
+      "save_success": "Créneau horaire ajouté avec succès",
+      "delete_success": "Créneau horaire supprimé"
+    },
+    "slot": {
+      "no_teacher": "Pas d'enseignant",
+      "unknown_subject": "Matière inconnue",
+      "room": "Salle {room}"
+    },
+    "form": {
+      "add_title": "Ajouter une entrée à l'emploi du temps",
+      "edit_title": "Modifier l'entrée de l'emploi du temps",
+      "description": "Remplissez les détails ci-dessous pour programmer un cours ou une pause.",
+      "day_label": "Jour",
+      "slot_label": "Créneau horaire",
+      "subject_label": "Matière",
+      "teacher_label": "Enseignant",
+      "set_break": "Définir comme pause déjeuner",
+      "save_button": "Enregistrer l'entrée",
+      "saving": "Enregistrement..."
+    }
+  },
+  "exams": {
+    "title": "Examens et Résultats",
+    "subtitle": "Gérer les examens et visualiser les performances académiques",
+    "enter_grades": "Saisir les notes",
+    "add_exam": "Ajouter un examen",
+    "export": "Exporter",
+    "stats": {
+      "average_grade": "Moyenne Générale",
+      "total_students": "Total Étudiants",
+      "pass_rate": "Taux de Réussite",
+      "total_exams": "Total Examens"
+    },
+    "charts": {
+      "subject_performance": "Performance par Matière",
+      "grade_distribution": "Distribution des Notes",
+      "average": "Moyenne",
+      "success_rate": "Taux de Réussite %",
+      "count": "Nombre",
+      "grade": "Note",
+      "subject": "Matière"
+    },
+    "table": {
+      "exam_name": "Nom de l'examen",
+      "date_start": "Date début",
+      "date_end": "Date fin",
+      "status": "Statut",
+      "actions": "Actions",
+      "published": "Publié",
+      "not_published": "Non publié",
+      "code": "Code",
+      "student_name": "Nom de l'élève",
+      "student": "Élève"
+    },
+    "forms": {
+      "add_title": "Ajouter un nouvel examen",
+      "edit_title": "Modifier l'examen",
+      "record_grades_title": "Enregistrer de nouvelles notes",
+      "record_grades_desc": "Saisir les résultats des élèves pour une évaluation spécifique",
+      "exam_name_label": "Nom de l'examen",
+      "date_start_label": "Date de début",
+      "date_end_label": "Date de fin",
+      "publish_label": "Publier l'examen",
+      "class_label": "Classe",
+      "exam_label": "Examen",
+      "date_label": "Date",
+      "evaluation_exam": "Évaluation / Examen",
+      "target_class": "Classe cible",
+      "active_context": "Contexte Actif",
+      "select_class": "Sélectionner la classe",
+      "select_exam": "Sélectionner l'examen",
+      "start_recording": "Commencer à enregistrer les notes",
+      "start_recording_desc": "Sélectionnez une évaluation pour commencer."
+    },
+    "messages": {
+      "enter_exam_name": "Veuillez entrer le nom de l'examen",
+      "select_dates": "Veuillez sélectionner les dates",
+      "update_success": "Examen mis à jour avec succès",
+      "create_success": "Examen créé avec succès",
+      "update_error": "Échec de la mise à jour de l'examen",
+      "create_error": "Échec de la création de l'examen",
+      "delete_success": "Examen supprimé avec succès",
+      "delete_error": "Échec de la suppression de l'examen",
+      "confirm_delete_title": "Confirmer la suppression",
+      "confirm_delete_desc": "Cette action supprimera définitivement cet examen.",
+      "publish_success": "Examen publié avec succès",
+      "unpublish_success": "Examen dépublié avec succès",
+      "status_update_error": "Échec de la mise à jour du statut",
+      "grades_save_success": "Notes enregistrées avec succès !",
+      "grades_save_error": "Erreur lors de l’enregistrement des notes",
+      "grades_load_error": "Erreur lors du chargement des notes",
+      "no_valid_grades": "Aucune note valide à enregistrer",
+      "score_limit_error": "Le score ne peut pas dépasser {max} pour {subject}",
+      "select_class_exam_prompt": "Veuillez sélectionner la classe et l'examen",
+      "no_students_found": "Aucun élève trouvé dans cette classe"
+    }
+  },
+  "treasury": {
+    "title": "Trésorerie",
+    "description": "Gérez vos caisses et comptes bancaires, suivez les flux de trésorerie.",
+    "accounts_count": "Comptes",
+    "filters": {
+      "from": "Du",
+      "to": "Au",
+      "select_account": "Choisir un compte"
+    },
+    "stats": {
+      "total_in": "Total Entrées",
+      "total_out": "Total Sorties",
+      "total_balance": "Solde Total"
+    },
+    "actions": {
+      "deposit": "Dépôt",
+      "withdraw": "Retrait"
+    },
+    "table": {
+      "date": "Date",
+      "reference": "Référence",
+      "description": "Description",
+      "debit": "Débit (Entrée)",
+      "credit": "Crédit (Sortie)",
+      "actions": "Actions",
+      "empty": "Aucune opération trouvée",
+      "history": "Historique des Opérations",
+      "sending": "Envoi en cours..."
+    },
+    "modals": {
+      "transaction": {
+        "titles": {
+          "deposit": "Opération de Dépôt",
+          "withdraw": "Opération de Retrait",
+          "edit": "Modifier l'Opération"
+        },
+        "labels": {
+          "source": "Compte Source",
+          "destination": "Compte Destination",
+          "amount": "Montant",
+          "description": "Description / Motif"
+        },
+        "placeholders": {
+          "account": "Choisir un compte...",
+          "description": "Motif de l'opération..."
+        },
+        "confirm": "Confirmer",
+        "success": "Opération enregistrée",
+        "edit_success": "Opération mise à jour",
+        "delete_success": "Opération supprimée",
+        "delete_confirm": "Êtes-vous sûr de vouloir supprimer cette opération ?"
+      }
+    }
+  },
+  "payroll": {
+    "title": "Gestion du Personnel",
+    "description": "Gérez les salaires, primes et déductions des employés.",
+    "stats": {
+      "total_net": "Total Salaires Nets",
+      "total_deductions": "Total Déductions",
+      "employees_count": "Employés"
+    },
+    "filters": {
+      "from": "Du",
+      "to": "Au"
+    },
+    "table": {
+      "employee": "Employé",
+      "base_salary": "Salaire de Base",
+      "deductions": "Déductions",
+      "allowances": "Primes/Indemnités",
+      "net_salary": "Salaire Net",
+      "status": "État",
+      "account": "Compte",
+      "actions": "Actions",
+      "empty": "Aucune fiche de paie trouvée"
+    },
+    "actions": {
+      "generate": "Générer la Paie",
+      "pay": "Payer",
+      "edit": "Modifier"
+    },
+    "statuses": {
+      "DRAFT": "Brouillon",
+      "SUBMITTED": "Soumis",
+      "APPROVED": "Approuvé",
+      "REJECTED": "Rejeté",
+      "PAID": "Payé"
+    },
+    "modals": {
+      "generate": {
+        "title": "Générer la Paie",
+        "description": "Calcul automatique des salaires",
+        "labels": {
+          "period_start": "Début de la Période",
+          "period_end": "Fin de la Période",
+          "date": "Date de l'Opération",
+          "employee": "Employé (Requis)",
+          "account": "Compte de Charge (Salaires)"
+        },
+        "placeholders": {
+          "employee": "Choisir un employé...",
+          "account": "Choisir un compte..."
+        },
+        "footer_text": "Cette action calculera les salaires de base, appliquera les déductions pour absences et retards, et générera les fiches de paie pour la période sélectionnée.",
+        "confirm": "Confirmer la Génération"
+      },
+      "edit": {
+        "title": "Modifier la Paie",
+        "labels": {
+          "base": "Salaire de Base",
+          "allowances": "Indemnités (+)",
+          "deductions": "Déductions (-)",
+          "status": "État",
+          "net": "Net à Payer"
+        },
+        "confirm": "Enregistrer"
+      },
+      "pay": {
+        "title": "Payer le Salaire",
+        "labels": {
+          "method": "Mode de Paiement",
+          "source_account": "Compte Source (Trésorerie)",
+          "dest_account": "Compte Destination (Charge)",
+          "net_to_pay": "Net à Payer"
+        },
+        "methods": {
+          "cash": "Espèces",
+          "bank": "Virement Bancaire",
+          "check": "Chèque"
+        },
+        "placeholders": {
+          "account": "Choisir un compte...",
+          "auto_dest": "Automatique (Salaire Employé)"
+        },
+        "confirm": "Confirmer le Paiement"
+      }
+    },
+    "messages": {
+      "generate_success": "{count} fiches de paie générées avec succès",
+      "generate_error": "Erreur lors de la génération de la paie",
+      "update_success": "Paie mise à jour avec succès",
+      "update_error": "Échec de la mise à jour sur le serveur",
+      "pay_success": "Salaire payé avec succès",
+      "pay_error": "Échec du paiement",
+      "load_accounts_error": "Échec du chargement des comptes",
+      "select_treasury_error": "Veuillez choisir un compte de trésorerie",
+      "select_employee_error": "Veuillez choisir un employé"
+    }
+  }
+}

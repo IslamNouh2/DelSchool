@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -121,6 +120,17 @@ model classes {
   Timetables        Timetable[]
   local             Local               @relation(fields: [localId], references: [localId])
   studentClasses    StudentClass[]
+  translations      ClassTranslation[]
+}
+
+model ClassTranslation {
+  id        Int      @id @default(autoincrement())
+  classId   Int
+  locale    String
+  name      String
+  class     classes  @relation(fields: [classId], references: [classId], onDelete: Cascade)
+
+  @@unique([classId, locale])
 }
 
 model subject {
@@ -140,12 +150,24 @@ model subject {
   parent          subject          @relation("SubjectToParent", fields: [parentId], references: [subjectId])
   children        subject[]        @relation("SubjectToParent")
   subject_local   subject_local[]
+  translations    SubjectTranslation[]
+}
+
+model SubjectTranslation {
+  id        Int      @id @default(autoincrement())
+  subjectId Int
+  locale    String   // 'en', 'ar', 'fr'
+  name      String
+  subject   subject  @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
+
+  @@unique([subjectId, locale])
 }
 
 model parameter {
   paramId   Int     @id @default(autoincrement())
   paramName String  @unique
   okActive  Boolean @default(false)
+  paramValue String? // Extended for non-boolean settings
 }
 
 model subject_local {
@@ -215,6 +237,9 @@ model Employer {
   phone              String?
   weeklyWorkload     Int                  @default(20)
   salary             Decimal              @default(0) @db.Decimal(10, 2)
+  salaryBasis        String               @default("DAILY") // DAILY or HOURLY
+  checkInTime        String?              @default("08:00")
+  checkOutTime       String?              @default("16:00")
   employerAttendance EmployerAttendance[]
   payments           Payment[]
   payroll            Payroll[]
@@ -293,6 +318,7 @@ model EmployerAttendance {
   checkOutTime DateTime?
   status       AttendanceStatus @default(ABSENT)
   remarks      String?
+  lateMinutes  Int?             @default(0)
   academicYear String
   employer     Employer         @relation(fields: [employerId], references: [employerId])
 
@@ -339,7 +365,7 @@ model Compte {
   employerId        Int?           @unique
   studentId         Int?           @unique
   code              String?        @unique
-  nameAr            String?
+  nameAr            String? // Kept for backward compatibility but marked for migration
   selectionCode     String?
   isFeeCash         Boolean        @default(false)
   showInParent      Boolean        @default(true)
@@ -356,8 +382,19 @@ model Compte {
   parent            Compte         @relation("CompteToParent", fields: [parentId], references: [id])
   children          Compte[]       @relation("CompteToParent")
   student           Student?       @relation(fields: [studentId], references: [studentId])
+  translations      CompteTranslation[]
 
   @@map("comptes")
+}
+
+model CompteTranslation {
+  id        Int      @id @default(autoincrement())
+  compteId  Int
+  locale    String
+  name      String
+  compte    Compte   @relation(fields: [compteId], references: [id], onDelete: Cascade)
+
+  @@unique([compteId, locale])
 }
 
 model Fee {
@@ -388,12 +425,13 @@ model Payroll {
   allowances   Decimal       @default(0) @db.Decimal(10, 2)
   deductions   Decimal       @default(0) @db.Decimal(10, 2)
   netSalary    Decimal       @db.Decimal(10, 2)
-  status       PayrollStatus @default(DRAFT)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  employer     Employer      @relation(fields: [employerId], references: [employerId])
-  compteId     Int?
-  compte       Compte?       @relation(fields: [compteId], references: [id])
+  status            PayrollStatus @default(DRAFT)
+  attendanceSummary Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  employer          Employer      @relation(fields: [employerId], references: [employerId])
+  compteId          Int?
+  compte            Compte?       @relation(fields: [compteId], references: [id])
 }
 
 model Expense {
@@ -563,4 +601,16 @@ enum CompteCategory {
   BANQUE
   RECETTE
   DEPENSE
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("events")
 }

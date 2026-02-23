@@ -23,6 +23,7 @@ export class ClassService {
                 },
                 include: {
                     local: true,
+                    translations: true,
                 },
                 skip,
                 take: limit,
@@ -56,7 +57,7 @@ export class ClassService {
         });
 
         if (!local) {
-            throw new Error(`❌ Local with name "${localName}" not found.`);
+            throw new Error(`errors.local_not_found`);
         }
 
         // Capacity Check
@@ -67,7 +68,7 @@ export class ClassService {
             });
             const total = (currentTotal._sum.NumStudent || 0) + NumStudent;
             if (total > local.size) {
-                throw new Error(`❌ Local capacity exceeded. Total students (${total}) > Local size (${local.size})`);
+                throw new Error(`errors.local_capacity_exceeded`);
             }
         }
 
@@ -77,7 +78,7 @@ export class ClassService {
                 where: { localId: local.localId }
             });
             if (classCount >= local.NumClass) {
-                throw new Error(`❌ Local class limit reached. Maximum classes allowed: ${local.NumClass}`);
+                throw new Error(`errors.local_class_limit_reached`);
             }
         }
 
@@ -90,7 +91,14 @@ export class ClassService {
                 NumStudent,
                 okBlock,
                 cloture: dto.cloture === true,
+                translations: dto.translations ? {
+                    create: Object.entries(dto.translations).map(([locale, name]) => ({
+                        locale,
+                        name: name as string,
+                    })),
+                } : undefined,
             },
+            include: { translations: true }
         });
 
         this.socketGateway.emitRefresh();
@@ -113,7 +121,7 @@ export class ClassService {
             },
         });
         if (!local) {
-            throw new Error(`❌ Local with name "${localName}" not found.`);
+            throw new Error(`errors.local_not_found`);
         }
 
         // Capacity Check
@@ -127,7 +135,7 @@ export class ClassService {
             });
             const total = (currentTotal._sum.NumStudent || 0) + NumStudent;
             if (total > local.size) {
-                throw new Error(`❌ Local capacity exceeded. Total students (${total}) > Local size (${local.size})`);
+                throw new Error(`errors.local_capacity_exceeded`);
             }
         }
 
@@ -153,7 +161,15 @@ export class ClassService {
                 NumStudent,
                 okBlock,
                 cloture: dto.cloture !== undefined ? dto.cloture : undefined,
+                translations: dto.translations ? {
+                    deleteMany: {},
+                    create: Object.entries(dto.translations).map((l) => ({
+                        locale: l[0],
+                        name: l[1] as string,
+                    })),
+                } : undefined,
             },
+            include: { translations: true }
         });
 
         this.socketGateway.emitRefresh();

@@ -1,0 +1,954 @@
+{
+  "common": {
+    "title": "مدرسة ديل",
+    "dashboard": "لوحة القيادة",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج",
+    "language": "اللغة",
+    "search": "بحث...",
+    "today": "اليوم",
+    "username": "اسم المستخدم",
+    "admin": "مسؤول",
+    "theme_light": "فاتح",
+    "theme_dark": "داكن",
+    "theme_system": "النظام",
+    "welcome": "مرحباً بك مجدداً"
+  },
+  "menu": {
+    "dashboard": "لوحة القيادة",
+    "employers": "الموظفين",
+    "students": "الطلاب",
+    "timetable": "الجدول الزمني",
+    "subjects": "المواد",
+    "classes": "الفصول",
+    "levels": "المستويات",
+    "attendance": {
+      "title": "الحضور",
+      "employer": "الموظف",
+      "student": "الطالب"
+    },
+    "exam": "الامتحان",
+    "events": "الفعاليات",
+    "finance": {
+      "title": "المالية",
+      "dashboard": "لوحة القيادة",
+      "fee_student": "رسوم الطلاب",
+      "fee_templates": "نماذج الرسوم",
+      "comptes": "الحسابات",
+      "payroll": "الرواتب",
+      "expenses": "المصاريف",
+      "fees": {
+        "title": "نماذج الرسوم",
+        "subtitle": "إدارة أنواع الرسوم والخدمات",
+        "add_template": "نموذج جديد",
+        "table": {
+          "title": "التسمية",
+          "amount": "المبلغ",
+          "account": "حساب الإيرادات",
+          "auto_subscribe": "اشتراك تلقائي"
+        },
+        "form": {
+          "add_title": "إضافة نموذج رسوم",
+          "edit_title": "تعديل النموذج",
+          "label_title": "تسمية الرسم",
+          "label_amount": "المبلغ الافتراضي (دج)",
+          "label_account": "حساب الإيرادات المرتبط",
+          "label_auto": "اشتراك تلقائي للطلاب الجدد",
+          "placeholder_title": "مثال: تمدرس، إطعام...",
+          "placeholder_amount": "0.00"
+        }
+      },
+      "studentFees": {
+        "title": "رسوم الطلاب",
+        "description": "إدارة المدفوعات والاشتراكات والديون المستحقة للطلاب.",
+        "tabs": {
+          "status": "حسب الحالة",
+          "classes": "حسب الصف",
+          "history": "سجل المعاملات"
+        },
+        "stats": {
+          "total_due": "إجمالي المستحق",
+          "collected": "تم تحصيله",
+          "pending": "قيد الانتظار"
+        },
+        "table": {
+          "student": "الطالب",
+          "class": "الصف",
+          "subscriptions": "الاشتراكات",
+          "total_due": "إجمالي المستحق",
+          "paid": "المدفوع",
+          "status": "الحالة",
+          "actions": "إجراءات",
+          "empty": "لم يتم العثور على طلاب"
+        },
+        "status": {
+          "PAID": "تم الدفع",
+          "PARTIAL": "جزئي",
+          "OVERDUE": "متأخر",
+          "UPCOMING": "قادم"
+        },
+        "actions": {
+          "subscribe": "اشتراك",
+          "collect": "تحصيل",
+          "history": "السجل",
+          "bulk_subscribe": "اشتراك جماعي"
+        },
+        "modals": {
+          "payment": {
+            "title": "تحصيل دفعة",
+            "account_label": "حساب الوجهة",
+            "invoice_label": "الفاتورة / الاستحقاق",
+            "amount_label": "المبلغ للتحصيل",
+            "method_label": "طريقة الدفع",
+            "methods": {
+              "cash": "نقداً",
+              "transfer": "تحويل بنكي",
+              "card": "بطاقة بنكية",
+              "online": "دفع إلكتروني"
+            },
+            "confirm": "تأكيد التحصيل",
+            "no_fees": "لا يوجد رسوم معلقة لهذا الطالب."
+          },
+          "new_fee": {
+            "title": "رسوم جديدة",
+            "description": "تعيين رسوم فردية لطالب.",
+            "labels": {
+              "student": "الطالب المستهدف",
+              "template": "الخدمة (نموج)",
+              "start_date": "بداية الخدمة",
+              "end_date": "نهاية الخدمة",
+              "amount": "المبلغ المقدر",
+              "due_date": "تاريخ الاستحقاق"
+            },
+            "placeholders": {
+              "student": "اختر طالباً...",
+              "template": "اختر نموذج رسوم..."
+            },
+            "confirm": "تأكيد الالتزام",
+            "submit_subscription": "تأكيد الاشتراك"
+          },
+          "bulk": {
+            "title": "اشتراك جماعي",
+            "description": "تسجيل جميع الطلاب في خدمة.",
+            "alert_title": "تنبيه",
+            "alert_description": "سيؤدي هذا الإجراء إلى إنشاء رسوم لجميع الطلاب. هذا الإجراء غير قابل للتراجع.",
+            "confirm": "بدء التوليد الجماعي"
+          },
+          "history": {
+            "title": "سجل المعاملات",
+            "types": {
+              "fee_created": "تم إنشاء رسوم",
+              "payment_received": "تم استلام دفعة"
+            },
+            "delete_confirm": "هل أنت متأكد من حذف هذه الرسوم؟",
+            "empty": "لا يوجد معاملات مسجلة"
+          }
+        },
+        "messages": {
+          "load_error": "فشل في تحميل نماذج الرسوم",
+          "select_fee_error": "يرجى اختيار رسوم",
+          "bulk_success": "تم إنشاء الاشتراك بنجاح",
+          "bulk_error": "فشل في إنشاء الاشتراك"
+        }
+      },
+      "accounts": {
+        "title": "دليل الحسابات",
+        "subtitle": "الهيكل المالي والهندسة",
+        "new_account": "حساب جديد",
+        "refresh": "تحديث",
+        "filter_placeholder": "تصفية الحسابات بالاسم أو النوع...",
+        "table": {
+          "name": "الاسم",
+          "parent": "الحساب الأب",
+          "category": "الفئة",
+          "status": "الحالة",
+          "actions": "الإجراءات",
+          "validated": "معتمد",
+          "draft": "مسودة"
+        },
+        "form": {
+          "add_title": "إضافة حساب",
+          "edit_title": "تعديل حساب",
+          "subtitle": "إعدادات الهيكل المالي",
+          "nature_label": "طبيعة الحساب (المنطق المالي)",
+          "classification_label": "التصنيف (واجهة المستخدم)",
+          "code": "الكود",
+          "designation": "الاسم",
+          "designation_ar": "الاسم بالعربية",
+          "parent_account": "الحساب الأب",
+          "all_accounts": "كل الحسابات",
+          "selection_code": "كود الاختيار",
+          "none": "لا يوجد",
+          "flags": {
+              "fee_cash": "رسوم/صندوق",
+              "show_parent": "ظهور الأب"
+          },
+          "validate": "تأكيد",
+          "cancel": "إلغاء",
+          "placeholder_code": "مثال: 5121...",
+          "placeholder_name": "اسم الحساب",
+          "placeholder_name_ar": "اسم الحساب بالعربية",
+          "placeholder_selection": "اختر..."
+        },
+        "natures": {
+          "asset": "أصول",
+          "liability": "خصوم",
+          "equity": "حقوق الملكية",
+          "income": "إيرادات",
+          "expense": "مصروفات"
+        },
+        "categories": {
+          "general": "عام",
+          "caisse": "صندوق",
+          "banque": "بنك",
+          "recette": "مقبوضات",
+          "depense": "مدفوعات"
+        },
+        "types": {
+          "employer": "موظف",
+          "student": "طالب"
+        },
+        "messages": {
+          "delete_confirm": "هل أنت متأكد من حذف هذا الحساب؟",
+          "delete_success": "تم حذف الحساب بنجاح",
+          "delete_error": "خطأ أثناء الحذف",
+          "update_success": "تم تحديث الحساب",
+          "create_success": "تم إنشاء الحساب بنجاح",
+          "save_error": "خطأ أثناء الحفظ",
+          "preparing_form": "جاري تجهيز النموذج...",
+          "operation_in_progress": "جاري التنفيذ...",
+          "transaction": "عملية"
+        }
+      }
+    },
+    "treasury": "الخزينة",
+    "settings": {
+      "title": "الإعدادات",
+      "general": "عام",
+      "users": "المستخدمين",
+      "roles": "الأدوار",
+      "parameters": "المعلمات"
+    },
+    "enterprise": "موثق",
+    "startup": "شركات ناشئة",
+    "free": "مجاني",
+    "admin": "مسؤول"
+  },
+  "actions": {
+    "add": "إضافة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "view": "عرض",
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "columns": "الأعمدة",
+    "next": "التالي",
+    "previous": "السابق",
+    "save": "حفظ",
+    "updating": "جارٍ التحديث...",
+    "creating": "جارٍ الإنشاء...",
+    "actions": "الإجراءات"
+  },
+  "classes": {
+    "title": "الفصول",
+    "subtitle": "إدارة جميع فصول وغرف المدرسة",
+    "add_title": "إضافة فصل",
+    "add_dialog_title": "إضافة فصل جديد",
+    "update_dialog_title": "تحديث تفاصيل الفصل",
+    "search_placeholder": "البحث حسب اسم الفصل...",
+    "table": {
+      "name": "اسم الفصل",
+      "capacity": "السعة",
+      "room": "الغرفة",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "active": "نشط",
+      "blocked": "محظور",
+      "table_info": "عرض {start} إلى {end} من أصل {total} فصول"
+    },
+    "messages": {
+      "fetch_error": "فشل في جلب الفصول",
+      "delete_success": "تم حذف الفصل بنجاح",
+      "delete_error": "فشل في حذف الفصل",
+      "delete_confirm_title": "هل أنت متأكد تماماً؟",
+      "delete_confirm_desc": "هذا الإجراء لا يمكن التراجع عنه. سيؤدي إلى حذف هذا الفصل بشكل دائم.",
+      "fetch_locals_error": "فشل في تحميل مواقع الفصول الدراسية",
+      "select_local_error": "يرجى اختيار موقع الفصل الدراسي",
+      "positive_students_error": "يجب أن يكون عدد الطلاب عدداً موجباً"
+    },
+    "form": {
+      "name_label": "اسم الفصل",
+      "name_placeholder": "أدخل اسم الفصل",
+      "code_label": "كود الفصل",
+      "code_placeholder": "أدخل كود الفصل",
+      "students_label": "عدد الطلاب",
+      "students_placeholder": "أدخل عدد الطلاب",
+      "location_label": "موقع الفصل الدراسي",
+      "block_label": "حظر هذا الفصل",
+      "submit_create": "إنشاء فصل",
+      "submit_update": "تحديث الفصل",
+      "processing": "جارٍ المعالجة..."
+    }
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور"
+  },
+  "dashboard": {
+    "title": "نظرة عامة على لوحة التحكم",
+    "students": "إجمالي الطلاب",
+    "teachers": "إجمالي المعلمين",
+    "parents": "إجمالي أولياء الأمور",
+    "staff": "إجمالي الموظفين",
+    "today": "اليوم",
+    "gender_distribution": "توزيع",
+    "student_gender": "جنس الطلاب",
+    "boys": "أولاد",
+    "girls": "بنات",
+    "report": "تقرير",
+    "present_absent": "الحضور والغياب",
+    "present": "حاضر",
+    "absent": "غائب",
+    "calendar_title": "تقويم المدرسة",
+    "add_new_event": "إضافة جديد",
+    "events_title": "الفعاليات",
+    "announcements_title": "الإعلانات",
+    "view_all": "عرض الكل",
+    "performance_by_class": "الأداء حسب الفصل"
+  },
+  "nav": {
+    "upgrade_pro": "الترقية إلى برو",
+    "account": "الحساب",
+    "billing": "الفواتير",
+    "notifications": "الإشعارات",
+    "logout": "تسجيل الخروج",
+    "teams_label": "الفرق",
+    "add_team": "إضافة فريق",
+    "platform": "المنصة",
+    "projects": "المشاريع",
+    "view_project": "عرض المشروع",
+    "share_project": "مشاركة المشروع",
+    "delete_project": "حذف المشروع",
+    "more": "المزيد",
+    "enterprise": "موثق"
+  },
+  "errors": {
+    "local_capacity_exceeded": "تم تجاوز سعة الموقع",
+    "local_class_limit_reached": "تم الوصول إلى الحد الأقصى للفصول في الموقع",
+    "local_not_found": "الموقع غير موجود",
+    "Unauthorized": "غير مصرح به"
+  },
+  "students": {
+    "title": "الطلاب",
+    "subtitle": "إدارة جميع سجلات ومعلومات الطلاب",
+    "total_count": "الإجمالي {count}",
+    "add_title": "إضافة طالب",
+    "add_dialog_title": "إضافة طالب جديد",
+    "add_dialog_subtitle": "أدخل التفاصيل لتسجيل طالب جديد",
+    "update_dialog_title": "تعديل سجل الطالب",
+    "update_dialog_subtitle": "تحديث معلومات الطالب أدناه",
+    "search_placeholder": "البحث حسب الاسم أو الكود أو البريد الإلكتروني...",
+    "table": {
+      "photo": "الصورة",
+      "code": "الرمز",
+      "name": "الاسم",
+      "gender": "الجنس",
+      "class": "الفصل",
+      "custom": "تخصيص",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "active": "نشط",
+      "blocked": "محظور",
+      "table_info": "عرض {start} إلى {end} من أصل {total} طالب"
+    },
+    "messages": {
+      "fetch_error": "فشل في جلب الطلاب",
+      "delete_confirm": "هل أنت متأكد من حذف هذا الطالب؟ لا يمكن التراجع عن هذا الإجراء.",
+      "delete_success": "تم حذف الطالب بنجاح",
+      "delete_error": "فشل في حذف الطالب",
+      "dob_required": "تاريخ الميلاد مطلوب",
+      "local_required": "المعرف المحلي مطلوب",
+      "create_success": "تم إنشاء الطالب بنجاح",
+      "update_success": "تم تحديث الطالب بنجاح"
+    },
+    "form": {
+      "upload_photo": "رفع صورة",
+      "photo_rules": "JPG, PNG أو WebP • الحد الأقصى 5 ميجابايت",
+      "sections": {
+        "personal": "التفاصيل الشخصية",
+        "academic": "الأكاديمية والتسجيل",
+        "health": "معلومات الصحة",
+        "contact": "الاتصال والعنوان",
+        "parents": "معلومات ولي الأمر"
+      },
+      "labels": {
+        "student_code": "كود الطالب",
+        "first_name": "الاسم الأول",
+        "last_name": "الاسم الأخير",
+        "gender": "الجنس",
+        "dob": "تاريخ الميلاد",
+        "pob": "مكان الميلاد",
+        "nationality": "الجنسية",
+        "gender_male": "ذكر",
+        "gender_female": "أنثى",
+        "blood_group": "فصيلة الدم",
+        "cid": "رقم الهوية الوطنية",
+        "civil_status": "الحالة الاجتماعية",
+        "enrollment_date": "تاريخ التسجيل",
+        "assigned_local": "الموقع المخصص",
+        "assigned_class": "الفصل المخصص",
+        "school_id": "المعرف المدرسي",
+        "health_status": "الحالة الصحية",
+        "observations": "ملاحظات",
+        "full_address": "العنوان الكامل",
+        "father_details": "بيانات الأب",
+        "mother_details": "بيانات الأم",
+        "parent_name": "الاسم الكامل",
+        "parent_phone": "رقم الهاتف",
+        "parent_job": "المهنة"
+      },
+      "placeholders": {
+        "student_code": "مثال: STU001",
+        "first_name": "الاسم الأول",
+        "last_name": "الاسم الأخير",
+        "gender": "اختيار الجنس",
+        "pob": "المدينة/الدولة",
+        "nationality": "الجنسية",
+        "blood_group": "اختيار فصيلة الدم",
+        "cid": "رقم الهوية",
+        "civil_status": "أعزب/متزوج",
+        "school_id": "رقم الرقمنة",
+        "health_status": "ملاحظات الصحة العامة",
+        "observations": "أي ملاحظات إضافية...",
+        "full_address": "الشارع، المدينة، الدولة",
+        "father_name": "الاسم الكامل للأب",
+        "mother_name": "الاسم الكامل للأم",
+        "phone": "رقم الهاتف",
+        "job": "المهنة",
+        "select_date": "اختر التاريخ"
+      },
+      "submit_create": "إنشاء طالب",
+      "submit_update": "تحديث السجل",
+      "saving": "جارٍ الحفظ..."
+    }
+  },
+  "employers": {
+    "title": "المعلمون",
+    "subtitle": "إدارة جميع سجلات ومعلومات المعلمين",
+    "total_count": "{count} إجمالي",
+    "add_title": "إضافة معلم",
+    "add_dialog_title": "إضافة موظف جديد",
+    "add_dialog_subtitle": "أدخل التفاصيل لإضافة موظف/معلم جديد",
+    "update_dialog_title": "تعديل سجل الموظف",
+    "update_dialog_subtitle": "تحديث معلومات الموظف أدناه",
+    "search_placeholder": "البحث حسب الاسم أو الكود...",
+    "table": {
+      "photo": "الصورة",
+      "code": "الكود",
+      "name": "الاسم",
+      "type": "النوع",
+      "gender": "الجنس",
+      "phone": "الهاتف",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "active": "نشط",
+      "blocked": "محظور",
+      "table_info": "عرض {start} إلى {end} من أصل {total} معلماً"
+    },
+    "messages": {
+      "fetch_error": "فشل في جلب المعلمين",
+      "delete_confirm": "هل أنت متأكد من حذف هذا المعلم؟ لا يمكن التراجع عن هذا الإجراء.",
+      "delete_success": "تم حذف الموظف بنجاح",
+      "delete_error": "فشل في حذف الموظف",
+      "create_success": "تم إنشاء الموظف بنجاح!",
+      "update_success": "تم تحديث الموظف بنجاح!"
+    },
+    "form": {
+      "upload_photo": "رفع صورة",
+      "photo_rules": "JPG, PNG أو WebP • الحد الأقصى 5 ميجابايت",
+      "sections": {
+        "personal": "التفاصيل الشخصية",
+        "subjects": "تعيين المواد"
+      },
+      "labels": {
+        "code": "الكود",
+        "first_name": "الاسم الأول",
+        "last_name": "الاسم الأخير",
+        "type": "النوع",
+        "dob": "تاريخ الميلاد",
+        "pob": "مكان الميلاد",
+        "nationality": "الجنسية",
+        "gender": "الجنس",
+        "gender_male": "ذكر",
+        "gender_female": "أنثى",
+        "marital_status": "الحالة الاجتماعية",
+        "blood_type": "فصيلة الدم",
+        "salary": "الراتب الأساسي (DA)",
+        "observations": "الملاحظات",
+        "type_admin": "مسؤول",
+        "type_teacher": "معلم",
+        "type_employer": "موظف"
+      },
+      "placeholders": {
+        "code": "كود الموظف",
+        "first_name": "الاسم الأول",
+        "last_name": "الاسم الأخير",
+        "type": "اختر النوع",
+        "pob": "مكان الميلاد",
+        "nationality": "الجنسية",
+        "gender": "اختر الجنس",
+        "marital_status": "أعزب/متزوج",
+        "blood_type": "اختر فصيلة الدم",
+        "salary": "0.00",
+        "search_subjects": "البحث عن المواد..."
+      },
+      "subjects": {
+        "available": "المواد المتاحة",
+        "assigned": "المواد المعينة",
+        "no_subjects": "لا توجد مواد متاحة",
+        "move_hint": "إدارة المواد المعينة لهذا المعلم. انقر فوق العناصر لنقلها بين القوائم."
+      }
+    },
+    "profile": {
+      "title": "ملف الموظف",
+      "subtitle": "إدارة معلومات وأداء الموظفين",
+      "edit_profile": "تعديل الملف الشخصي",
+      "export_info": "تصدير المعلومات",
+      "upload_doc": "رفع وثيقة",
+      "no_email": "لا يوجد بريد إلكتروني",
+      "no_phone": "لا يوجد هاتف",
+      "no_address": "لا يوجد عنوان",
+      "joined": "تاريخ الانضمام: {date}",
+      "stats": {
+        "experience": "الخبرة",
+        "attendance": "الحضور",
+        "students": "الطلاب",
+        "rating": "التقييم"
+      },
+      "tabs": {
+        "overview": "نظرة عامة",
+        "classes": "الفصول",
+        "timetable": "الجدول الزمني",
+        "attendance": "الحضور",
+        "financial": "المالية",
+        "documents": "الوثائق"
+      },
+      "overview": {
+        "performance": "تقييم الأداء",
+        "upcoming": "الجدول القادم",
+        "workload": "توزيع عبء العمل (ساعة/أسبوع)",
+        "activities": "الأنشطة الأخيرة"
+      },
+      "classes": {
+        "title": "الفصول المعينة",
+        "students": "{count} طالباً",
+        "hours": "{count} ساعة/أسبوع"
+      },
+      "timetable": {
+        "coming_soon": "سيتم دمج الجدول الزمني قريباً"
+      },
+      "attendance": {
+        "title": "سجل الحضور",
+        "present": "حاضر ({percent}%)",
+        "absent": "غائب ({percent}%)",
+        "log_placeholder": "سيظهر سجل الحضور التفصيلي هنا."
+      },
+      "financial": {
+        "title": "الرواتب والمالية",
+        "linked_account": "الحساب المرتبط: {name}",
+        "no_account": "لا يوجد حساب مالي مرتبط",
+        "table": {
+          "month": "الشهر",
+          "date": "التاريخ",
+          "amount": "المبلغ",
+          "status": "الحالة",
+          "slip": "القسيمة",
+          "paid": "مدفوع",
+          "download": "تحميل"
+        }
+      },
+      "documents": {
+        "title": "الوثائق",
+        "upload": "رفع"
+      }
+    }
+  },
+  "attendance": {
+    "staff": {
+      "title": "حضور الموظفين",
+      "subtitle": "إدارة وتتبع حضور الموظفين",
+      "record_presence": "تسجيل الحضور",
+      "select_date": "اختر تاريخاً لتسجيل حضور الموظفين",
+      "date_label": "تاريخ الحضور",
+      "mark_attendance": "تسجيل الحضور",
+      "history": "سجل 7 أيام",
+      "dialog_title": "حضور الموظفين : {date}",
+      "loading": "جاري التحميل...",
+      "stats": {
+        "total_staff": "إجمالي الموظفين",
+        "present_today": "الحاضرون اليوم",
+        "absent_today": "الغائبون اليوم",
+        "success_rate": "معدل النجاح اليومي"
+      },
+      "registry": {
+        "title": "سجل حضور الموظفين",
+        "subtitle": "اختر التاريخ لتسجيل حضور الموظفين"
+      },
+      "charts": {
+        "weekly_trend": "الاتجاه الأسبوعي",
+        "weekly_subtitle": "تدفق الحضور لآخر 7 أيام",
+        "daily_distribution": "التوزيع اليومي",
+        "daily_subtitle": "تفصيل تواجد الموظفين",
+        "present": "حاضر",
+        "absent": "غائب"
+      },
+      "form": {
+        "present": "حاضر",
+        "absent": "غائب",
+        "late": "متأخر",
+        "excused": "معذور",
+        "observation": "ملاحظة",
+        "save_success": "تم حفظ الحضور بنجاح",
+        "save_error": "فشل في حفظ الحضور",
+        "no_staff": "لم يتم العثور على موظفين",
+        "submit": "إرسال الحضور",
+        "update": "تحديث الحضور",
+        "save": "حفظ التغييرات"
+      }
+    }
+  },
+  "subjects": {
+    "title": "المواد الدراسية",
+    "subtitle": "إدارة المواد الدراسية وتسلسلها الهرمي",
+    "search_placeholder": "البحث عن المواد...",
+    "add_subject": "إضافة مادة",
+    "no_subjects": "لم يتم العثور على مواد.",
+    "delete_success": "تم حذف المادة بنجاح",
+    "delete_error": "خطأ في حذف المادة",
+    "load_error": "خطأ في تحميل المواد",
+    "card": {
+      "sub_subjects": "{count} مواد فرعية",
+      "no_sub_subjects": "لا توجد مواد فرعية",
+      "points": "{count} نقاط",
+      "delete_title": "حذف المادة؟",
+      "delete_description": "هل أنت متأكد أنك تريد حذف \"{name}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+      "add_sub_subject": "إضافة مادة فرعية"
+    },
+    "form": {
+      "create_title": "إنشاء مادة",
+      "update_title": "تحديث المادة",
+      "description_create": "املأ النموذج لإضافة مادة.",
+      "description_update": "املأ النموذج لتعديل مادة.",
+      "name_label": "اسم المادة",
+      "points_label": "إجمالي النقاط",
+      "parent_label": "المادة الأم",
+      "block_label": "حظر هذه المادة",
+      "processing": "جاري المعالجة...",
+      "create": "إنشاء",
+      "update": "تحديث",
+      "cancel": "إلغاء",
+      "missing_id": "معرف المادة مفقود - لا يمكن التحديث.",
+      "load_parent_error": "فشل تحميل المواد الفرعية"
+    }
+  },
+  "timetable": {
+    "title": "إدارة الجدول الزمني",
+    "subtitle": "إدارة جداول الحصص لعام {year}",
+    "select_class": "اختر الفصل",
+    "manage_slots": "إدارة الفترات",
+    "add_period": "إضافة حصة",
+    "export_pdf": "تصدير PDF",
+    "select_class_prompt": "يرجى اختيار فصل لعرض الجدول الزمني",
+    "time_header": "الوقت",
+    "legend": {
+      "title": "دليل الألوان",
+      "scheduled": "حصة مقررة",
+      "break": "استراحة / غداء",
+      "available": "فترة متاحة"
+    },
+    "days": {
+      "Monday": "الاثنين",
+      "Tuesday": "الثلاثاء",
+      "Wednesday": "الأربعاء",
+      "Thursday": "الخميس",
+      "Friday": "الجمعة",
+      "Saturday": "السبت"
+    },
+    "messages": {
+      "load_error": "خطأ في تحميل البيانات الأساسية",
+      "save_success": "تم الحفظ بنجاح",
+      "save_error": "خطأ في الحفظ",
+      "delete_success": "تم الحذف",
+      "delete_error": "خطأ في الحذف",
+      "move_success": "تم النقل بنجاح",
+      "move_error": "فشل نقل الإدخال",
+      "missing_data": "بيانات مفقودة",
+      "teachers_full_title": "جميع المعلمين مشغولون",
+      "teachers_full_desc": "وصل جميع المعلمين لهذه المادة إلى عبء العمل الأسبوعي الخاص بهم.",
+      "create_break_auto": "تم إنشاء مادة 'استراحة' تلقائياً",
+      "confirm_delete": "هل أنت متأكد؟"
+    },
+    "slots": {
+      "title": "إدارة الفترات الزمنية",
+      "label_placeholder": "التسمية (مثلاً: صباحاً)",
+      "add_button": "إضافة فترة زمنية",
+      "adding": "جاري الإضافة...",
+      "no_slots": "لا توجد فترات زمنية بعد",
+      "table_label": "التسمية",
+      "table_start": "البداية",
+      "table_end": "النهاية",
+      "delete": "حذف",
+      "confirm_delete": "حذف هذه الفترة الزمنية؟",
+      "load_error": "فشل تحميل الفترات الزمنية",
+      "save_success": "تم إضافة الفترة الزمنية بنجاح",
+      "delete_success": "تم حذف الفترة الزمنية"
+    },
+    "slot": {
+      "no_teacher": "لا يوجد معلم",
+      "unknown_subject": "مادة غير معروفة",
+      "room": "قاعة {room}"
+    },
+    "form": {
+      "add_title": "إضافة حصة للجدول",
+      "edit_title": "تعديل حصة الجدول",
+      "description": "املأ التفاصيل أدناه لجدولة حصة أو استراحة.",
+      "day_label": "اليوم",
+      "slot_label": "الفترة الزمنية",
+      "subject_label": "المادة",
+      "teacher_label": "المعلم",
+      "set_break": "تعيين كاستراحة غداء",
+      "save_button": "حفظ الحصة",
+      "saving": "جاري الحفظ..."
+    }
+  },
+  "exams": {
+    "title": "الامتحانات والنتائج",
+    "subtitle": "إدارة الامتحانات وتصور الأداء الأكاديمي",
+    "enter_grades": "إدخال الدرجات",
+    "add_exam": "إضافة امتحان",
+    "export": "تصدير",
+    "stats": {
+      "average_grade": "المعدل العام",
+      "total_students": "إجمالي الطلاب",
+      "pass_rate": "نسبة النجاح",
+      "total_exams": "إجمالي الامتحانات"
+    },
+    "charts": {
+      "subject_performance": "الأداء حسب المادة",
+      "grade_distribution": "توزيع الدرجات",
+      "average": "المعدل",
+      "success_rate": "نسبة النجاح %",
+      "count": "العدد",
+      "grade": "الدرجة",
+      "subject": "المادة"
+    },
+    "table": {
+      "exam_name": "اسم الامتحان",
+      "date_start": "تاريخ البدء",
+      "date_end": "تاريخ الانتهاء",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "published": "منشور",
+      "not_published": "غير منشور",
+      "code": "الرمز",
+      "student_name": "اسم الطالب",
+      "student": "الطالب"
+    },
+    "forms": {
+      "add_title": "إضافة امتحان جديد",
+      "edit_title": "تعديل الامتحان",
+      "record_grades_title": "تسجيل درجات جديدة",
+      "record_grades_desc": "أدخل نتائج الطلاب لتقييم معين",
+      "exam_name_label": "اسم الامتحان",
+      "date_start_label": "تاريخ البدء",
+      "date_end_label": "تاريخ الانتهاء",
+      "publish_label": "نشر الامتحان",
+      "class_label": "الفصل",
+      "exam_label": "الامتحان",
+      "date_label": "التاريخ",
+      "evaluation_exam": "التقييم / الامتحان",
+      "target_class": "الفصل المستهدف",
+      "active_context": "السياق النشط",
+      "select_class": "اختر الفصل",
+      "select_exam": "اختر الامتحان",
+      "start_recording": "بدء تسجيل الدرجات",
+      "start_recording_desc": "اختر تقييماً للبدء."
+    },
+    "messages": {
+      "enter_exam_name": "يرجى إدخال اسم الامتحان",
+      "select_dates": "يرجى اختيار التواريخ",
+      "update_success": "تم تحديث الامتحان بنجاح",
+      "create_success": "تم إنشاء الامتحان بنجاح",
+      "update_error": "فشل تحديث الامتحان",
+      "create_error": "فشل إنشاء الامتحان",
+      "delete_success": "تم حذف الامتحان بنجاح",
+      "delete_error": "فشل حذف الامتحان",
+      "confirm_delete_title": "تأكيد الحذف",
+      "confirm_delete_desc": "سيؤدي هذا الإجراء إلى حذف هذا الامتحان نهائياً.",
+      "publish_success": "تم نشر الامتحان بنجاح",
+      "unpublish_success": "تم إلغاء نشر الامتحان بنجاح",
+      "status_update_error": "فشل تحديث الحالة",
+      "grades_save_success": "تم حفظ الدرجات بنجاح!",
+      "grades_save_error": "خطأ في حفظ الدرجات",
+      "grades_load_error": "خطأ في تحميل الدرجات",
+      "no_valid_grades": "لا توجد درجات صالحة للحفظ",
+      "score_limit_error": "لا يمكن أن تتجاوز الدرجة {max} للمادة {subject}",
+      "select_class_exam_prompt": "يرجى اختيار الفصل والامتحان",
+      "no_students_found": "لم يتم العثور على طلاب في هذا الفصل"
+    }
+  },
+  "treasury": {
+    "title": "الخزينة",
+    "description": "إدارة الصناديق والحسابات البنكية، ومتابعة التدفقات النقدية.",
+    "accounts_count": "حسابات",
+    "filters": {
+      "from": "من",
+      "to": "إلى",
+      "select_account": "اختر حساباً"
+    },
+    "stats": {
+      "total_in": "إجمالي المداخيل",
+      "total_out": "إجمالي المصاريف",
+      "total_balance": "الرصيد الإجمالي"
+    },
+    "actions": {
+      "deposit": "إيداع",
+      "withdraw": "سحب"
+    },
+    "table": {
+      "date": "التاريخ",
+      "reference": "المرجع",
+      "description": "الوصف",
+      "debit": "مدين (دخول)",
+      "credit": "دائن (خروج)",
+      "actions": "إجراءات",
+      "empty": "لم يتم العثور على عمليات",
+      "history": "سجل العمليات",
+      "sending": "جاري الإرسال..."
+    },
+    "modals": {
+      "transaction": {
+        "titles": {
+          "deposit": "عملية إيداع",
+          "withdraw": "عملية سحب",
+          "edit": "تعديل العملية"
+        },
+        "labels": {
+          "source": "حساب المصدر (المنشأ)",
+          "destination": "حساب الوجهة",
+          "amount": "المبلغ",
+          "description": "الوصف / السبب"
+        },
+        "placeholders": {
+          "account": "اختر حساباً...",
+          "description": "سبب العملية..."
+        },
+        "confirm": "تأكيد",
+        "success": "تم تسجيل العملية",
+        "edit_success": "تم تعديل العملية",
+        "delete_success": "تم حذف العملية",
+        "delete_confirm": "هل أنت متأكد من حذف هذه العملية؟"
+      }
+    }
+  },
+  "payroll": {
+    "title": "إدارة الرواتب",
+    "description": "إدارة رواتب ومكافآت وخصومات الموظفين.",
+    "stats": {
+      "total_net": "إجمالي الرواتب الصافية",
+      "total_deductions": "إجمالي الخصومات",
+      "employees_count": "موظفين"
+    },
+    "filters": {
+      "from": "من",
+      "to": "إلى"
+    },
+    "table": {
+      "employee": "الموظف",
+      "base_salary": "الراتب الأساسي",
+      "deductions": "خصومات",
+      "allowances": "مكافآت/علاوات",
+      "net_salary": "الراتب الصافي",
+      "status": "الحالة",
+      "account": "الحساب",
+      "actions": "إجراءات",
+      "empty": "لم يتم العثور على قسائم رواتب"
+    },
+    "actions": {
+      "generate": "توليد الرواتب",
+      "pay": "دفع",
+      "edit": "تعديل"
+    },
+    "statuses": {
+      "DRAFT": "مسودة",
+      "SUBMITTED": "مرسل",
+      "APPROVED": "مقبول",
+      "REJECTED": "مرفوض",
+      "PAID": "مدفوع"
+    },
+    "modals": {
+      "generate": {
+        "title": "توليد الرواتب",
+        "description": "حساب تلقائي للرواتب",
+        "labels": {
+          "period_start": "تاريخ بدء الاستهلاك",
+          "period_end": "تاريخ نهاية الاستهلاك",
+          "date": "تاريخ المصروف",
+          "employee": "الموظف (مطلوب)",
+          "account": "حساب المصاريف (الرواتب)"
+        },
+        "placeholders": {
+          "employee": "اختر موظفاً...",
+          "account": "اختر حساباً..."
+        },
+        "footer_text": "سيقوم هذا الإجراء بحساب الرواتب الأساسية، وتطبيق خصومات الغياب والتأخير، وتوليد قسائم الرواتب للفترة المختارة.",
+        "confirm": "تأكيد التوليد"
+      },
+      "edit": {
+        "title": "تعديل الراتب",
+        "labels": {
+          "base": "الراتب الأساسي",
+          "allowances": "المكافآت (+)",
+          "deductions": "الخصومات (-)",
+          "status": "الحالة",
+          "net": "الصافي للدفع"
+        },
+        "confirm": "حفظ التعديلات"
+      },
+      "pay": {
+        "title": "دفع الراتب",
+        "labels": {
+          "method": "طريقة الدفع",
+          "source_account": "حساب المصدر (الخزينة)",
+          "dest_account": "حساب الوجهة (المصاريف)",
+          "net_to_pay": "الصافي للدفع"
+        },
+        "methods": {
+          "cash": "نقداً",
+          "bank": "تحويل بنكي",
+          "check": "شيك"
+        },
+        "placeholders": {
+          "account": "اختر حساباً...",
+          "auto_dest": "تلقائي (راتب الموظف)"
+        },
+        "confirm": "تأكيد الدفع"
+      }
+    },
+    "messages": {
+      "generate_success": "تم توليد {count} قسيمة راتب بنجاح",
+      "generate_error": "خطأ في توليد الرواتب",
+      "update_success": "تم تحديث الراتب بنجاح",
+      "update_error": "فشل في تحديث الراتب على الخادم",
+      "pay_success": "تم دفع الراتب بنجاح",
+      "pay_error": "فشل في الدفع",
+      "load_accounts_error": "فشل في تحميل الحسابات",
+      "select_treasury_error": "يرجى اختيار حساب خزينة",
+      "select_employee_error": "يرجى اختيار موظف"
+    }
+  }
+}

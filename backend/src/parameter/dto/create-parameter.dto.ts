@@ -7,5 +7,9 @@ export class CreateParameterDto {
     @IsOptional()
     @IsBoolean()
     okActive?: boolean;
+
+    @IsOptional()
+    @IsString()
+    paramValue?: string;
 }
 

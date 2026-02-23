@@ -488,6 +488,16 @@ exports.Prisma.FiscalYearScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.EventScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -608,7 +618,8 @@ exports.Prisma.ModelName = {
   Journal: 'Journal',
   JournalEntry: 'JournalEntry',
   JournalLine: 'JournalLine',
-  FiscalYear: 'FiscalYear'
+  FiscalYear: 'FiscalYear',
+  Event: 'Event'
 };
 
 /**

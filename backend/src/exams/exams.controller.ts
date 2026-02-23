@@ -94,6 +94,11 @@ export class ExamController {
     return this.examService.getGradeDistribution();
   }
 
+  @Get('dashboard/class-performance')
+  async getClassPerformance() {
+    return this.examService.getClassPerformance();
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.examService.remove(id);

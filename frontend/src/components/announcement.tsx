@@ -1,11 +1,13 @@
 "use client"
+import { useTranslations } from "next-intl";
 
 const Announcement = () => {
+    const t = useTranslations("dashboard");
     return (
         <div className='bg-transparent flex flex-col gap-6'>
             <div className="flex items-center justify-between">
-                <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight uppercase transition-colors">Recent News</h1>
-                <span className="text-[10px] font-black text-[#0052cc] hover:text-blue-400 cursor-pointer transition-all uppercase tracking-widest">View All</span>
+                <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight uppercase transition-colors">{t("announcements_title")}</h1>
+                <span className="text-[10px] font-black text-[#0052cc] hover:text-blue-400 cursor-pointer transition-all uppercase tracking-widest">{t("view_all")}</span>
             </div>
             <div className="flex flex-col gap-4">
                 <div className="bg-gray-50/50 dark:bg-[#0b0d17]/50 rounded-[24px] p-6 border border-gray-100 dark:border-white/5 hover:bg-white dark:hover:bg-[#0b0d17] hover:border-blue-500/20 dark:hover:border-blue-500/20 hover:shadow-md transition-all cursor-pointer group">

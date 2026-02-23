@@ -16,8 +16,10 @@ import { MoreHorizontal } from "lucide-react";
 import api from "@/lib/api";
 
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 
 const AttendanceChartsComponent = () => {
+    const t = useTranslations("dashboard");
     const { theme } = useTheme();
     const isDark = theme === "dark";
 
@@ -53,18 +55,18 @@ const AttendanceChartsComponent = () => {
         >
             <div className="flex justify-between items-start mb-6">
                 <div>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em] mb-1 transition-colors">Report</p>
-                    <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">Present and Absent</h2>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em] mb-1 transition-colors">{t("report")}</p>
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">{t("present_absent")}</h2>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-[#0052cc]"></div>
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Present</span>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">{t("present")}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-[#bf95f9]"></div>
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Absent</span>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">{t("absent")}</span>
                         </div>
                     </div>
                     <select className="bg-gray-50 dark:bg-[#0b0d17] border border-gray-200 dark:border-white/5 rounded-xl text-[10px] font-bold px-3 py-2 outline-none text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors cursor-pointer">
@@ -77,9 +79,9 @@ const AttendanceChartsComponent = () => {
             </div>
 
             <div className="flex items-center gap-8 mb-8 border-b border-gray-100 dark:border-white/5 transition-colors">
-                <button className="pb-4 text-xs font-black text-[#0052cc] border-b-2 border-[#0052cc] uppercase tracking-widest">Students</button>
-                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">Teachers</button>
-                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">Staff</button>
+                <button className="pb-4 text-xs font-black text-[#0052cc] border-b-2 border-[#0052cc] uppercase tracking-widest">{t("students")}</button>
+                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">{t("teachers")}</button>
+                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">{t("staff")}</button>
             </div>
             
             <div className="flex-1 w-full min-h-0">

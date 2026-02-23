@@ -32,6 +32,9 @@ type ClassFormProps = {
     onSuccess?: () => void;
 };
 
+import { useTranslations } from "next-intl";
+import { useTranslateError } from "@/hooks/useTranslateError";
+
 const ClassForm: React.FC<ClassFormProps> = ({
     type,
     data,
@@ -39,6 +42,10 @@ const ClassForm: React.FC<ClassFormProps> = ({
     relatedData,
     onSuccess,
 }) => {
+    const t = useTranslations("classes");
+    const actionsT = useTranslations("actions");
+    const { translateError } = useTranslateError();
+
     const [form, setForm] = useState({
         ClassName: "",
         Code: "",
@@ -59,14 +66,14 @@ const ClassForm: React.FC<ClassFormProps> = ({
                 setLocals(response.data.locals || []);
             } catch (err) {
                 console.error("Failed to load locals:", err);
-                setError("Failed to load classroom locations");
+                setError(t("messages.fetch_locals_error"));
             } finally {
                 setLoading(false);
             }
         };
 
         fetchLocals();
-    }, []);
+    }, [t]);
 
     // Initialize form for update
     useEffect(() => {
@@ -94,14 +101,14 @@ const ClassForm: React.FC<ClassFormProps> = ({
         setError(null);
 
         if (!selectedLocalName) {
-            setError("Please select a classroom location");
+            setError(t("messages.select_local_error"));
             setLoading(false);
             return;
         }
 
         const numStudents = parseInt(form.NumStudent);
         if (isNaN(numStudents) || numStudents <= 0) {
-            setError("Number of students must be a positive number");
+            setError(t("messages.positive_students_error"));
             setLoading(false);
             return;
         }
@@ -130,7 +137,7 @@ const ClassForm: React.FC<ClassFormProps> = ({
             onSuccess?.();
         } catch (err: any) {
             console.error("Operation failed:", err);
-            setError(err.response?.data?.message || "An error occurred");
+            setError(translateError(err));
         } finally {
             setLoading(false);
         }
@@ -151,42 +158,42 @@ const ClassForm: React.FC<ClassFormProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Class Name</label>
+                    <label className="block text-sm font-medium text-gray-700">{t("form.name_label")}</label>
                     <Input
                         name="ClassName"
                         value={form.ClassName}
                         onChange={handleChange}
-                        placeholder="Enter class name"
+                        placeholder={t("form.name_placeholder")}
                         required
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Class Code</label>
+                    <label className="block text-sm font-medium text-gray-700">{t("form.code_label")}</label>
                     <Input
                         name="Code"
                         value={form.Code}
                         onChange={handleChange}
-                        placeholder="Enter class code"
+                        placeholder={t("form.code_placeholder")}
                         required
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Number of Students</label>
+                    <label className="block text-sm font-medium text-gray-700">{t("form.students_label")}</label>
                     <Input
                         type="number"
                         name="NumStudent"
                         value={form.NumStudent}
                         onChange={handleChange}
                         min="1"
-                        placeholder="Enter number of students"
+                        placeholder={t("form.students_placeholder")}
                         required
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Classroom Location</label>
+                    <label className="block text-sm font-medium text-gray-700">{t("form.location_label")}</label>
                     {loading ? (
                         <div className="h-10 w-full rounded-md border bg-gray-100 animate-pulse" />
                     ) : (
@@ -209,7 +216,7 @@ const ClassForm: React.FC<ClassFormProps> = ({
                             htmlFor="terms1"
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                            Block this class
+                            {t("form.block_label")}
                         </label>
 
                     </div>
@@ -221,12 +228,12 @@ const ClassForm: React.FC<ClassFormProps> = ({
                     {loading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
+                            {t("form.processing")}
                         </>
                     ) : type === "create" ? (
-                        "Create Class"
+                        t("form.submit_create")
                     ) : (
-                        "Update Class"
+                        t("form.submit_update")
                     )}
                 </Button>
             </DialogFooter>

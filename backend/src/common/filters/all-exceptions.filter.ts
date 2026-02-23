@@ -27,18 +27,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
       path: httpAdapter.getRequestUrl(ctx.getRequest()),
-      message: (exception as any).message || 'Internal server error',
+      message: (exception as any).message || (typeof exception === 'string' ? exception : 'Internal server error'),
     };
 
     // Log the error
-    this.logger.error(
-      `Http Status: ${httpStatus} Error: ${JSON.stringify(exception)}`,
-    );
+    const errorLog = {
+        status: httpStatus,
+        path: responseBody.path,
+        message: responseBody.message,
+        stack: (exception as any).stack,
+        exception: exception
+    };
 
-    // Don't leak stack trace in production
-    if (process.env.NODE_ENV === 'production' && httpStatus === HttpStatus.INTERNAL_SERVER_ERROR) {
-      responseBody.message = 'An unexpected error occurred. Please try again later.';
-    }
+    this.logger.error(
+      `Http Status: ${httpStatus} Error: ${JSON.stringify(errorLog, (key, value) => 
+          key === 'stack' ? (value ? value.split('\n') : undefined) : value
+      )}`,
+    );
 
     httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
   }

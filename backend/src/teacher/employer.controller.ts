@@ -155,4 +155,14 @@ export class EmployerController {
             res.status(404).send('Photo not found');
         }
     }
+
+    @Get('count/teacher')
+    async getCountTeacher() {
+        return this.employerService.GetCountTeacher();
+    }
+
+    @Get('count/staff')
+    async getCountStaff() {
+        return this.employerService.GetCountStaff();
+    }
 }

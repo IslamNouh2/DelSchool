@@ -5,12 +5,16 @@ import { CreatePayrollDto } from './dto/create-payroll.dto';
 import { UpdatePayrollDto } from './dto/update-payroll.dto';
 import { GeneratePayrollDto } from './dto/generate-payroll.dto';
 import { AttendanceStatus, PayrollStatus, Prisma, Payroll } from '@prisma/client';
+import { HRCalculationService } from './hr-calculation.service';
+import { PayrollApprovalService } from './payroll-approval.service';
 
 @Injectable()
 export class PayrollService {
   constructor(
     private prisma: PrismaService,
-    private compteService: CompteService
+    private compteService: CompteService,
+    private hrCalculation: HRCalculationService,
+    private approvalService: PayrollApprovalService,
   ) {}
 
   async create(createPayrollDto: CreatePayrollDto) {
@@ -30,10 +34,10 @@ export class PayrollService {
 
   async findAll(start?: string, end?: string) {
     const where: Prisma.PayrollWhereInput = {};
-    // if (start && end) {
-    //   where.period_start = { gte: new Date(start) };
-    //   where.period_end = { lte: new Date(end) };
-    // }
+    if (start && end) {
+      where.period_start = { gte: new Date(start) };
+      where.period_end = { lte: new Date(end) };
+    }
 
     return this.prisma.payroll.findMany({
       where,
@@ -45,6 +49,7 @@ export class PayrollService {
                 lastName: true,
                 code: true,
                 photoFileName: true,
+                salary: true,
             }
         },
         compte: {
@@ -66,6 +71,36 @@ export class PayrollService {
         employer: true,
       },
     });
+  }
+
+  async findByEmployerId(employerId: number) {
+    return this.prisma.payroll.findMany({
+      where: { employerId },
+      include: {
+        compte: {
+          select: {
+            id: true,
+            name: true,
+            code: true
+          }
+        }
+      },
+      orderBy: { period_end: 'desc' },
+    });
+  }
+
+  /**
+   * Delegates approval to PayrollApprovalService
+   */
+  async approvePayroll(id: number, adminId: number) {
+    return this.approvalService.approvePayroll(id, adminId);
+  }
+
+  /**
+   * Delegates submission to PayrollApprovalService
+   */
+  async submitPayroll(id: number, userId: number) {
+    return this.approvalService.submitPayroll(id, userId);
   }
 
   async payPayroll(id: number, paymentMethod: string = 'CASH', compteId?: number, expenseAccountIdOverride?: number) {
@@ -94,63 +129,45 @@ export class PayrollService {
 
             if (!payroll) throw new BadRequestException('Payroll record not found');
             if (payroll.status === PayrollStatus.PAID) throw new BadRequestException('Payroll already paid');
+            if (payroll.status !== PayrollStatus.APPROVED) {
+              throw new BadRequestException('Only APPROVED payroll can be paid');
+            }
 
-            // 1. Determine Expense Account (Destination) - Moved Up
-            let expenseAccountId = 0;
+            // 1. Determine Expense Account (Destination)
+            let expenseAccountId = payroll.compteId || 0;
 
-            // NEW LOGIC: Use Employer Specific Account or Override
-            if (expenseAccountIdOverride) {
-                expenseAccountId = expenseAccountIdOverride;
-            } else if (payroll.employerId) {
-                try {
+            if (expenseAccountId === 0) {
+                if (expenseAccountIdOverride) {
+                    expenseAccountId = expenseAccountIdOverride;
+                } else {
                     const employerAccount = await this.compteService.getOrCreateEmployerAccount(
                         payroll.employerId, 
                         `${payroll.employer.firstName} ${payroll.employer.lastName}`
                     );
                     expenseAccountId = employerAccount.id;
-                } catch (error) {
-                    console.error("FATAL: Error creating employer account for payroll:", error);
-                    // Fallback to generic logic below
-                }
-            }
-
-            if (expenseAccountId === 0) {
-                const expenseAccount = await tx.compte.findFirst({
-                where: { 
-                    OR: [
-                        { code: { startsWith: '63' } }, 
-                        { name: { contains: 'Salaire', mode: 'insensitive' } },
-                        { name: { contains: 'Salary', mode: 'insensitive' } } // Add English search
-                    ]
-                }
-                });
-
-                if (expenseAccount) {
-                    expenseAccountId = expenseAccount.id;
-                } else {
-                    // Fallback to ANY Class 6
-                    const anyExpense = await tx.compte.findFirst({ where: { code: { startsWith: '6' } } });
-                    if (anyExpense) expenseAccountId = anyExpense.id;
                 }
             }
             
             if (expenseAccountId === 0) {
-                 throw new BadRequestException('Could not determine Expense Account for this payroll. Please ensure a "Salaires" account exists.');
+                 throw new BadRequestException('Could not determine Expense Account for this payroll.');
             }
 
-            // 2. Create Expense Record
-            const expense = await tx.expense.create({
-                data: {
-                    title: `Salary Payment - ${payroll.employer.firstName} ${payroll.employer.lastName}`,
-                    category: 'Salaires',
-                    amount: payroll.netSalary,
-                    expenseDate: new Date(),
-                    description: `Payroll for period ${payroll.period_start.toISOString().split('T')[0]} to ${payroll.period_end.toISOString().split('T')[0]}`,
-                    isPaid: true,
-                }
+            // 2. We already created an Expense during Approval. 
+            // We should find it or update it. 
+            // In the original code it created a NEW expense. 
+            // Ideally, Approval creates the Expense (Accrual), and Pay marks it as paid and creates the movement.
+            
+            const existingExpense = await tx.expense.findFirst({
+              where: {
+                title: { contains: `Payroll for period ${payroll.period_start.toISOString().split('T')[0]}` },
+                compteId: expenseAccountId,
+                amount: payroll.netSalary
+              }
             });
 
-            // 3. Create Payment Record (Now with known accounts)
+            const expenseId = existingExpense?.id;
+
+            // 3. Create Payment Record
             const payment = await tx.payment.create({
                 data: {
                     amount: Number(payroll.netSalary),
@@ -158,18 +175,15 @@ export class PayrollService {
                     date: new Date(),
                     status: 'COMPLETED',
                     employerId: payroll.employerId,
-                    expenseId: expense.id,
-                    compteId: compteId,
+                    expenseId: expenseId,
                     compteSourceId: compteId, // Source (Treasury)
                     compteDestId: expenseAccountId, // Destination (Expense)
                     description: `Salary Payment #${payroll.id}`
-                } as any // Cast to any because Prisma types might not be updated yet
+                } as any
             });
 
             // 4. Create Journal Entry (Accounting)
             if (compteId) {
-                // Determine Journal based on account category or payment method
-                // Simple logic: if payment method is CASH -> Journal 2 (Caisse), else -> Journal 3 (Banque)
                 const journalId = paymentMethod === 'CASH' ? 2 : 3;
 
                 await tx.journalEntry.create({
@@ -183,19 +197,19 @@ export class PayrollService {
                         totalDebit: Number(payroll.netSalary),
                         totalCredit: Number(payroll.netSalary),
                         status: 'POSTED',
-                        createdBy: 1, // Default Admin
+                        createdBy: 1,
                         lines: {
                             create: [
                                 {
                                     lineNumber: 1,
-                                    compteId: expenseAccountId, // Debit Expense
+                                    compteId: expenseAccountId,
                                     debit: Number(payroll.netSalary),
                                     credit: 0,
                                     description: `Salaire ${payroll.employer.firstName} ${payroll.employer.lastName}`
                                 },
                                 {
                                     lineNumber: 2,
-                                    compteId: compteId, // Credit Treasury (Caisse/Banque)
+                                    compteId: compteId,
                                     debit: 0,
                                     credit: Number(payroll.netSalary),
                                     description: `Paiement Salaire: ${payroll.employer.firstName} ${payroll.employer.lastName}`
@@ -211,25 +225,10 @@ export class PayrollService {
                 where: { id },
                 data: { 
                     status: PayrollStatus.PAID,
-                    compteId: expenseAccountId // Store Expense Account here too? Yes, historically.
                 },
                 include: {
-                    employer: {
-                        select: {
-                            employerId: true,
-                            firstName: true,
-                            lastName: true,
-                            code: true,
-                            photoFileName: true,
-                        }
-                    },
-                    compte: {
-                        select: {
-                            id: true,
-                            name: true,
-                            code: true
-                        }
-                    }
+                    employer: true,
+                    compte: true
                 }
             });
 
@@ -314,56 +313,25 @@ export class PayrollService {
             },
         });
 
-        // 3. Calculation Logic
-        const daysInMonth = 30; // Simplify for now or use actual days
-        const dailyRate = 0; // If salary is monthly, we might deduce rate. 
-        // NOTE: Employer model doesn't have 'salary' field yet in provided schema?
-        // Let's check schema again. Employer has 'weeklyWorkload'.
-        // Wait, schema.prisma showed `baseSalary` in `Payroll` model, but `Employer` model doesn't have `salary`.
-        // I should look for where salary is stored. Maybe it's not stored and I need to add it or input it?
-        // For now, I will use a placeholder base salary or check if I missed it.
-        // Looking at schema: Employer model has: firstName, lastName, ... type, weeklyWorkload... but NO salary.
-        // CHECK: Maybe it's in `Contract` or similar? No contract model.
-        // ASSUMPTION: I will add `salary` to Employer model or assume a default for now.
-        // Let's assume a default of 0 and let user edit, OR better: Update schema to include salary.
-
-        // Plan: I'll check if I need to update schema. The user requirements said "Use the provided Prisma schema".
-        // But if salary is missing from Employer, I can't auto-calculate baseSalary.
-        // I will default baseSalary to 0 or 2000 (example) and let user edit.
-        // BETTER: I will use 0.
-        
-        // Let's try to calculate deductions based on attendance
-        // Count absences
-        const absents = attendance.filter(a => a.status === AttendanceStatus.ABSENT).length;
-        const lates = attendance.filter(a => a.status === AttendanceStatus.LATE).length;
-        
-        // Deduction logic: 1 Absent = 1 day pay? 3 Lates = 1 Absent?
-        // Since we don't have base salary in Employer, we can't calculate exact amount.
-        // I will store the *count* of deduction days equivalent in the 'deduction' field description or just calc 0.
-        // Wait, 'deductions' in Payroll is Decimal (amount).
-        
-        // I will create the payroll with 0 values and let them be edited, 
-        // OR better: I will add a `salary` field to Employer if I can.
-        // User said: "Use the provided Prisma schema... Compute deductions automatically".
-        // If I can't modify schema, I will assume baseSalary is entered manually or fixed.
-        // BUT, I can modify schema ("Verify/Update Prisma Schema" was in my plan).
-        // So I will ADD `salary` to Employer.
-
-        // For now, let's write the code assuming `emp.salary` exists, and I will update schema next.
-        const baseSalary = (emp as any).salary || 0; 
-        const dailySalary = baseSalary / daysInMonth; // Simple approximation
-        const deductionAmount = (absents * dailySalary) + (lates * dailySalary * 0.25); // Example rule
+        // Use HRCalculationService for logic
+        const calc = await this.hrCalculation.calculateSalary(
+            emp.salary,
+            attendance,
+            dto.allowances || 0,
+            emp.salaryBasis // Pass the new salaryBasis field
+        );
 
         const payroll = await this.prisma.payroll.create({
             data: {
                 employerId: emp.employerId,
                 period_start: start,
                 period_end: end,
-                baseSalary: baseSalary,
-                allowances: 0,
-                deductions: deductionAmount,
-                netSalary: baseSalary - deductionAmount,
+                baseSalary: calc.baseSalary,
+                allowances: calc.allowances,
+                deductions: calc.totalDeduction,
+                netSalary: calc.netSalary,
                 status: PayrollStatus.DRAFT,
+                attendanceSummary: calc.attendanceSummary as any,
                 compteId: dto.compteId ? Number(dto.compteId) : undefined,
                 createdAt: dto.date ? new Date(dto.date) : new Date(),
             }

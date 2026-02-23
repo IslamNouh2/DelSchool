@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Loader2, Landmark, Wallet, Receipt, CreditCard, Layers } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface CompteFormProps {
     type: "create" | "update";
@@ -49,6 +50,7 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
     const resolvedStudents = use(promises.students).students || [];
 
     const [isPending, startTransition] = useTransition();
+    const t = useTranslations("finance.accounts");
     
     const [form, setForm] = useState({
         code: data?.code || "",
@@ -81,17 +83,14 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
 
                 let response;
                 if (type === "create") {
-                    response = await api.post("/compte", payload);
-                    toast.success("Compte créé avec succès");
-                } else {
                     response = await api.patch(`/compte/${data.id}`, payload);
-                    toast.success("Compte mis à jour");
+                    toast.success(t("messages.update_success"));
                 }
                 
                 onSuccess(response.data);
                 setOpen(false);
             } catch (error) {
-                toast.error("Erreur lors de l'enregistrement");
+                toast.error(t("messages.save_error"));
             }
         });
     };
@@ -103,10 +102,10 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
                     <div className="relative z-10 flex justify-between items-center">
                         <div>
                             <DialogTitle className="font-[1000] text-3xl uppercase tracking-tighter">
-                                {type === "create" ? "Ajout de Compte" : "Modifier Compte"}
+                                {type === "create" ? t("form.add_title") : t("form.edit_title")}
                             </DialogTitle>
                             <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mt-1 opacity-70">
-                                Paramétrage de la structure financière
+                                {t("form.subtitle")}
                             </p>
                         </div>
                         <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-md">
@@ -119,7 +118,7 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Nature du Compte (Accounting Logic) */}
                         <div className="md:col-span-2 p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-[2rem] border border-blue-100 dark:border-blue-900/30">
-                            <Label className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-widest mb-4 block ml-1 text-center">Nature Comptable (Logique financière)</Label>
+                            <Label className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-widest mb-4 block ml-1 text-center">{t("form.nature_label")}</Label>
                             <RadioGroup 
                                 value={form.nature} 
                                 onValueChange={(v) => setForm(prev => ({ ...prev, nature: v }))}
@@ -132,7 +131,7 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
                                             htmlFor={`nat-${nat.id}`}
                                             className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-transparent bg-white dark:bg-slate-900 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 dark:peer-data-[state=checked]:bg-blue-900/20 cursor-pointer transition-all shadow-sm"
                                         >
-                                            <span className="text-[10px] font-[1000] uppercase tracking-tighter peer-data-[state=checked]:text-blue-700 dark:peer-data-[state=checked]:text-blue-400">{nat.label}</span>
+                                            <span className="text-[10px] font-[1000] uppercase tracking-tighter peer-data-[state=checked]:text-blue-700 dark:peer-data-[state=checked]:text-blue-400">{t(`natures.${nat.id.toLowerCase()}` as any)}</span>
                                         </Label>
                                     </div>
                                 ))}
@@ -141,7 +140,7 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
 
                         {/* Classification UI (Visual) */}
                         <div className="md:col-span-2 p-6 bg-gray-50 dark:bg-slate-950/50 rounded-[2rem] border border-gray-100 dark:border-slate-800">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest mb-4 block ml-1 text-center">Classification (Interface)</Label>
+                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest mb-4 block ml-1 text-center">{t("form.classification_label")}</Label>
                             <RadioGroup 
                                 value={form.category} 
                                 onValueChange={(v) => {
@@ -161,7 +160,7 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
                                             className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-transparent bg-white dark:bg-slate-900 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 dark:peer-data-[state=checked]:bg-blue-900/20 cursor-pointer transition-all hover:scale-105 shadow-sm"
                                         >
                                             <cat.icon className="w-5 h-5 text-gray-400 peer-data-[state=checked]:text-blue-600 transition-colors" />
-                                            <span className="text-[8px] font-black uppercase tracking-tighter peer-data-[state=checked]:text-blue-700 dark:peer-data-[state=checked]:text-blue-400">{cat.label}</span>
+                                            <span className="text-[8px] font-black uppercase tracking-tighter peer-data-[state=checked]:text-blue-700 dark:peer-data-[state=checked]:text-blue-400">{t(`categories.${cat.id.toLowerCase()}` as any)}</span>
                                         </Label>
                                     </div>
                                 ))}
@@ -171,35 +170,35 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
                     {/* Information de base (Toujours visible) */}
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Code *</Label>
+                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">{t("form.code")} *</Label>
                             <Input 
                                 value={form.code} 
                                 onChange={(e) => setForm(prev => ({ ...prev, code: e.target.value }))}
                                 className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-bold bg-orange-50/50 dark:bg-orange-900/10 dark:text-orange-400 text-orange-700"
-                                placeholder="Ex: 5121..."
+                                placeholder={t("form.placeholder_code")}
                                 required
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Désignation *</Label>
+                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">{t("form.designation")} *</Label>
                             <Input 
                                 value={form.name} 
                                 onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                                 className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-bold bg-gray-50/50 dark:bg-slate-950/50 focus:bg-white dark:focus:bg-slate-950 transition-all dark:text-gray-200"
-                                placeholder="Désignation du compte"
+                                placeholder={t("form.placeholder_name")}
                                 required
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Compte Parent :</Label>
+                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">{t("form.parent_account")} :</Label>
                             <Select value={form.parentId} onValueChange={(v) => setForm(prev => ({ ...prev, parentId: v }))}>
                                 <SelectTrigger className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-700 dark:text-blue-400">
-                                    <SelectValue placeholder="TOUS LES COMPTES" />
+                                    <SelectValue placeholder={t("form.all_accounts")} />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl dark:bg-slate-800">
-                                    <SelectItem value="-1" className="font-bold">TOUS LES COMPTES</SelectItem>
+                                    <SelectItem value="-1" className="font-bold">{t("form.all_accounts")}</SelectItem>
                                     {resolvedParents
                                         .filter((p: any) => p.showInParent)
                                         .map((p: any) => (
@@ -212,26 +211,26 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
 
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Désignation arabe</Label>
+                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">{t("form.designation_ar")}</Label>
                             <Input 
                                 value={form.nameAr} 
                                 dir="rtl"
                                 onChange={(e) => setForm(prev => ({ ...prev, nameAr: e.target.value }))}
                                 className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-bold bg-gray-50/50 dark:bg-slate-950/50 focus:bg-white dark:focus:bg-slate-950 transition-all text-right dark:text-gray-200"
-                                placeholder="اسم الحساب"
+                                placeholder={t("form.placeholder_name_ar")}
                             />
                         </div>
 
 
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Code de sélection</Label>
+                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">{t("form.selection_code")}</Label>
                             <Select value={form.selectionCode} onValueChange={(v) => setForm(prev => ({ ...prev, selectionCode: v }))}>
                                 <SelectTrigger className="rounded-2xl border-gray-100 dark:border-slate-800 h-14 font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-700 dark:text-blue-400">
-                                    <SelectValue placeholder="Choisir..." />
+                                    <SelectValue placeholder={t("form.placeholder_selection")} />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl dark:bg-slate-800">
-                                    <SelectItem value="none" className="font-bold">— AUCUN —</SelectItem>
+                                    <SelectItem value="none" className="font-bold">— {t("form.none")} —</SelectItem>
                                     <SelectItem value="SC01" className="font-bold text-xs">SÉLECTION 01</SelectItem>
                                     <SelectItem value="SC02" className="font-bold text-xs">SÉLECTION 02</SelectItem>
                                 </SelectContent>
@@ -240,8 +239,8 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
                     </div>
 
                     <div className="md:col-span-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-6 bg-gray-50 dark:bg-slate-950/30 rounded-[2rem] border border-gray-100 dark:border-slate-800">
-                        <FlagCheckbox id="isFeeCash" label="Frais/Caisse" checked={form.isFeeCash} onChange={(v) => setForm(p => ({...p, isFeeCash: v}))} />
-                        <FlagCheckbox id="showInParent" label="Visible Parent" checked={form.showInParent} onChange={(v) => setForm(p => ({...p, showInParent: v}))} />
+                        <FlagCheckbox id="isFeeCash" label={t("form.flags.fee_cash")} checked={form.isFeeCash} onChange={(v) => setForm(p => ({...p, isFeeCash: v}))} />
+                        <FlagCheckbox id="showInParent" label={t("form.flags.show_parent")} checked={form.showInParent} onChange={(v) => setForm(p => ({...p, showInParent: v}))} />
                     </div>
                 </div>
 
@@ -251,14 +250,14 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
                             disabled={isPending}
                             className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all active:scale-95 text-white"
                         >
-                            {isPending ? <Loader2 className="animate-spin" /> : "Valider"}
+                            {isPending ? <Loader2 className="animate-spin" /> : t("form.validate")}
                         </Button>
                         <Button 
                             type="button"
                             onClick={() => setOpen(false)}
                             className="h-14 px-8 rounded-2xl bg-rose-600 hover:bg-rose-700 font-black text-sm uppercase tracking-widest shadow-xl shadow-rose-500/20 transition-all active:scale-95 text-white"
                         >
-                            Annuler
+                            {t("form.cancel")}
                         </Button>
                     </div>
                 </form>

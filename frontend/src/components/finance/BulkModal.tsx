@@ -18,8 +18,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CreditCard, AlertTriangle, Loader2 } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { FeeTemplate } from "./types";
 
 interface BulkModalProps {
@@ -30,6 +32,9 @@ interface BulkModalProps {
 }
 
 export function BulkModal({ open, onOpenChange, templates, onConfirm }: BulkModalProps) {
+    const t = useTranslations("finance.studentFees.modals.bulk");
+    const locale = useLocale();
+    const isRtl = locale === 'ar';
     const [templateId, setTemplateId] = React.useState<string>("");
     const [dueDate, setDueDate] = React.useState<string>(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = React.useState(false);
@@ -55,35 +60,35 @@ export function BulkModal({ open, onOpenChange, templates, onConfirm }: BulkModa
                         <CreditCard size={32} />
                     </div>
                     <div className="space-y-1">
-                        <DialogTitle className="text-3xl font-black uppercase tracking-tighter text-gray-900 dark:text-gray-100">
-                            Abonnement Groupé
+                        <DialogTitle className={cn("text-3xl font-black uppercase tracking-tighter text-gray-900 dark:text-gray-100", isRtl && "text-right")}>
+                            {t("title")}
                         </DialogTitle>
-                        <DialogDescription className="text-sm font-medium text-gray-500 dark:text-slate-500 uppercase tracking-widest/50">
-                            Inscrire tous les élèves à un service
+                        <DialogDescription className={cn("text-sm font-medium text-gray-500 dark:text-slate-500 uppercase tracking-widest/50", isRtl && "text-right")}>
+                            {t("description")}
                         </DialogDescription>
                     </div>
                 </DialogHeader>
 
                 <div className="py-6 space-y-6">
-                    <Alert className="bg-amber-50 dark:bg-amber-950/40 border-amber-100 dark:border-amber-900/50 rounded-2xl">
-                        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                        <AlertTitle className="text-amber-800 dark:text-amber-200 font-bold uppercase text-[10px] tracking-widest">Attention</AlertTitle>
+                    <Alert className={cn("bg-amber-50 dark:bg-amber-950/40 border-amber-100 dark:border-amber-900/50 rounded-2xl", isRtl && "text-right")}>
+                        <AlertTriangle className={cn("h-5 w-5 text-amber-600 dark:text-amber-400", isRtl ? "ml-2" : "mr-2")} />
+                        <AlertTitle className="text-amber-800 dark:text-amber-200 font-bold uppercase text-[10px] tracking-widest">{t("alert_title")}</AlertTitle>
                         <AlertDescription className="text-amber-700 dark:text-amber-400/80 text-xs font-medium leading-relaxed">
-                            Cette action générera un frais et une écriture comptable pour **TOUS** les élèves inscrits. Cette opération est irréversible en bloc.
+                            {t("alert_desc")}
                         </AlertDescription>
                     </Alert>
 
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Modèle de Frais</Label>
+                            <Label className={cn("text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1", isRtl && "text-right block")}>{t("template")}</Label>
                             <Select value={templateId} onValueChange={setTemplateId}>
-                                <SelectTrigger className="rounded-xl border-gray-100 dark:border-slate-800 h-12 font-bold shadow-sm bg-gray-50/50 dark:bg-slate-950/50 dark:text-gray-200">
-                                    <SelectValue placeholder="Choisir un modèle..." />
+                                <SelectTrigger className={cn("rounded-xl border-gray-100 dark:border-slate-800 h-12 font-bold shadow-sm bg-gray-50/50 dark:bg-slate-950/50 dark:text-gray-200", isRtl && "flex-row-reverse")}>
+                                    <SelectValue placeholder={t("placeholder_template")} />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl border-gray-100 dark:border-slate-800 shadow-2xl dark:bg-slate-900 dark:text-gray-200">
-                                    {templates.map(t => (
-                                        <SelectItem key={t.id} value={String(t.id)} className="font-bold py-3 rounded-xl focus:bg-amber-50 dark:focus:bg-amber-900/20">
-                                            {t.title} <span className="text-blue-600 dark:text-blue-400 ml-2">({t.amount.toLocaleString()} DA)</span>
+                                    {templates.map(t_item => (
+                                        <SelectItem key={t_item.id} value={String(t_item.id)} className={cn("font-bold py-3 rounded-xl focus:bg-amber-50 dark:focus:bg-amber-900/20", isRtl && "flex-row-reverse text-right")}>
+                                            {t_item.title} <span className={cn("text-blue-600 dark:text-blue-400", isRtl ? "mr-2" : "ml-2")}>({t_item.amount.toLocaleString()} DA)</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -91,12 +96,12 @@ export function BulkModal({ open, onOpenChange, templates, onConfirm }: BulkModa
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1">Date d'échéance</Label>
+                            <Label className={cn("text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest ml-1", isRtl && "text-right block")}>{t("due_date")}</Label>
                             <Input 
                                 type="date" 
                                 value={dueDate} 
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className="rounded-xl border-gray-100 dark:border-slate-800 h-12 font-bold shadow-sm bg-gray-50/50 dark:bg-slate-950/50 dark:text-gray-200"
+                                className={cn("rounded-xl border-gray-100 dark:border-slate-800 h-12 font-bold shadow-sm bg-gray-50/50 dark:bg-slate-950/50 dark:text-gray-200", isRtl && "text-right")}
                             />
                         </div>
                     </div>
@@ -109,7 +114,7 @@ export function BulkModal({ open, onOpenChange, templates, onConfirm }: BulkModa
                         {loading ? (
                             <Loader2 className="animate-spin h-5 w-5" />
                         ) : (
-                            "Lancer la Génération en Masse"
+                            t("confirm")
                         )}
                     </Button>
                 </div>

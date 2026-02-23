@@ -1,51 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from './lib/auth';
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
-    const accessToken = request.cookies.get('accessToken')?.value;
-    const refreshToken = request.cookies.get('refreshToken')?.value;
+    // 1. Handle i18n routing first
+    const response = intlMiddleware(request);
 
-    if (!accessToken && !refreshToken) {
-        return NextResponse.redirect(new URL('/login', request.url));
-    }
+    // 2. Check if the current route is protected (regardless of locale prefix)
+    const pathname = request.nextUrl.pathname;
+    
+    // Check for protected patterns: /dashboard, /list, or /[locale]/dashboard, /[locale]/list
+    const isDashboardRoute = pathname.match(/^\/(?:[a-z]{2}\/)?dashboard(?:\/.*)?$/);
+    const isListRoute = pathname.match(/^\/(?:[a-z]{2}\/)?list(?:\/.*)?$/);
 
-    if (accessToken) {
-        try {
-            const payload = await verifyToken(accessToken);
-            if (payload?.role) {
-                return NextResponse.next();
+    if (isDashboardRoute || isListRoute) {
+        const accessToken = request.cookies.get('accessToken')?.value;
+        const refreshToken = request.cookies.get('refreshToken')?.value;
+
+        if (!accessToken && !refreshToken) {
+            // Get current locale from pathname or default
+            const locale = pathname.split('/')[1] || 'en';
+            const redirectLocale = routing.locales.includes(locale as any) ? locale : 'en';
+            return NextResponse.redirect(new URL(`/${redirectLocale}/login`, request.url));
+        }
+
+        if (accessToken) {
+            try {
+                const payload = await verifyToken(accessToken);
+                if (payload?.role) {
+                    return response; // Proceed with intl response
+                }
+            } catch (e) {
+                console.error('Invalid access token, checking refresh token');
             }
-        } catch (e) {
-            console.error('Invalid access token, checking refresh token');
+        }
+
+        // If accessToken is invalid but refreshToken exists, proceed and let backend handle
+        // or redirect to login if refreshToken is also missing/invalid
+        if (!refreshToken) {
+            const locale = pathname.split('/')[1] || 'en';
+            const redirectLocale = routing.locales.includes(locale as any) ? locale : 'en';
+            return NextResponse.redirect(new URL(`/${redirectLocale}/login`, request.url));
         }
     }
 
-    // Try to refresh if accessToken is missing or invalid
-    if (refreshToken) {
-        try {
-            // We can't easily refresh in middleware and update cookies in the SAME request
-            // to the original target easily without a redirect or complex logic.
-            // For now, if we have a refresh token but no valid access token, 
-            // we redirect to a special refresh page or just allow it if the backend handles it.
-            // But usually, we want to force a refresh call.
-            
-            // Allow the request to proceed; the backend will validate the refreshToken 
-            // if the accessToken is missing (if we configure the backend that way)
-            // OR we redirect to a /refresh route.
-            
-            return NextResponse.next(); 
-        } catch (e) {
-            return NextResponse.redirect(new URL('/login', request.url));
-        }
-    }
-
-    return NextResponse.redirect(new URL('/login', request.url));
+    return response;
 }
 
 export const config = {
-    matcher: [
-        '/dashboard/:path*',
-        '/list/:path*',
-        // add other protected routes here
-    ],
+    // Matcher for both i18n and protected routes
+    matcher: ['/', '/(ar|en|fr)/:path*', '/dashboard/:path*', '/list/:path*', '/admin/:path*'],
 };

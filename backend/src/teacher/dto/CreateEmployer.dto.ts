@@ -112,4 +112,16 @@ export class CreateEmployerDto {
     @Min(0)
     @Type(() => Number)
     salary?: number;
+
+    @IsOptional()
+    @IsString()
+    salaryBasis?: string;
+
+    @IsOptional()
+    @IsString()
+    checkInTime?: string;
+
+    @IsOptional()
+    @IsString()
+    checkOutTime?: string;
 }

@@ -6,5 +6,6 @@ import { ParameterController } from './parameter.controller';
 @Module({
   controllers: [ParameterController],
   providers: [ParameterService],
+  exports: [ParameterService],
 })
 export class ParameterModule {}

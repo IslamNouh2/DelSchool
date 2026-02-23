@@ -104,66 +104,128 @@ export class FinanceService {
     };
   }
 
-  async getChartData() {
-    // 1. Get Current School Year
-    const currentSchoolYear = await this.prisma.schoolYear.findFirst({
-      where: { isCurrent: true },
-    });
+  async getChartData(period: string = 'monthly') {
+    let startDate: Date;
+    let endDate: Date = new Date();
+    let interval: 'day' | 'week' | 'month' | 'year';
+    let count: number;
 
-    const startDate = currentSchoolYear ? currentSchoolYear.startDate : new Date(new Date().getFullYear(), 0, 1);
-    const endDate = currentSchoolYear ? currentSchoolYear.endDate : new Date(new Date().getFullYear(), 11, 31);
-
-    // 2. Generate months between start and end
-    const months: { name: string; date: Date; income: number; expense: number }[] = [];
-    let currentDate = new Date(startDate);
-    // Align to 1st of month
-    currentDate.setDate(1);
-
-    while (currentDate <= endDate) {
-        months.push({
-            name: currentDate.toLocaleString('fr-FR', { month: 'short' }), // e.g. "sept."
-            date: new Date(currentDate), // Keep reference for matching
-            income: 0,
-            expense: 0
-        });
-        // Next month
-        currentDate.setMonth(currentDate.getMonth() + 1);
+    switch (period) {
+        case 'daily':
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            interval = 'day';
+            count = 31;
+            break;
+        case 'weekly':
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - (12 * 7));
+            interval = 'week';
+            count = 13;
+            break;
+        case 'yearly':
+            startDate = new Date();
+            startDate.setFullYear(startDate.getFullYear() - 5);
+            interval = 'year';
+            count = 6;
+            break;
+        case 'monthly':
+        default:
+            const currentSchoolYear = await this.prisma.schoolYear.findFirst({
+                where: { isCurrent: true },
+            });
+            startDate = currentSchoolYear ? currentSchoolYear.startDate : new Date(new Date().getFullYear(), 0, 1);
+            endDate = currentSchoolYear ? currentSchoolYear.endDate : new Date(new Date().getFullYear(), 11, 31);
+            interval = 'month';
+            count = 12; // Adjusted dynamically below
+            break;
     }
 
-    // 3. Fetch Payments (Cash Flow)
+    const dataPoints: { name: string; date: Date; income: number; expense: number }[] = [];
+    let curr = new Date(startDate);
+
+    if (interval === 'month') {
+        curr.setDate(1);
+        while (curr <= endDate) {
+            dataPoints.push({
+                name: curr.toLocaleString('fr-FR', { month: 'short' }),
+                date: new Date(curr),
+                income: 0,
+                expense: 0
+            });
+            curr.setMonth(curr.getMonth() + 1);
+        }
+    } else if (interval === 'day') {
+        for (let i = 0; i < count; i++) {
+            dataPoints.push({
+                name: curr.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+                date: new Date(curr),
+                income: 0,
+                expense: 0
+            });
+            curr.setDate(curr.getDate() + 1);
+        }
+    } else if (interval === 'week') {
+        for (let i = 0; i < count; i++) {
+            dataPoints.push({
+                name: `W${i + 1}`,
+                date: new Date(curr),
+                income: 0,
+                expense: 0
+            });
+            curr.setDate(curr.getDate() + 7);
+        }
+    } else if (interval === 'year') {
+        for (let i = 0; i < count; i++) {
+            dataPoints.push({
+                name: curr.getFullYear().toString(),
+                date: new Date(curr),
+                income: 0,
+                expense: 0
+            });
+            curr.setFullYear(curr.getFullYear() + 1);
+        }
+    }
+
     const payments = await this.prisma.payment.findMany({
         where: {
-            date: {
-                gte: startDate,
-                lte: endDate
-            },
-            status: 'COMPLETED' // Only completed payments
+            date: { gte: startDate, lte: endDate },
+            status: 'COMPLETED'
         },
         select: { date: true, amount: true, studentId: true, expenseId: true }
     });
 
-    // 4. Map Data to Months
     payments.forEach(p => {
         const pDate = new Date(p.date);
-        const monthIndex = months.findIndex(m => 
-            m.date.getMonth() === pDate.getMonth() && 
-            m.date.getFullYear() === pDate.getFullYear()
-        );
+        let pointIndex = -1;
 
-        if (monthIndex !== -1) {
-            // Income: Student Payments
-            if (p.studentId) {
-                months[monthIndex].income += Number(p.amount);
-            }
-            // Expense: Expense Payments (includes Payrolls linked to Expenses)
-            if (p.expenseId) {
-                months[monthIndex].expense += Number(p.amount);
-            }
+        if (interval === 'month') {
+            pointIndex = dataPoints.findIndex(m => 
+                m.date.getMonth() === pDate.getMonth() && 
+                m.date.getFullYear() === pDate.getFullYear()
+            );
+        } else if (interval === 'day') {
+            pointIndex = dataPoints.findIndex(m => 
+                m.date.getDate() === pDate.getDate() && 
+                m.date.getMonth() === pDate.getMonth() &&
+                m.date.getFullYear() === pDate.getFullYear()
+            );
+        } else if (interval === 'week') {
+            pointIndex = dataPoints.findIndex((m, idx) => {
+                const nextPoint = dataPoints[idx + 1]?.date || new Date(8640000000000000);
+                return pDate >= m.date && pDate < nextPoint;
+            });
+        } else if (interval === 'year') {
+            pointIndex = dataPoints.findIndex(m => m.date.getFullYear() === pDate.getFullYear());
+        }
+
+        if (pointIndex !== -1) {
+            if (p.studentId) dataPoints[pointIndex].income += Number(p.amount);
+            if (p.expenseId) dataPoints[pointIndex].expense += Number(p.amount);
         }
     });
 
-    // Clean up date object before return
-    return months.map(m => ({
+    return dataPoints.map(m => ({
         name: m.name,
         income: m.income,
         expense: m.expense

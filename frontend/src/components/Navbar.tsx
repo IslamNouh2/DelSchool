@@ -13,19 +13,27 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { useTranslations } from 'next-intl'
+
 const Navbar = () => {
     const { setTheme } = useTheme()
+    const t = useTranslations('common')
+    
     return (
         <div className='flex flex-col gap-4 p-4'>
             <GlobalBreadcrumb />
             <div className='flex items-center justify-between'>
                 {/*Search Bar*/}
                 <div className="hidden lg:block relative w-full max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input type="search" placeholder="Search..." className="pl-10"/>
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input type="search" placeholder={t('search')} className="ps-10"/>
                 </div>
                 {/*Icons and Users */}
                 <div className="flex items-center justify-end gap-6 w-full">
+                    <div className="hidden sm:block">
+                        <LanguageSwitcher />
+                    </div>
                     <Button variant="ghost" size="icon" className="rounded-full">
                         <MessageCircle className="h-5 w-5 text-muted-foreground" />
                     </Button>
@@ -33,8 +41,8 @@ const Navbar = () => {
                         <Megaphone className="h-5 w-5 text-muted-foreground" />
                     </Button>
                     <div className="flex flex-col">
-                        <span className="text-xs leading-3 font-medium">Username</span>
-                        <span className="text-[10px] text-muted-foreground text-right">Admin</span>
+                        <span className="text-xs leading-3 font-medium">{t('username')}</span>
+                        <span className="text-[10px] text-muted-foreground text-end">{t('admin')}</span>
                     </div>
                     <div>
                         <DropdownMenu>
@@ -47,13 +55,13 @@ const Navbar = () => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => setTheme("light")}>
-                                    Light
+                                    {t('theme_light')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setTheme("dark")}>
-                                    Dark
+                                    {t('theme_dark')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setTheme("system")}>
-                                    System
+                                    {t('theme_system')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

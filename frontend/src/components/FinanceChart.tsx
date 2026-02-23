@@ -22,11 +22,13 @@ const FinanceChartComponent = () => {
 
     const [data, setData] = React.useState<{ name: string; income: number; expense: number }[]>([]);
     const [loading, setLoading] = React.useState(true);
+    const [period, setPeriod] = React.useState("monthly");
 
     React.useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await api.get("/finance/chart");
+                setLoading(true);
+                const res = await api.get(`/finance/chart?period=${period}`);
                 setData(res.data);
             } catch (error) {
                 console.error("Failed to fetch finance chart data", error);
@@ -35,7 +37,7 @@ const FinanceChartComponent = () => {
             }
         };
         fetchData();
-    }, []);
+    }, [period]);
 
     if (loading) {
         return (
@@ -64,14 +66,18 @@ const FinanceChartComponent = () => {
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full bg-[#bf95f9] shadow-[0_0_10px_rgba(191,149,249,0.3)]"></div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest transition-colors">Expence</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest transition-colors">Expense</span>
                         </div>
                     </div>
-                    <button className="bg-gray-50 dark:bg-[#0b0d17] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-2.5 text-[10px] font-black text-gray-600 dark:text-white flex items-center gap-2 transition-all hover:bg-gray-100 dark:hover:bg-[#252839] uppercase tracking-wider">
-                        Download <span className="opacity-50">📊</span>
-                    </button>
-                    <select className="bg-[#0052cc] border-none rounded-xl text-[10px] font-black px-4 py-2.5 outline-none text-white shadow-xl shadow-blue-500/10 uppercase tracking-widest cursor-pointer">
-                        <option>Monthly</option>
+                    <select 
+                        value={period}
+                        onChange={(e) => setPeriod(e.target.value.toLowerCase())}
+                        className="bg-[#0052cc] border-none rounded-xl text-[10px] font-black px-4 py-2.5 outline-none text-white shadow-xl shadow-blue-500/10 uppercase tracking-widest cursor-pointer"
+                    >
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="daily">Daily</option>
                     </select>
                 </div>
             </div>
@@ -99,6 +105,8 @@ const FinanceChartComponent = () => {
                             tickLine={false} 
                             tick={{ fill: isDark ? '#4b5563' : '#9ca3af', fontSize: 10, fontWeight: 700 }}
                             dy={10}
+                            minTickGap={30}
+                            interval="preserveStartEnd"
                         />
                         <YAxis 
                             axisLine={false} 

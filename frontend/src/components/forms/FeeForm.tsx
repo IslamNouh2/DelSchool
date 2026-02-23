@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useTranslations } from "next-intl";
 
 const schema = z.object({
   type: z.enum(["income", "expense"], { message: "Type is required" }),
@@ -52,6 +53,9 @@ interface StudentItem {
 }
 
 const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
+  const t = useTranslations("finance.studentFees.modals.new_fee");
+  const commonT = useTranslations("finance.studentFees.messages");
+
   const {
     register,
     handleSubmit,
@@ -99,7 +103,7 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
         setComptes(compteRes.data.comptes || []);
       } catch (error) {
         console.error("Error fetching form data:", error);
-        toast.error("Failed to load classes and students");
+        toast.error(commonT("load_error"));
       }
     };
 
@@ -133,10 +137,10 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
 
       if (type === "create") {
         await api.post("/fees", payload);
-        toast.success("Fee created successfully!");
+        toast.success(commonT("fee_assigned"));
       } else {
         await api.patch(`/fees/${data.id}`, payload);
-        toast.success("Fee updated successfully!");
+        toast.success(commonT("update_success"));
       }
       
       // Use setTimeout to avoid potential Radix UI focus/pointer-events freeze
@@ -149,18 +153,18 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
       }, 0);
     } catch (error) {
       console.error("Error submitting fee form:", error);
-      toast.error("Something went wrong!");
+      toast.error(commonT("assign_error"));
     }
   });
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create" ? "Create a new Fee" : "Update Fee"}
+        {type === "create" ? t("title") : t("update_title")}
       </h1>
       
       <div className="flex flex-col gap-2">
-        <Label>Type</Label>
+        <Label>{t("labels.type")}</Label>
         <Controller
           name="type"
           control={control}
@@ -173,13 +177,13 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="income" id="income" />
                 <Label htmlFor="income" className="font-normal cursor-pointer">
-                  Income (Fee)
+                  {t("types.income")}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="expense" id="expense" />
                 <Label htmlFor="expense" className="font-normal cursor-pointer">
-                  Expense
+                  {t("types.expense")}
                 </Label>
               </div>
             </RadioGroup>
@@ -191,23 +195,23 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
       </div>
       
       <div className="flex flex-col gap-2">
-        <Label>Title</Label>
-        <Input {...register("title")} placeholder="Tuition Fee" />
+        <Label>{t("labels.title")}</Label>
+        <Input {...register("title")} placeholder={t("placeholders.title")} />
         {errors.title?.message && (
           <p className="text-xs text-red-500">{errors.title.message}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Amount</Label>
-        <Input type="number" step="0.01" {...register("amount")} placeholder="100.00" />
+        <Label>{t("labels.amount")}</Label>
+        <Input type="number" step="0.01" {...register("amount")} placeholder="0.00" />
         {errors.amount?.message && (
           <p className="text-xs text-red-500">{errors.amount.message}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Due Date</Label>
+        <Label>{t("labels.due_date")}</Label>
         <Input type="date" {...register("dueDate")} />
         {errors.dueDate?.message && (
           <p className="text-xs text-red-500">{errors.dueDate.message}</p>
@@ -215,7 +219,7 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Account (Compte)</Label>
+        <Label>{t("labels.account")}</Label>
         <Controller
           name="compteId"
           control={control}
@@ -225,7 +229,7 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
               value={field.value ? String(field.value) : undefined}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select an account" />
+                <SelectValue placeholder={t("placeholders.account")} />
               </SelectTrigger>
               <SelectContent>
                 {comptes.map((c) => (
@@ -261,7 +265,7 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
-          <Label>Class (Optional)</Label>
+          <Label>{t("labels.class")}</Label>
           <Controller
             name="classId"
             control={control}
@@ -271,7 +275,7 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
                 value={field.value ? String(field.value) : undefined}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a class" />
+                <SelectValue placeholder={t("placeholders.class")} />
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((c) => (
@@ -286,7 +290,7 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>Student (Optional)</Label>
+          <Label>{t("labels.student")}</Label>
           <Controller
             name="studentId"
             control={control}
@@ -296,7 +300,7 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
                 value={field.value ? String(field.value) : undefined}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a student" />
+                <SelectValue placeholder={t("placeholders.student")} />
                 </SelectTrigger>
                 <SelectContent>
                   {students.map((s) => (
@@ -312,15 +316,15 @@ const FeeForm = ({ type, data, setOpen, onSuccess }: FeeFormProps) => {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Description</Label>
-        <Input {...register("description")} placeholder="Optional description" />
+        <Label>{t("labels.description")}</Label>
+        <Input {...register("description")} placeholder={t("placeholders.description")} />
         {errors.description?.message && (
           <p className="text-xs text-red-500">{errors.description.message}</p>
         )}
       </div>
 
       <Button type="submit" className="mt-4">
-        {type === "create" ? "Create" : "Update"}
+        {type === "create" ? t("submit") : t("update_submit")}
       </Button>
     </form>
   );

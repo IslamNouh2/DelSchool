@@ -7,11 +7,14 @@ import { UpdateEmployerAttendanceDto } from './dto/update-employer-attendance.dt
 import { AttendanceStatus } from '@prisma/client';
 import { SocketGateway } from '../socket/socket.gateway';
 
+import { ParameterService } from '../parameter/parameter.service';
+
 @Injectable()
 export class AttendanceService {
     constructor(
         private readonly repo: AttendanceRepository,
-        private readonly socketGateway: SocketGateway
+        private readonly socketGateway: SocketGateway,
+        private readonly parameterService: ParameterService
     ) { }
 
     // 🧒 Student
@@ -53,13 +56,84 @@ export class AttendanceService {
 
     // 👩‍🏫 Employer
     async createEmployer(dto: CreateEmployerAttendanceDto) {
-        const result = await this.repo.createEmployer(dto);
+        let { status, checkInTime, employerId } = dto;
+
+        // Fetch employer config for this specific pointage
+        const employer = await this.repo.getEmployerConfig(employerId) as any;
+        
+        // Auto-determine status if not explicitly set to something else (like EXCUSED)
+        if (checkInTime && (!status || status === AttendanceStatus.PRESENT || status === AttendanceStatus.LATE)) {
+            const checkIn = new Date(checkInTime);
+            const hours = checkIn.getHours();
+            const minutes = checkIn.getMinutes();
+
+            // Use employer's specific shift time, or fallback to global threshold
+            let thresholdHours = 8;
+            let thresholdMinutes = 10;
+
+            if (employer?.checkInTime) {
+                const [h, m] = employer.checkInTime.split(':').map(Number);
+                thresholdHours = h;
+                thresholdMinutes = m;
+            } else {
+                const globalThreshold = await this.parameterService.getLateThreshold();
+                thresholdHours = globalThreshold.hours;
+                thresholdMinutes = globalThreshold.minutes;
+            }
+
+            if (hours > thresholdHours || (hours === thresholdHours && minutes > thresholdMinutes)) {
+                status = AttendanceStatus.LATE;
+            } else {
+                status = AttendanceStatus.PRESENT;
+            }
+        } else if (!checkInTime && !status) {
+            status = AttendanceStatus.ABSENT;
+        }
+
+        const result = await this.repo.createEmployer({ ...dto, status });
         this.socketGateway.emitRefresh();
         return result;
     }
 
     async updateEmployer(id: number, dto: UpdateEmployerAttendanceDto) {
-        const result = await this.repo.updateEmployer(id, dto);
+        let { status, checkInTime, employerId } = dto;
+
+        if (checkInTime && (!status || status === AttendanceStatus.PRESENT || status === AttendanceStatus.LATE)) {
+            // We need employerId to get config. If not in DTO, we might need to fetch existing record first.
+            let eid = employerId;
+            if (!eid) {
+                const existing = await this.repo.getEmployerAttendanceById(id);
+                eid = existing?.employerId;
+            }
+
+            if (eid) {
+                const employer = await this.repo.getEmployerConfig(eid) as any;
+                const checkIn = new Date(checkInTime as any);
+                const hours = checkIn.getHours();
+                const minutes = checkIn.getMinutes();
+
+                let thresholdHours = 8;
+                let thresholdMinutes = 10;
+
+                if (employer?.checkInTime) {
+                    const [h, m] = employer.checkInTime.split(':').map(Number);
+                    thresholdHours = h;
+                    thresholdMinutes = m;
+                } else {
+                    const globalThreshold = await this.parameterService.getLateThreshold();
+                    thresholdHours = globalThreshold.hours;
+                    thresholdMinutes = globalThreshold.minutes;
+                }
+
+                if (hours > thresholdHours || (hours === thresholdHours && minutes > thresholdMinutes)) {
+                    status = AttendanceStatus.LATE;
+                } else {
+                    status = AttendanceStatus.PRESENT;
+                }
+            }
+        }
+
+        const result = await this.repo.updateEmployer(id, { ...dto, status });
         this.socketGateway.emitRefresh();
         return result;
     }
@@ -107,5 +181,41 @@ export class AttendanceService {
 
     getStudentAttendance(studentId: number) {
         return this.repo.getStudentAttendance(studentId);
+    }
+
+    getEmployerWeeklyChartData() {
+        return this.repo.getEmployerWeeklyChartData();
+    }
+
+    async getEmployerDailySummaryData(date: string) {
+        return this.repo.getEmployerDailySummaryData(date);
+    }
+
+    async getEmployerStats(employerId: number) {
+        const attendance = await this.repo.getEmployerAttendanceByEmployerId(employerId);
+        const totalDays = attendance.length;
+        if (totalDays === 0) {
+            return {
+                totalDays: 0,
+                absentDays: 0,
+                lateDays: 0,
+                presentDays: 0,
+                attendanceRate: 100,
+            };
+        }
+
+        const absentDays = attendance.filter(a => a.status === AttendanceStatus.ABSENT).length;
+        const lateDays = attendance.filter(a => a.status === AttendanceStatus.LATE).length;
+        const presentDays = totalDays - absentDays;
+        const attendanceRate = ((presentDays / totalDays) * 100).toFixed(1);
+
+        return {
+            totalDays,
+            absentDays,
+            lateDays,
+            presentDays,
+            attendanceRate: parseFloat(attendanceRate),
+            records: attendance,
+        };
     }
 }

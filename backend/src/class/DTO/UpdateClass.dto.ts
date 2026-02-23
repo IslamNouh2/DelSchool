@@ -23,4 +23,7 @@ export class UpdateClassDto {
 
     @IsOptional()
     cloture: boolean;
+
+    @IsOptional()
+    translations?: Record<string, string>;
 }

@@ -715,4 +715,9 @@ export class StudentService {
             throw new NotFoundException('Photo not found');
         }
     }
+
+    async GetCountParent() {
+        const total = await this.prisma.parent.count();
+        return { total };
+    }
 }

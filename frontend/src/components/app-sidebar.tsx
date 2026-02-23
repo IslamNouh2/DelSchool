@@ -19,19 +19,22 @@ import {
   SquareTerminal,
   User2,
   Wallet,
-
+  Calendar,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarMenu,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
 // Static display data
@@ -45,7 +48,7 @@ const staticData = {
     {
       name: "DelSchool",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      plan: "enterprise",
     },
   ],
   // projects: [
@@ -77,8 +80,11 @@ function getTokenFromCookie(): string | null {
   return match ? match[2] : null
 }
 
+import { useTranslations } from "next-intl"
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [role, setRole] = useState<string | null>(null)
+  const t = useTranslations("menu")
 
   useEffect(() => {
     const storedRole = localStorage.getItem("user_role")
@@ -108,78 +114,85 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     // Default minimal while role loads
     if (!role) {
       return [
-        { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
+        { title: t("dashboard"), url: "/dashboard", icon: SquareTerminal, isActive: true },
       ]
     }
 
     if (role === "TEACHER") {
       return [
-        { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
-        { title: "Employers", url: "/list/employers", icon: Bot },
+        { title: t("dashboard"), url: "/dashboard", icon: SquareTerminal, isActive: true },
+        { title: t("employers"), url: "/list/employers", icon: Bot },
         {
-          title: "Exam",
+          title: t("exam"),
           url: "#",
           icon: FileBadge,
           items: [
-            { title: "Ajoute Exam", url: "/list/exam", icon: FileBadge },
-            { title: "Ajouter / mettre à jour les notes", url: "/list/exam/grads" },
+            { title: t("exam"), url: "/list/exam", icon: FileBadge },
+            { title: t("exam"), url: "/list/exam/grads" },
           ],
         },
+        { title: t("events"), url: "/list/events", icon: Calendar },
       ]
     }
 
     // Admin: show all principal links (no submenus)
     return [
-      { title: "Dashboard", url: "/dashbord", icon: SquareTerminal, isActive: true },
-      { title: "Employers", url: "/list/employers", icon: User2 },
-      { title: "Students", url: "/list/students", icon: BookOpen },
-      { title: "Timetable", url: "/list/timetable", icon: GalleryVerticalEnd },
-      { title: "Subjects", url: "/list/subjects", icon: BookOpen },
-      { title: "Classes", url: "/list/classes", icon: Frame },
-      { title: "Niveaux", url: "/list/local", icon: Map },
+      { title: t("dashboard"), url: "/dashboard", icon: SquareTerminal, isActive: true },
+      { title: t("employers"), url: "/list/employers", icon: User2 },
+      { title: t("students"), url: "/list/students", icon: BookOpen },
+      { title: t("timetable"), url: "/list/timetable", icon: GalleryVerticalEnd },
+      { title: t("subjects"), url: "/list/subjects", icon: BookOpen },
+      { title: t("classes"), url: "/list/classes", icon: Frame },
+      { title: t("levels"), url: "/list/local", icon: Map },
       {
-        title: "Attendance",
+        title: t("attendance.title"),
         url: "#",
         icon: Settings2,
         items: [
-          { title: "Employer", url: "/list/attendance/employer" },
-          { title: "Student", url: "/list/attendance/student" },
+          { title: t("attendance.employer"), url: "/list/attendance/employer" },
+          { title: t("attendance.student"), url: "/list/attendance/student" },
         ],
       },
-      { title: "Exam", url: "/list/exam", icon: FileBadge },
+      { title: t("exam"), url: "/list/exam", icon: FileBadge },
+      { title: t("events"), url: "/list/events", icon: Calendar },
       {
-        title: "Finance",
+        title: t("finance.title"),
         url: "#",
         icon: BadgeDollarSign,
         items: [
-          { title: "Dashboard", url: "/finance", icon: SquareTerminal }, // New Link
-          { title: "Fee Student", url: "/list/studentfee", icon: BadgeDollarSign },
-          { title: "Fee Templates", url: "/list/feestemplate", icon: BadgeDollarSign },
-          { title: "Comptes", url: "/list/comptes", icon: BadgeDollarSign },
-          { title: "Payroll", url: "/list/payroll", icon: BadgeDollarSign },
-          { title: "Expenses", url: "/list/expenses", icon: BadgeDollarSign },
+          { title: t("finance.dashboard"), url: "/finance", icon: SquareTerminal }, // New Link
+          { title: t("finance.fee_student"), url: "/list/studentfee", icon: BadgeDollarSign },
+          { title: t("finance.fee_templates"), url: "/list/feestemplate", icon: BadgeDollarSign },
+          { title: t("finance.comptes"), url: "/list/comptes", icon: BadgeDollarSign },
+          { title: t("finance.payroll"), url: "/list/payroll", icon: BadgeDollarSign },
+          { title: t("finance.expenses"), url: "/list/expenses", icon: BadgeDollarSign },
         ],
       },
-      { title: "Trésorerie", url: "/list/treasury", icon: Wallet },
+      { title: t("treasury"), url: "/list/treasury", icon: Wallet },
       
       {
-        title: "Settings",
+        title: t("settings.title"),
         url: "#",
         icon: Settings,
         items: [
-          { title: "General", url: "/list/settings", icon: Settings2 },
-          { title: "Users", url: "#", icon: User2 },
-          { title: "Roles", url: "#", icon: User2 },
-          { title: "Parameters", url: "/list/settings/parameters", icon: Settings2 },
+          { title: t("settings.general"), url: "/list/settings", icon: Settings2 },
+          { title: t("settings.users"), url: "#", icon: User2 },
+          { title: t("settings.roles"), url: "#", icon: User2 },
+          { title: t("settings.parameters"), url: "/list/settings/parameters", icon: Settings2 },
         ],
       },
     ]
-  }, [role])
+  }, [role, t])
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={staticData.teams} />
+        <TeamSwitcher teams={staticData.teams.map(team => ({ ...team, plan: t(team.plan as any) }))} />
+        <SidebarMenu>
+          <SidebarMenuItem className="px-2 pb-2">
+            <LanguageSwitcher />
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>

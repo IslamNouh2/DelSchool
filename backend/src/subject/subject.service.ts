@@ -75,7 +75,14 @@ export class SubjectService {
                     dateCreate: new Date(),
                     dateModif: new Date(),
                     okBlock: false,
+                    translations: createSubjectDto.translations ? {
+                        create: Object.entries(createSubjectDto.translations).map(([locale, name]) => ({
+                            locale,
+                            name,
+                        })),
+                    } : undefined,
                 },
+                include: { translations: true }
             });
 
             this.socketGateway.emitRefresh();
@@ -140,7 +147,8 @@ export class SubjectService {
                             subjectId: true,
                             subjectName: true,
                         }
-                    }
+                    },
+                    translations: true
                 },
             }),
             this.prisma.subject.count({ where }),
@@ -266,6 +274,13 @@ export class SubjectService {
                     subjectName,
                     totalGrads,
                     okBlock, // <-- Added
+                    translations: updateDto.translations ? {
+                        deleteMany: {},
+                        create: Object.entries(updateDto.translations).map(([locale, name]) => ({
+                            locale,
+                            name,
+                        })),
+                    } : undefined,
                 },
             });
         }
