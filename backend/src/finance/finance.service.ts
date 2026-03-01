@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class FinanceService {
   constructor(private prisma: PrismaService) {}
 
-  async getStats() {
+  async getStats(tenantId: string) {
     // 1. Get Current School Year for date filtering
     const currentSchoolYear = await this.prisma.schoolYear.findFirst({
       where: { isCurrent: true },
@@ -104,7 +104,7 @@ export class FinanceService {
     };
   }
 
-  async getChartData(period: string = 'monthly') {
+  async getChartData(tenantId: string, period: string = 'monthly') {
     let startDate: Date;
     let endDate: Date = new Date();
     let interval: 'day' | 'week' | 'month' | 'year';
@@ -132,7 +132,7 @@ export class FinanceService {
         case 'monthly':
         default:
             const currentSchoolYear = await this.prisma.schoolYear.findFirst({
-                where: { isCurrent: true },
+                where: { isCurrent: true, tenantId }, // Enforce tenant
             });
             startDate = currentSchoolYear ? currentSchoolYear.startDate : new Date(new Date().getFullYear(), 0, 1);
             endDate = currentSchoolYear ? currentSchoolYear.endDate : new Date(new Date().getFullYear(), 11, 31);
@@ -190,7 +190,8 @@ export class FinanceService {
     const payments = await this.prisma.payment.findMany({
         where: {
             date: { gte: startDate, lte: endDate },
-            status: 'COMPLETED'
+            status: 'COMPLETED',
+            tenantId, // Enforce tenant
         },
         select: { date: true, amount: true, studentId: true, expenseId: true }
     });
@@ -232,8 +233,9 @@ export class FinanceService {
     }));
   }
 
-  async getRecentTransactions(limit: number = 5) {
+  async getRecentTransactions(tenantId: string, limit: number = 5) {
       return this.prisma.payment.findMany({
+          where: { tenantId }, // Enforce tenant
           take: limit,
           orderBy: { date: 'desc' },
           include: {
@@ -245,9 +247,10 @@ export class FinanceService {
       });
   }
 
-  async getExpenseCategories() {
+  async getExpenseCategories(tenantId: string) {
       const expenses = await this.prisma.expense.groupBy({
           by: ['category'],
+          where: { tenantId }, // Enforce tenant
           _sum: {
               amount: true
           }
@@ -264,10 +267,11 @@ export class FinanceService {
       }));
   }
 
-  async getRecentStudentPayments(limit: number = 5) {
+  async getRecentStudentPayments(tenantId: string, limit: number = 5) {
       return this.prisma.payment.findMany({
           where: {
-              studentId: { not: null }
+              studentId: { not: null },
+              tenantId, // Enforce tenant
           },
           take: limit,
           orderBy: { date: 'desc' },
@@ -284,8 +288,9 @@ export class FinanceService {
       });
   }
 
-  async getRecentExpenses(limit: number = 5) {
+  async getRecentExpenses(tenantId: string, limit: number = 5) {
       return this.prisma.expense.findMany({
+          where: { tenantId }, // Enforce tenant
           take: limit,
           orderBy: { expenseDate: 'desc' },
           include: {

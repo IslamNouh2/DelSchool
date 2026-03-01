@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AttendanceStatus, Prisma } from '@prisma/client';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SaveStudentAttendanceDto } from './dto/create-student-attendance.dto';
 import { CreateEmployerAttendanceDto } from './dto/create-employer-attendance.dto';
 
@@ -9,7 +9,7 @@ export class AttendanceRepository {
     constructor(private prisma: PrismaService) { }
 
     // 🧒 Student Attendance
-    async save(dto: SaveStudentAttendanceDto) {
+    async save(tenantId: string, dto: SaveStudentAttendanceDto) {
         const { classId, date, academicYear, records } = dto;
 
         // filter out "PRESENT" before saving
@@ -24,29 +24,37 @@ export class AttendanceRepository {
                 date: new Date(date),
                 academicYear,
                 status: r.status,
+                tenantId, // Add tenantId
             })),
             skipDuplicates: true,
         });
     }
 
-    updateStudent(id: number, data: Prisma.StudentAttendanceUpdateInput) {
-        return this.prisma.studentAttendance.update({ where: { id }, data });
+    updateStudent(tenantId: string, id: number, data: Prisma.StudentAttendanceUpdateInput) {
+        return this.prisma.studentAttendance.update({ 
+            where: { id, tenantId }, // Enforce tenant check
+            data 
+        });
     }
 
-    deleteStudent(id: number) {
-        return this.prisma.studentAttendance.delete({ where: { id } });
+    deleteStudent(tenantId: string, id: number) {
+        return this.prisma.studentAttendance.delete({ 
+            where: { id, tenantId } 
+        });
     }
 
-    getAllStudents() {
+    getAllStudents(tenantId: string) {
         return this.prisma.studentAttendance.findMany({
+            where: { tenantId },
             include: { student: true, class: true },
         });
     }
 
     // ✅ Get students by classId (now using StudentClass)
-    async getStudentsByClassId(classId: number) {
+    async getStudentsByClassId(tenantId: string, classId: number) {
         return this.prisma.student.findMany({
             where: {
+                tenantId, // Enforce tenant
                 studentClasses: {
                     some: {
                         classId,
@@ -63,8 +71,9 @@ export class AttendanceRepository {
         });
     }
 
-    async getAllClasses() {
+    async getAllClasses(tenantId: string) {
         return this.prisma.classes.findMany({
+            where: { tenantId },
             select: {
                 classId: true,
                 ClassName: true,
@@ -74,7 +83,7 @@ export class AttendanceRepository {
     }
 
     // Get existing attendance by date and classId
-    async getExistingAttendance(classId: number, date: string) {
+    async getExistingAttendance(tenantId: string, classId: number, date: string) {
         const targetDate = new Date(date);
         const startOfDay = new Date(targetDate);
         startOfDay.setHours(0, 0, 0, 0);
@@ -83,6 +92,7 @@ export class AttendanceRepository {
 
         return this.prisma.studentAttendance.findMany({
             where: {
+                tenantId,
                 classId,
                 date: {
                     gte: startOfDay,
@@ -98,7 +108,7 @@ export class AttendanceRepository {
     }
 
     // 👩‍🏫 Employer Attendance
-    createEmployer(dto: CreateEmployerAttendanceDto) {
+    createEmployer(tenantId: string, dto: CreateEmployerAttendanceDto) {
         return this.prisma.employerAttendance.create({
             data: {
                 employerId: dto.employerId,
@@ -108,29 +118,34 @@ export class AttendanceRepository {
                 status: dto.status,
                 remarks: dto.remarks || null,
                 academicYear: dto.academicYear,
+                tenantId,
             },
         });
     }
 
-    updateEmployer(id: number, data: Prisma.EmployerAttendanceUpdateInput) {
-        return this.prisma.employerAttendance.update({ where: { id }, data });
+    updateEmployer(tenantId: string, id: number, data: Prisma.EmployerAttendanceUpdateInput) {
+        return this.prisma.employerAttendance.update({ 
+            where: { id, tenantId }, 
+            data 
+        });
     }
 
-    getAllEmployers() {
+    getAllEmployers(tenantId: string) {
         return this.prisma.employerAttendance.findMany({
+            where: { tenantId },
             include: { employer: true },
         });
     }
 
-    getEmployerAttendanceById(id: number) {
+    getEmployerAttendanceById(tenantId: string, id: number) {
         return this.prisma.employerAttendance.findUnique({
-            where: { id },
+            where: { id, tenantId },
         });
     }
 
-    getEmployerConfig(employerId: number) {
+    getEmployerConfig(tenantId: string, employerId: number) {
         return this.prisma.employer.findUnique({
-            where: { employerId },
+            where: { employerId, tenantId },
             select: {
                 checkInTime: true,
                 checkOutTime: true,
@@ -139,8 +154,9 @@ export class AttendanceRepository {
     }
 
     // Basic employers list to take attendance
-    getAllEmployerBasics() {
+    getAllEmployerBasics(tenantId: string) {
         return this.prisma.employer.findMany({
+            where: { tenantId },
             select: {
                 employerId: true,
                 firstName: true,
@@ -154,7 +170,7 @@ export class AttendanceRepository {
     }
 
     // Existing employer attendance by date
-    async getExistingEmployerAttendance(date: string) {
+    async getExistingEmployerAttendance(tenantId: string, date: string) {
         const targetDate = new Date(date);
         const startOfDay = new Date(targetDate);
         startOfDay.setHours(0, 0, 0, 0);
@@ -163,6 +179,7 @@ export class AttendanceRepository {
 
         return this.prisma.employerAttendance.findMany({
             where: {
+                tenantId,
                 date: {
                     gte: startOfDay,
                     lte: endOfDay,
@@ -179,12 +196,14 @@ export class AttendanceRepository {
         });
     }
 
-    deleteEmployerAttendance(id: number) {
-        return this.prisma.employerAttendance.delete({ where: { id } });
+    deleteEmployerAttendance(tenantId: string, id: number) {
+        return this.prisma.employerAttendance.delete({ 
+            where: { id, tenantId } 
+        });
     }
 
     // ✅ Get last 7 days attendance for students (using StudentClass)
-    async getStudentLast7DaysAttendance(classId: number) {
+    async getStudentLast7DaysAttendance(tenantId: string, classId: number) {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         sevenDaysAgo.setHours(0, 0, 0, 0);
@@ -192,6 +211,7 @@ export class AttendanceRepository {
         // Get all students in this class
         const allStudents = await this.prisma.student.findMany({
             where: {
+                tenantId,
                 studentClasses: {
                     some: { classId },
                 },
@@ -208,6 +228,7 @@ export class AttendanceRepository {
         // Get attendance for the last 7 days
         const attendanceRecords = await this.prisma.studentAttendance.findMany({
             where: {
+                tenantId,
                 classId,
                 date: { gte: sevenDaysAgo },
             },
@@ -234,12 +255,13 @@ export class AttendanceRepository {
     }
 
     // Get last 7 days attendance for employers
-    async getEmployerLast7DaysAttendance() {
+    async getEmployerLast7DaysAttendance(tenantId: string) {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         sevenDaysAgo.setHours(0, 0, 0, 0);
 
         const allEmployers = await this.prisma.employer.findMany({
+            where: { tenantId },
             select: {
                 employerId: true,
                 firstName: true,
@@ -250,7 +272,10 @@ export class AttendanceRepository {
         });
 
         const attendanceRecords = await this.prisma.employerAttendance.findMany({
-            where: { date: { gte: sevenDaysAgo } },
+            where: { 
+                tenantId,
+                date: { gte: sevenDaysAgo } 
+            },
             include: {
                 employer: {
                     select: {
@@ -271,13 +296,17 @@ export class AttendanceRepository {
             ),
         }));
     }
-    async getStudentWeeklyChartData(classId: number) {
+    async getStudentWeeklyChartData(tenantId: string, classId: number) {
         const result: { day: string; present: number; absent: number }[] = [];
         const today = new Date();
         
         // Get total students in this class
         const totalStudents = await this.prisma.studentClass.count({
-            where: { classId, isCurrent: true }
+            where: { 
+                classId, 
+                isCurrent: true,
+                Student: { tenantId } // Enforce tenant (Case sensitive: Student)
+            }
         });
 
         for (let i = 6; i >= 0; i--) {
@@ -288,6 +317,7 @@ export class AttendanceRepository {
 
             const records = await this.prisma.studentAttendance.findMany({
                 where: {
+                    tenantId,
                     classId,
                     date: {
                         gte: startOfDay,
@@ -312,12 +342,14 @@ export class AttendanceRepository {
         return result;
     }
 
-    async getGlobalWeeklyChartData() {
+    async getGlobalWeeklyChartData(tenantId: string) {
         const result: { day: string; present: number; absent: number }[] = [];
         const today = new Date();
         
         // Get total students
-        const totalStudents = await this.prisma.student.count();
+        const totalStudents = await this.prisma.student.count({
+            where: { tenantId }
+        });
 
         for (let i = 6; i >= 0; i--) {
             const d = new Date(today);
@@ -327,6 +359,7 @@ export class AttendanceRepository {
 
             const records = await this.prisma.studentAttendance.findMany({
                 where: {
+                    tenantId,
                     date: {
                         gte: startOfDay,
                         lte: endOfDay,
@@ -350,7 +383,7 @@ export class AttendanceRepository {
         return result;
     }
 
-    async getGlobalDailySummaryData(date: string) {
+    async getGlobalDailySummaryData(tenantId: string, date: string) {
         const targetDate = new Date(date);
         const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
         const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
@@ -358,6 +391,7 @@ export class AttendanceRepository {
         const [records, totalStudents] = await Promise.all([
             this.prisma.studentAttendance.findMany({
                 where: {
+                    tenantId,
                     date: {
                         gte: startOfDay,
                         lte: endOfDay,
@@ -365,7 +399,7 @@ export class AttendanceRepository {
                 },
                 select: { status: true },
             }),
-            this.prisma.student.count()
+            this.prisma.student.count({ where: { tenantId } })
         ]);
 
         const nonPresentCount = records.length;
@@ -381,7 +415,7 @@ export class AttendanceRepository {
     }
 
     // Chart Data: Daily Summary
-    async getStudentDailySummaryData(classId: number, date: string) {
+    async getStudentDailySummaryData(tenantId: string, classId: number, date: string) {
         const targetDate = new Date(date);
         const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
         const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
@@ -389,6 +423,7 @@ export class AttendanceRepository {
         const [records, totalStudents] = await Promise.all([
             this.prisma.studentAttendance.findMany({
                 where: {
+                    tenantId,
                     classId,
                     date: {
                         gte: startOfDay,
@@ -397,7 +432,13 @@ export class AttendanceRepository {
                 },
                 select: { status: true },
             }),
-            this.prisma.studentClass.count({ where: { classId, isCurrent: true } })
+            this.prisma.studentClass.count({ 
+                where: { 
+                    classId, 
+                    isCurrent: true,
+                    Student: { tenantId } // Enforce tenant (Case sensitive: Student)
+                } 
+            })
         ]);
 
         const nonPresentCount = records.length;
@@ -412,18 +453,20 @@ export class AttendanceRepository {
         ];
     }
 
-    async getStudentAttendance(studentId: number) {
+    async getStudentAttendance(tenantId: string, studentId: number) {
         return this.prisma.studentAttendance.findMany({
-            where: { studentId },
+            where: { studentId, tenantId },
             orderBy: { date: 'desc' }
         });
     }
 
-    async getEmployerWeeklyChartData() {
+    async getEmployerWeeklyChartData(tenantId: string) {
         const result: { day: string; present: number; absent: number }[] = [];
         const today = new Date();
         
-        const totalEmployers = await this.prisma.employer.count();
+        const totalEmployers = await this.prisma.employer.count({
+            where: { tenantId }
+        });
 
         for (let i = 6; i >= 0; i--) {
             const d = new Date(today);
@@ -433,6 +476,7 @@ export class AttendanceRepository {
 
             const records = await this.prisma.employerAttendance.findMany({
                 where: {
+                    tenantId,
                     date: {
                         gte: startOfDay,
                         lte: endOfDay,
@@ -456,7 +500,7 @@ export class AttendanceRepository {
         return result;
     }
 
-    async getEmployerDailySummaryData(date: string) {
+    async getEmployerDailySummaryData(tenantId: string, date: string) {
         const targetDate = new Date(date);
         const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
         const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
@@ -464,6 +508,7 @@ export class AttendanceRepository {
         const [records, totalEmployers] = await Promise.all([
             this.prisma.employerAttendance.findMany({
                 where: {
+                    tenantId,
                     date: {
                         gte: startOfDay,
                         lte: endOfDay,
@@ -471,7 +516,7 @@ export class AttendanceRepository {
                 },
                 select: { status: true },
             }),
-            this.prisma.employer.count()
+            this.prisma.employer.count({ where: { tenantId } })
         ]);
 
         const absent = records.filter(r => r.status === 'ABSENT').length;
@@ -486,9 +531,9 @@ export class AttendanceRepository {
         ];
     }
 
-    async getEmployerAttendanceByEmployerId(employerId: number) {
+    async getEmployerAttendanceByEmployerId(tenantId: string, employerId: number) {
         return this.prisma.employerAttendance.findMany({
-            where: { employerId },
+            where: { employerId, tenantId },
             orderBy: { date: 'desc' },
         });
     }

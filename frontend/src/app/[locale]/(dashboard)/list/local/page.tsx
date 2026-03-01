@@ -61,6 +61,10 @@ export default function LocalListPage() {
         return () => clearTimeout(timer);
     }, [filterValue]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedFilterValue]);
+
     const fetchData = useCallback(async (page: number) => {
         setLoading(true);
         try {
@@ -68,18 +72,12 @@ export default function LocalListPage() {
                 params: {
                     page,
                     limit: pageSize,
-                    sort: "name", // Default sort
+                    sort: "name",
+                    search: debouncedFilterValue || undefined,
                 },
             });
             
-            let locals = response.data.locals;
-            if (debouncedFilterValue) {
-                locals = locals.filter((l: Local) => 
-                    l.name.toLowerCase().includes(debouncedFilterValue.toLowerCase()) || 
-                    l.code.toLowerCase().includes(debouncedFilterValue.toLowerCase())
-                );
-            }
-            setData(locals);
+            setData(response.data.locals);
             setTotalCount(response.data.total);
         } catch (error) {
             console.error("Error fetching locals:", error);

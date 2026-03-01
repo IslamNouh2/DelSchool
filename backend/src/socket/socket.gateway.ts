@@ -4,7 +4,10 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as cookie from 'cookie';
 
 @WebSocketGateway({
   cors: {
@@ -16,19 +19,40 @@ import { Server } from 'socket.io';
   },
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  constructor(
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
+
   @WebSocketServer()
   server: Server;
 
-  handleConnection(client: any) {
-    console.log(`Client connected: ${client.id}`);
+  handleConnection(client: Socket) {
+    try {
+      const cookies = client.handshake.headers.cookie;
+      if (!cookies) throw new Error('No cookies found');
+
+      const parsedCookies = cookie.parse(cookies);
+      const token = parsedCookies['accessToken'];
+
+      if (!token) throw new Error('No access token found');
+
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get('JWT_ACCESS_SECRET'),
+      });
+
+      console.log(`Client authenticated: ${payload.username} (${client.id})`);
+    } catch (error) {
+      console.log(`Auth failed for client ${client.id}: ${error.message}`);
+      client.disconnect();
+    }
   }
 
-  handleDisconnect(client: any) {
+  handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
   }
 
   emitRefresh() {
-    console.log('Emitting refresh event to all clients');
     this.server.emit('refresh');
   }
 }

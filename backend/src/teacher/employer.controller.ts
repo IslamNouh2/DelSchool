@@ -24,7 +24,12 @@ import * as path from 'path';
 import { CreateEmployerDto } from './dto/CreateEmployer.dto';
 import { UpdateEmployerDto } from './dto/UpdateEmployer.dto';
 import { EmployerNameSearchDto } from './dto/EmployerQueryParamsDto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Req, UseGuards } from '@nestjs/common';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('employer')
 export class EmployerController {
 
@@ -34,22 +39,25 @@ export class EmployerController {
 
     @Get('search-by-name')
     async searchEmployers(
+        @Req() req: any,
         @Query("page") page: number = 1,
         @Query("limit") limit: number = 10,
         @Query("name") name?: string,
         @Query("type") type?: string
     ) {
-        return this.employerService.SearchEmployerByName(page, limit, name, type);
+        return this.employerService.SearchEmployerByName(req.tenantId, page, limit, name, type);
     }
 
 
     @Get('list')
     async getEmployer(
+        @Req() req: any,
         @Query('page') page: number = 1,
         @Query('limit') limit: number = 10,
-        @Query('type') type?: string
-    ) {
-        return this.employerService.GetEmployer(page, limit, type);
+        @Query('type') type?: string,
+        @Query('search') search?: string,
+     ) {
+        return this.employerService.GetEmployer(req.tenantId, page, limit, type, search);
     }
 
     @Post('create')
@@ -67,29 +75,32 @@ export class EmployerController {
         },
     }))
     async createStudent(
+        @Req() req: any,
         @Body() dto: CreateEmployerDto,
         @UploadedFile() photo?: Express.Multer.File
     ) {
-        return this.employerService.CreateEmployer(dto, photo);
+        return this.employerService.CreateEmployer(req.tenantId, dto, photo);
     }
 
     @Put(':id')
     @UseInterceptors(FileInterceptor('photo'))
     async updateEmployer(
+        @Req() req: any,
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateEmployerDto,
         @UploadedFile() photo?: Express.Multer.File
     ) {
-        return this.employerService.UpdateEmployer(id, dto, photo);
+        return this.employerService.UpdateEmployer(req.tenantId, id, dto, photo);
     }
 
     @Delete(":id")
     async deleteEmployer(
+        @Req() req: any,
         @Param("id", ParseIntPipe) id: number,
         @Res() res: Response,
     ) {
         try {
-            await this.employerService.deleteEmployer(id);
+            await this.employerService.deleteEmployer(req.tenantId, id);
             return res.status(200).json({ message: "Employer deleted successfully" });
         } catch (error) {
             console.error("❌ Delete error:", error);
@@ -99,18 +110,19 @@ export class EmployerController {
 
 
     @Get(':id')
-    async getEmployerById(@Param('id', ParseIntPipe) id: number) {
-        return this.employerService.GetEmployerById(id);
+    async getEmployerById(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+        return this.employerService.GetEmployerById(req.tenantId, id);
     }
 
 
     @Get('')
     async searchStudents(
+        @Req() req: any,
         @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
         @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
         @Query('name') name: string,
     ) {
-        return this.employerService.GetEmployerWithName(name || '', page, limit);
+        return this.employerService.GetEmployerWithName(req.tenantId, name || '', page, limit);
     }
 
 
@@ -119,15 +131,16 @@ export class EmployerController {
 
     @Post('assign-class')
     async assignClass(
+        @Req() req: any,
         @Body('employerId', ParseIntPipe) employerId: number,
         @Body('classId', ParseIntPipe) classId: number,
     ) {
-        return this.employerService.assignClassToTeacher(employerId, classId);
+        return this.employerService.assignClassToTeacher(req.tenantId, employerId, classId);
     }
 
     @Get('teacher-class/:employerId')
-    async getTeacherClass(@Param('employerId', ParseIntPipe) employerId: number) {
-        return this.employerService.getTeacherClass(employerId);
+    async getTeacherClass(@Req() req: any, @Param('employerId', ParseIntPipe) employerId: number) {
+        return this.employerService.getTeacherClass(req.tenantId, employerId);
     }
 
     // New endpoint to serve photo files
@@ -157,12 +170,12 @@ export class EmployerController {
     }
 
     @Get('count/teacher')
-    async getCountTeacher() {
-        return this.employerService.GetCountTeacher();
+    async getCountTeacher(@Req() req: any) {
+        return this.employerService.GetCountTeacher(req.tenantId);
     }
 
     @Get('count/staff')
-    async getCountStaff() {
-        return this.employerService.GetCountStaff();
+    async getCountStaff(@Req() req: any) {
+        return this.employerService.GetCountStaff(req.tenantId);
     }
 }

@@ -19,6 +19,11 @@ import { useSocket } from "@/providers/SocketProvider";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { OfflineDB, SyncRecord } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import Cookies from "js-cookie";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { useAuth } from "@/components/contexts/AuthContext";
 
 interface Employer {
     employerId: number;
@@ -42,6 +47,7 @@ interface AttendanceRecord {
 }
 
 export default function EmployerAttendancePage() {
+    const { hasPermission } = useAuth();
     const t = useTranslations("attendance.staff");
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
@@ -50,7 +56,9 @@ export default function EmployerAttendancePage() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [threshold, setThreshold] = useState({ hours: 8, minutes: 10 });
+    const [syncQueue, setSyncQueue] = useState<SyncRecord[]>([]);
     const { refreshKey } = useSocket();
+    const tenantId = Cookies.get("tenantId") as string;
 
     const isToday = useMemo(() => {
         return selectedDate === new Date().toISOString().split('T')[0];
@@ -71,25 +79,55 @@ export default function EmployerAttendancePage() {
                 const employers: Employer[] = employersRes.data;
                 const existing = existingRes.data;
 
-                // 2. Merge Data
+                // 3. Get Offline Data
+                const queue = await OfflineDB.getSyncQueue(tenantId);
+                setSyncQueue(queue);
+
+                // 4. Merge Data
                 const mergedData: AttendanceRecord[] = employers.map(e => {
                     const record = existing.find((r: any) => r.employerId === e.employerId);
+                    
+                    // Possible pending changes: DELETE /attendance/employer/:id or POST /attendance/employer
+                    const pendingPost = queue.find((q: SyncRecord) => 
+                        q.url === '/attendance/employer' && 
+                        q.data?.employerId === e.employerId &&
+                        q.data?.date === selectedDate
+                    );
+                    
+                    const isPendingDelete = queue.some((q: SyncRecord) => 
+                        q.method === 'DELETE' && 
+                        q.url === `/attendance/employer/${record?.id}`
+                    );
+
+                    let status = record ? record.status : 'PRESENT';
+                    let checkInTime = record?.checkInTime;
+                    let dbId = record?.id;
+
+                    if (pendingPost) {
+                        status = pendingPost.payload.status;
+                        checkInTime = pendingPost.payload.checkInTime;
+                    } else if (isPendingDelete) {
+                        status = 'PRESENT';
+                        checkInTime = null;
+                        dbId = undefined;
+                    }
+
                     return {
                         id: e.employerId,
                         name: `${e.firstName} ${e.lastName}`,
                         code: e.code || "N/A",
-                        status: record ? record.status : 'PRESENT',
-                        checkInTime: record?.checkInTime,
+                        status,
+                        checkInTime,
                         checkOutTime: record?.checkOutTime,
                         configCheckIn: e.checkInTime,
                         configCheckOut: e.checkOutTime,
-                        dbId: record?.id
+                        dbId
                     };
                 });
 
                 setAttendanceData(mergedData);
 
-                // 3. Fetch Chart Data
+                // 5. Fetch Chart Data
                 const [weeklyRes, summaryRes] = await Promise.all([
                     api.get("/attendance/employer-weekly-chart"),
                     api.get(`/attendance/employer-daily-summary/${selectedDate}`)
@@ -97,7 +135,7 @@ export default function EmployerAttendancePage() {
                 setWeeklyChartData(weeklyRes.data);
                 setSummaryChartData(summaryRes.data);
 
-                // 4. Fetch Threshold
+                // 6. Fetch Threshold
                 const thresholdRes = await api.get("/parameter/Attendance_Late_Threshold").catch(() => null);
                 if (thresholdRes?.data?.paramValue) {
                     const [h, m] = thresholdRes.data.paramValue.split(':').map(Number);
@@ -311,7 +349,13 @@ export default function EmployerAttendancePage() {
                                                 }`} />
                                             </div>
                                             <div>
-                                                <p className="text-slate-900 dark:text-white font-black text-lg">{employer.name}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-slate-900 dark:text-white font-black text-lg">{employer.name}</p>
+                                                    {syncQueue.some((q: SyncRecord) => 
+                                                        (q.url === '/attendance/employer' && q.data?.employerId === employer.id) ||
+                                                        (q.method === 'DELETE' && q.url === `/attendance/employer/${employer.dbId}`)
+                                                    ) && <SyncStatusBadge id={employer.id} isPending={true} />}
+                                                </div>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-tighter">{employer.code}</span>
                                                     {employer.checkInTime && (
@@ -337,8 +381,9 @@ export default function EmployerAttendancePage() {
                                                         exit={{ opacity: 0, scale: 0.9 }}
                                                     >
                                                         <Button 
+                                                            disabled={!hasPermission('attendance:create')}
                                                             onClick={() => handleCheckIn(employer.id)}
-                                                            className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 shadow-lg shadow-blue-500/25"
+                                                            className={`rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 shadow-lg shadow-blue-500/25 ${!hasPermission('attendance:create') ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         >
                                                             <UserCheck className="w-4 h-4 mr-2" />
                                                             Check In
@@ -352,8 +397,9 @@ export default function EmployerAttendancePage() {
                                                         exit={{ opacity: 0, scale: 0.9 }}
                                                     >
                                                         <Button 
+                                                            disabled={!hasPermission('attendance:create')}
                                                             onClick={() => employer.dbId && handleCheckOut(employer.id, employer.dbId)}
-                                                            className="rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold px-6 shadow-lg shadow-emerald-500/25"
+                                                            className={`rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold px-6 shadow-lg shadow-emerald-500/25 ${!hasPermission('attendance:create') ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         >
                                                             <Clock className="w-4 h-4 mr-2" />
                                                             {t("registry.check_out")}
@@ -367,12 +413,13 @@ export default function EmployerAttendancePage() {
                                                         className="flex items-center gap-2"
                                                     >
                                                         <button 
+                                                            disabled={!hasPermission('attendance:create')}
                                                             onClick={() => handleAction(employer.id, 'ABSENT')}
                                                             className={`p-3 rounded-2xl transition-all ${
                                                                 employer.status === 'ABSENT' 
                                                                 ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' 
                                                                 : 'bg-white dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800 hover:bg-rose-50'
-                                                            }`}
+                                                            } ${!hasPermission('attendance:create') ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         >
                                                             <UserMinus className="w-5 h-5" />
                                                         </button>
@@ -388,6 +435,7 @@ export default function EmployerAttendancePage() {
                                                         )}
 
                                                         <Button 
+                                                            disabled={!hasPermission('attendance:create')}
                                                             variant="ghost" 
                                                             size="icon" 
                                                             className="rounded-xl"

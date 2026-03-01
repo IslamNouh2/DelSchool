@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SocketGateway } from 'src/socket/socket.gateway';
 
 import { CreateClassDto } from './DTO/CreateClass.dto';
@@ -13,11 +13,22 @@ export class ClassService {
     ) { };
 
 
-    async GetClasses(page: number = 1, limit: number = 10, orderByField: string = 'dateCreate') {
+    async GetClasses(tenantId: string, page: number = 1, limit: number = 10, orderByField: string = 'dateCreate', search?: string) {
         const skip = (page - 1) * limit;
+
+        const where: any = {
+            tenantId, // Enforce tenant
+            ...(search ? {
+                OR: [
+                    { ClassName: { contains: search, mode: 'insensitive' } },
+                    { code: { contains: search, mode: 'insensitive' } },
+                ],
+            } : {})
+        };
 
         const [classes, total] = await this.prisma.$transaction([
             this.prisma.classes.findMany({
+                where,
                 orderBy: {
                     [orderByField]: 'desc',
                 },
@@ -28,7 +39,7 @@ export class ClassService {
                 skip,
                 take: limit,
             }),
-            this.prisma.classes.count(),
+            this.prisma.classes.count({ where }),
         ]);
 
         return {
@@ -40,7 +51,7 @@ export class ClassService {
     }
 
 
-    async CreateClass(dto: CreateClassDto) {
+    async CreateClass(tenantId: string, dto: CreateClassDto) {
         const {
             ClassName,
             code,
@@ -49,10 +60,11 @@ export class ClassService {
             NumStudent,
         } = dto;
 
-        // Get the local by its name
+        // Get the local by its name and tenantId
         const local = await this.prisma.local.findFirst({
             where: {
                 name: localName,
+                tenantId // Enforce tenant
             },
         });
 
@@ -63,7 +75,7 @@ export class ClassService {
         // Capacity Check
         if (local.size > 0) {
             const currentTotal = await this.prisma.classes.aggregate({
-                where: { localId: local.localId },
+                where: { localId: local.localId, tenantId }, // Enforce tenant
                 _sum: { NumStudent: true }
             });
             const total = (currentTotal._sum.NumStudent || 0) + NumStudent;
@@ -75,7 +87,7 @@ export class ClassService {
         // NumClass Check
         if (local.NumClass && local.NumClass > 0) {
             const classCount = await this.prisma.classes.count({
-                where: { localId: local.localId }
+                where: { localId: local.localId, tenantId } // Enforce tenant
             });
             if (classCount >= local.NumClass) {
                 throw new Error(`errors.local_class_limit_reached`);
@@ -90,6 +102,7 @@ export class ClassService {
                 code,
                 NumStudent,
                 okBlock,
+                tenantId, // Store tenantId
                 cloture: dto.cloture === true,
                 translations: dto.translations ? {
                     create: Object.entries(dto.translations).map(([locale, name]) => ({
@@ -105,7 +118,7 @@ export class ClassService {
         return Classe;
     }
 
-    async UpdateLocal(id: number, dto: UpdateClassDto) {
+    async UpdateLocal(tenantId: string, id: number, dto: UpdateClassDto) {
 
         const {
             ClassName,
@@ -118,6 +131,7 @@ export class ClassService {
         const local = await this.prisma.local.findFirst({
             where: {
                 name: localName,
+                tenantId // Enforce tenant
             },
         });
         if (!local) {
@@ -129,6 +143,7 @@ export class ClassService {
             const currentTotal = await this.prisma.classes.aggregate({
                 where: { 
                     localId: local.localId,
+                    tenantId, // Enforce tenant
                     NOT: { classId: id } // Exclude this class from its own total
                 },
                 _sum: { NumStudent: true }
@@ -144,6 +159,7 @@ export class ClassService {
             const currentClassCount = await this.prisma.classes.count({
                 where: { 
                     localId: local.localId,
+                    tenantId, // Enforce tenant
                     NOT: { classId: id } // Exclude this class
                 }
             });
@@ -153,7 +169,7 @@ export class ClassService {
         }
 
         const Classe = await this.prisma.classes.update({
-            where: { classId: id },
+            where: { classId: id, tenantId }, // Enforce tenant
             data: {
                 ClassName,
                 localId: local.localId,
@@ -176,15 +192,19 @@ export class ClassService {
         return Classe;
     }
 
-    async DeleteLocal(id: number) {
+    async DeleteLocal(tenantId: string, id: number) {
 
-        const classe = await this.prisma.classes.findUnique({ where: { classId: id } });
+        const classe = await this.prisma.classes.findUnique({ 
+            where: { classId: id, tenantId } // Enforce tenant
+        });
 
         if (!classe ) {
             throw new Error('Class NOT FOUND');
         }
 
-        await this.prisma.classes.delete({ where: { classId: id } });
+        await this.prisma.classes.delete({ 
+            where: { classId: id, tenantId } // Enforce tenant
+        });
         this.socketGateway.emitRefresh();
     }
 }

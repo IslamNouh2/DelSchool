@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
-import { PayrollStatus, Role } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { PayrollStatus } from '@prisma/client';
 import { CompteService } from '../compte/compte.service';
 
 @Injectable()
@@ -14,17 +14,20 @@ export class PayrollApprovalService {
    * Approves a payroll, creates an expense, and logs the action.
    * Only ADMIN can approve.
    */
-  async approvePayroll(payrollId: number, adminId: number) {
+  async approvePayroll(tenantId: string, payrollId: number, adminId: number) {
     // 1. Verify user is ADMIN (should be handled by Guard, but we check for safety/audit)
-    const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
-    if (!admin || admin.role !== Role.ADMIN) {
+    const admin = await this.prisma.user.findFirst({ 
+      where: { id: adminId, tenantId },
+      include: { role: true }
+    });
+    if (!admin || admin.role?.name !== 'ADMIN') {
       throw new ForbiddenException('Only admins can approve payroll');
     }
 
     return this.prisma.$transaction(async (tx) => {
       // 2. Fetch Payroll
-      const payroll = await tx.payroll.findUnique({
-        where: { id: payrollId },
+      const payroll = await tx.payroll.findFirst({
+        where: { id: payrollId, tenantId }, // Enforce tenant
         include: { employer: true },
       });
 
@@ -40,6 +43,7 @@ export class PayrollApprovalService {
         // Try to get or create employer account
         try {
           const employerCompte = await this.compteService.getOrCreateEmployerAccount(
+            tenantId, // Pass tenantId
             payroll.employerId,
             `${payroll.employer.firstName} ${payroll.employer.lastName}`,
           );
@@ -48,6 +52,7 @@ export class PayrollApprovalService {
           // Fallback to searching for a general Salary Expense account
           const salaryAccount = await tx.compte.findFirst({
             where: {
+              tenantId, // Enforce tenant
               OR: [
                 { code: { startsWith: '63' } },
                 { name: { contains: 'Salaire', mode: 'insensitive' } },
@@ -73,12 +78,13 @@ export class PayrollApprovalService {
           description: `Payroll for period ${payroll.period_start.toISOString().split('T')[0]} to ${payroll.period_end.toISOString().split('T')[0]}`,
           isPaid: false, // Will be marked as paid when the payment is actually made
           compteId: expenseAccountId,
+          tenantId, // Enforce tenant
         },
       });
 
       // 5. Update Payroll Status
       const updatedPayroll = await tx.payroll.update({
-        where: { id: payrollId },
+        where: { id: payrollId, tenantId },
         data: {
           status: PayrollStatus.APPROVED,
           compteId: expenseAccountId,
@@ -98,6 +104,7 @@ export class PayrollApprovalService {
             expenseId: expense.id,
             amount: payroll.netSalary.toString(),
           },
+          tenantId, // Enforce tenant
         },
       });
 
@@ -108,8 +115,8 @@ export class PayrollApprovalService {
   /**
    * Submits a payroll for approval (e.g., from HR/Accountant role if applicable)
    */
-  async submitPayroll(payrollId: number, userId: number) {
-    const payroll = await this.prisma.payroll.findUnique({ where: { id: payrollId } });
+  async submitPayroll(tenantId: string, payrollId: number, userId: number) {
+    const payroll = await this.prisma.payroll.findFirst({ where: { id: payrollId, tenantId } });
     if (!payroll) throw new BadRequestException('Payroll not found');
     if (payroll.status !== PayrollStatus.DRAFT) throw new BadRequestException('Only DRAFT payroll can be submitted');
 

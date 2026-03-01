@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { BookOpen, ChevronRight, Edit, Trash2, GraduationCap, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
 import { 
     AlertDialog, 
     AlertDialogAction, 
@@ -16,6 +17,7 @@ import {
     AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { useTranslations } from "next-intl";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 export interface Subject {
     subjectId: number;
@@ -24,6 +26,7 @@ export interface Subject {
     parentId: number;
     okBlock?: boolean;
     parentName: string;
+    pending?: boolean; // Added for sync status
     children?: Subject[]; // For grouped data
 }
 
@@ -72,8 +75,13 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
 
                 {/* Content */}
                 <div className="flex-1 text-start">
-                    <h2 className="text-foreground font-semibold text-lg mb-1">{subject.subjectName}</h2>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-foreground font-semibold text-lg">{subject.subjectName}</h2>
+                        {(subject as any).pending && (
+                            <SyncStatusBadge id={subject.subjectId} isPending={true} />
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                         {hasChildren ? (
                             <span>{t("sub_subjects", { count: subject.children?.length ?? 0 })}</span>
                         ) : (
@@ -84,10 +92,8 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                    {role.toLowerCase() === "admin" && (
-                        <div className="flex items-center gap-1 mr-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <PermissionGuard permissions={['subject:create']}>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -97,7 +103,9 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                             >
                                 <Plus className="w-4 h-4" />
                             </Button>
+                        </PermissionGuard>
 
+                        <PermissionGuard permissions={['subject:update']}>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -106,7 +114,9 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                             >
                                 <Edit className="w-4 h-4" />
                             </Button>
-                            
+                        </PermissionGuard>
+                        
+                        <PermissionGuard permissions={['subject:delete']}>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button
@@ -132,16 +142,15 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
-                        </div>
-                    )}
-
-                    {hasChildren && (
-                        <ChevronRight 
-                            className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
-                        />
-                    )}
+                        </PermissionGuard>
+                        
+                        {hasChildren && (
+                            <ChevronRight 
+                                className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
+                            />
+                        )}
+                    </div>
                 </div>
-            </div>
 
             {/* Expanded Sub-subjects (Recursive) */}
             <AnimatePresence>

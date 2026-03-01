@@ -1,9 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from '../dto/register.dto';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -13,33 +11,26 @@ export class RolesGuard implements CanActivate {
     ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+        const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
             context.getHandler(),
             context.getClass(),
         ]);
-
-        const request = context.switchToHttp().getRequest();
-        const { user } = request;
-
-        if (!user) {
-            return false;
-        }
-
-        // Check if user is deleted (Soft delete check)
-        const dbUser = await this.prisma.user.findUnique({
-            where: { id: user.id },
-            select: { deletedAt: true },
-        });
-
-        if (!dbUser || dbUser.deletedAt) {
-            throw new ForbiddenException('Your account has been deactivated');
-        }
 
         if (!requiredRoles) {
             return true;
         }
 
+        const request = context.switchToHttp().getRequest();
+        const { user } = request;
+
+        if (!user || !user.role) {
+            return false;
+        }
+
+        // Basic check for exact role match
+        // In a more advanced implementation, we would check the role hierarchy in the DB
         const hasRole = requiredRoles.includes(user.role);
+        
         if (!hasRole) {
             throw new ForbiddenException('You do not have permission to access this resource');
         }
@@ -47,3 +38,4 @@ export class RolesGuard implements CanActivate {
         return true;
     }
 }
+

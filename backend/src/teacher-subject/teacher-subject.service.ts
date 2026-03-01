@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateteacherSubjectDto } from './dto/CreateTeacherSubject.Dto';
 import { SocketGateway } from '../socket/socket.gateway';
 
@@ -11,7 +11,7 @@ export class TeacherSubjectService {
     ) { }
 
 
-    async bulkInsert(dto: CreateteacherSubjectDto) {
+    async bulkInsert(tenantId: string, dto: CreateteacherSubjectDto) {
         const { employerId, subjectIds } = dto;
 
         // 1) Prepare the records
@@ -19,13 +19,14 @@ export class TeacherSubjectService {
             employerId,
             subjectId,
             isCurrent: false,
+            tenantId,
         }));
 
         try {
             const result = await this.prisma.$transaction(async (tx) => {
                 // 2) Validate employer is a teacher
                 const employer = await tx.employer.findUnique({
-                    where: { employerId: employerId },
+                    where: { employerId: employerId, tenantId },
                     select: { type: true },  // or whatever field denotes the role/type
                 });
 
@@ -59,9 +60,9 @@ export class TeacherSubjectService {
 
 
 
-    async getSubjectsByTeacher(employerId: number) {
+    async getSubjectsByTeacher(tenantId: string, employerId: number) {
         return this.prisma.teacherSubject.findMany({
-            where: { employerId: Number(employerId) },
+            where: { employerId: Number(employerId), tenantId },
             include: {
                 subject: true,
             },
@@ -69,9 +70,9 @@ export class TeacherSubjectService {
     }
 
     // teacher-subject.service.ts
-    async getTeacherBySubject(subjectId: number, academicYear?: string) {
+    async getTeacherBySubject(tenantId: string, subjectId: number, academicYear?: string) {
         const teachersInSubject = await this.prisma.teacherSubject.findMany({
-            where: { subjectId: Number(subjectId) },
+            where: { subjectId: Number(subjectId), tenantId },
             include: { Employer: true },
         });
 
@@ -90,6 +91,7 @@ export class TeacherSubjectService {
                     where: {
                         employerId: employer.employerId,
                         academicYear: academicYear,
+                        tenantId,
                     },
                 });
 
@@ -110,13 +112,14 @@ export class TeacherSubjectService {
         return activeTeachers.filter(Boolean);
     }
 
-    async removeSubjectFromTeacher(employerId: number, subjectId: number) {
+    async removeSubjectFromTeacher(tenantId: string, employerId: number, subjectId: number) {
         try {
             const result = await this.prisma.$transaction(async (tx) => {
                 const record = await tx.teacherSubject.findFirst({
                     where: {
                         employerId,
                         subjectId,
+                        tenantId,
                     },
                 });
 

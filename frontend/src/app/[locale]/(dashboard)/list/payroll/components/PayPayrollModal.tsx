@@ -99,8 +99,14 @@ export function PayPayrollModal({
         compteId: parseInt(selectedAccountId),
         expenseAccountId: selectedExpenseAccountId && selectedExpenseAccountId !== "auto" ? parseInt(selectedExpenseAccountId) : undefined
       });
-
-      toast.success("Payroll paid successfully");
+      
+      if (res.status === 202 || (res.data as any).offline) {
+          toast.success("Paiement enregistré localement", {
+              description: "Le paiement sera synchronisé dès que possible."
+          });
+      } else {
+          toast.success("Payroll paid successfully");
+      }
       // Use the returned payroll from backend which includes the generated compteId (Expense Account)
       const updatedPayroll: Payroll = res.data.payroll; 
       onSuccess(updatedPayroll);

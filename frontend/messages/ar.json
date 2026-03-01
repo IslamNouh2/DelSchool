@@ -17,11 +17,14 @@
   "menu": {
     "dashboard": "لوحة القيادة",
     "employers": "الموظفين",
+    "teachers": "المعلمون",
     "students": "الطلاب",
+    "student": "الطالب",
     "timetable": "الجدول الزمني",
     "subjects": "المواد",
     "classes": "الفصول",
     "levels": "المستويات",
+    "local": "المواقع",
     "attendance": {
       "title": "الحضور",
       "employer": "الموظف",
@@ -222,6 +225,11 @@
       }
     },
     "treasury": "الخزينة",
+    "payroll": "الرواتب",
+    "expenses": "المصاريف",
+    "comptes": "الحسابات",
+    "studentfee": "رسوم الطلاب",
+    "feestemplate": "نماذج الرسوم",
     "settings": {
       "title": "الإعدادات",
       "general": "عام",
@@ -232,7 +240,11 @@
     "enterprise": "موثق",
     "startup": "شركات ناشئة",
     "free": "مجاني",
-    "admin": "مسؤول"
+    "admin": {
+      "title": "مسؤول",
+      "users": "المستخدمين",
+      "roles": "الأدوار"
+    }
   },
   "actions": {
     "add": "إضافة",
@@ -318,7 +330,8 @@
     "events_title": "الفعاليات",
     "announcements_title": "الإعلانات",
     "view_all": "عرض الكل",
-    "performance_by_class": "الأداء حسب الفصل"
+    "performance_by_class": "الأداء حسب الفصل",
+    "attendance": "الحضور"
   },
   "nav": {
     "upgrade_pro": "الترقية إلى برو",

@@ -72,7 +72,13 @@ export function EditPayrollModal({
             status,
         });
         
-        toast.success("Payroll updated successfully");
+        if (res.status === 202 || (res.data as any).offline) {
+            toast.success("Modification enregistrée localement", {
+                description: "La fiche de paie sera synchronisée dès que possible."
+            });
+        } else {
+            toast.success("Payroll updated successfully");
+        }
       } catch (error) {
           toast.error("Failed to update payroll on server");
           console.error(error);

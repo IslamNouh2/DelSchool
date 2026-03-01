@@ -5,11 +5,10 @@ import { UpdateParameterDto } from './dto/update-parameter.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
-import { Role } from 'src/auth/dto/register.dto';
 
 @Controller('parameter')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles('ADMIN')
 export class ParameterController {
   constructor(private readonly parameterService: ParameterService) { }
 

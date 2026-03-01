@@ -61,11 +61,18 @@ const PayExpenseModal = ({ open, setOpen, expense, onSuccess }: PayExpenseModalP
 
     startTransition(async () => {
         try {
-            await api.post(`/expense/${expense.id}/pay`, {
+            const res = await api.post(`/expense/${expense.id}/pay`, {
                 treasuryId: parseInt(selectedTreasuryAccount),
                 method: paymentMethod
             });
-            toast.success(t("messages.paid"));
+            
+            if (res.status === 202 || (res.data as any).offline) {
+                toast.success(t("messages.offline_success"), {
+                    description: t("messages.sync_pending_desc") || "Payment registered locally and will sync when online."
+                });
+            } else {
+                toast.success(t("messages.paid"));
+            }
             onSuccess();
             setOpen(false);
         } catch (error: any) {

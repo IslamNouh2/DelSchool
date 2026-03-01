@@ -326,7 +326,7 @@ export default function FeeTemplatesPage() {
                                                     <div className={cn("flex flex-col", isRtl && "text-right")}>
                                                         <span className="text-base font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">{t.title}</span>
                                                         <span className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-tighter mt-1 italic">
-                                                            {t.description || t("messages.no_description")}
+                                                            {/* {t.description || t("messages.no_description")} */}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -344,7 +344,9 @@ export default function FeeTemplatesPage() {
                                                             <div className="w-4 h-[1px] bg-blue-200 dark:bg-blue-900" />
                                                             <span>{format(new Date(t.dateEndConsommation), 'dd MMM', { locale: dateLocale })}</span>
                                                         </div>
-                                                        <span className="text-[9px] text-gray-400 dark:text-slate-600 font-bold uppercase tracking-widest italic">{t("table.service_period")}</span>
+                                                        <span className="text-[9px] text-gray-400 dark:text-slate-600 font-bold uppercase tracking-widest italic">
+                                                            {/* {t("table.service_period")} */}
+                                                        </span>
                                                     </div>
                                                 ) : (
                                                     <span className="text-[10px] font-black text-gray-300 dark:text-slate-700 uppercase tracking-widest italic">— Non défini —</span>

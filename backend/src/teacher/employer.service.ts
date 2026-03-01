@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { PrismaService } from "prisma/prisma.service";
+import { PrismaService } from "../prisma/prisma.service";
 import { SocketGateway } from "src/socket/socket.gateway";
 import { v4 as uuidv4 } from 'uuid';
 import { CreateEmployerDto } from "./dto/CreateEmployer.dto";
@@ -22,20 +22,24 @@ export class EmployerService {
         this.ensureUploadDirectory();
     }
 
-    async GetCountTeacher() {
+    async GetCountTeacher(tenantId: string) {
         const total = await this.prisma.employer.count({
-            where: { type: { equals: 'teacher', mode: 'insensitive' } }
+            where: { 
+                type: { equals: 'teacher', mode: 'insensitive' },
+                tenantId
+            }
         });
         return { total };
     }
 
-    async GetCountStaff() {
+    async GetCountStaff(tenantId: string) {
         const total = await this.prisma.employer.count({
             where: {
                 type: {
                     in: ['employer', 'admin'],
                     mode: 'insensitive'
-                }
+                },
+                tenantId
             }
         });
         return { total };
@@ -76,14 +80,18 @@ export class EmployerService {
         }
     }
 
-    async deleteEmployer(id: number): Promise<void> {
-        const employer = await this.prisma.employer.findUnique({ where: { employerId: id } });
+    async deleteEmployer(tenantId: string, id: number): Promise<void> {
+        const employer = await this.prisma.employer.findFirst({ 
+            where: { employerId: id, tenantId } 
+        });
         if (!employer) {
             throw new Error("Employer not found");
         }
 
         // Delete from database
-        await this.prisma.employer.delete({ where: { employerId: id } });
+        await this.prisma.employer.delete({ 
+            where: { employerId: id } // employerId is unique globally but we checked tenant above
+        });
         this.socketGateway.emitRefresh();
 
         // Delete associated photo
@@ -91,7 +99,7 @@ export class EmployerService {
     }
 
 
-    async CreateEmployer(dto: CreateEmployerDto, photo?: Express.Multer.File) {
+    async CreateEmployer(tenantId: string, dto: CreateEmployerDto, photo?: Express.Multer.File) {
         const {
             firstName, lastName, dateOfBirth, lieuOfBirth, gender, address,
             fatherName,  motherName, health, dateCreate, dateModif,
@@ -118,6 +126,7 @@ export class EmployerService {
         const prefix = `EMP-${typeCode}`;
         const latest = await this.prisma.employer.findFirst({
             where: {
+                tenantId,
                 code: {
                     startsWith: prefix,
                 },
@@ -170,6 +179,7 @@ export class EmployerService {
                     salaryBasis: salaryBasis || "DAILY",
                     checkInTime: checkInTime || "08:00",
                     checkOutTime: checkOutTime || "16:00",
+                    tenantId, // Enforce tenant
                 },
             });
 
@@ -196,9 +206,9 @@ export class EmployerService {
 
 
 
-    async UpdateEmployer(id: number, dto: UpdateEmployerDto, photo?: Express.Multer.File) {
-        const existing = await this.prisma.employer.findUnique({
-            where: { employerId: id },
+    async UpdateEmployer(tenantId: string, id: number, dto: UpdateEmployerDto, photo?: Express.Multer.File) {
+        const existing = await this.prisma.employer.findFirst({
+            where: { employerId: id, tenantId },
         });
 
         if (!existing) {
@@ -263,9 +273,22 @@ export class EmployerService {
         }
     }
 
-    async GetEmployer(page: number = 1, limit: number = 10, type?: string) {
+    async GetEmployer(tenantId: string, page: number = 1, limit: number = 10, type?: string, search?: string) {
         const skip = (page - 1) * limit;
-        const whereClause = type ? { type } : {};
+        
+        const filters: any[] = [{ tenantId }]; // Enforce tenant
+        if (type) filters.push({ type });
+        if (search) {
+            filters.push({
+                OR: [
+                    { firstName: { contains: search, mode: 'insensitive' } },
+                    { lastName: { contains: search, mode: 'insensitive' } },
+                    { code: { contains: search, mode: 'insensitive' } },
+                ]
+            });
+        }
+
+        const whereClause = filters.length > 0 ? { AND: filters } : {};
 
         const [employers, total] = await this.prisma.$transaction([
             this.prisma.employer.findMany({
@@ -283,7 +306,8 @@ export class EmployerService {
                     cid: true,
                     photoFileName: true,
                     okBlock: true,
-                }
+                },
+                orderBy: { lastName: 'asc' }
             }),
             this.prisma.employer.count({ where: whereClause }),
         ]);
@@ -302,6 +326,7 @@ export class EmployerService {
     }
 
     async SearchEmployerByName(
+        tenantId: string,
         page: number = 1,
         limit: number = 10,
         name?: string,
@@ -337,7 +362,11 @@ export class EmployerService {
             : undefined;
 
         const whereClause: Prisma.EmployerWhereInput = {
-            AND: [nameFilter, typeFilter].filter(Boolean) as Prisma.EmployerWhereInput[],
+            AND: [
+                { tenantId }, // Enforce tenant
+                nameFilter, 
+                typeFilter
+            ].filter(Boolean) as Prisma.EmployerWhereInput[],
         };
 
         const [employers, total] = await this.prisma.$transaction([
@@ -377,9 +406,9 @@ export class EmployerService {
     }
 
 
-    async GetEmployerById(id: number) {
-        const employer = await this.prisma.employer.findUnique({
-            where: { employerId: id },
+    async GetEmployerById(tenantId: string, id: number) {
+        const employer = await this.prisma.employer.findFirst({
+            where: { employerId: id, tenantId },
             select: {
                 employerId: true,
                 firstName: true,
@@ -413,7 +442,8 @@ export class EmployerService {
                     select: {
                         id: true,
                         name: true,
-                    }
+                    },
+                    where: { tenantId }
                 }
             }
         });
@@ -428,11 +458,12 @@ export class EmployerService {
         };
     }
 
-    async GetEmployerWithName(name: string, page: number, limit: number) {
+    async GetEmployerWithName(tenantId: string, name: string, page: number, limit: number) {
         const skip = (page - 1) * limit;
         const [employers, total] = await this.prisma.$transaction([
             this.prisma.employer.findMany({
                 where: {
+                    tenantId,
                     OR: [
                         { lastName: { contains: name, mode: 'insensitive' } },
                         { firstName: { contains: name, mode: 'insensitive' } },
@@ -453,6 +484,7 @@ export class EmployerService {
             }),
             this.prisma.employer.count({
                 where: {
+                    tenantId,
                     OR: [
                         { lastName: { contains: name, mode: 'insensitive' } },
                         { firstName: { contains: name, mode: 'insensitive' } },
@@ -483,10 +515,10 @@ export class EmployerService {
         }
     }
 
-    async assignClassToTeacher(employerId: number, classId: number) {
+    async assignClassToTeacher(tenantId: string, employerId: number, classId: number) {
         // Check if assignment exists
-        const existing = await this.prisma.teaherClass.findUnique({
-            where: { employerId },
+        const existing = await this.prisma.teaherClass.findFirst({
+            where: { employerId, tenantId },
         });
 
         if (existing) {
@@ -501,13 +533,14 @@ export class EmployerService {
                 employerId,
                 classId,
                 isCurrent: true,
+                tenantId, // Enforce tenant
             },
         });
     }
 
-    async getTeacherClass(employerId: number) {
-        return this.prisma.teaherClass.findUnique({
-            where: { employerId },
+    async getTeacherClass(tenantId: string, employerId: number) {
+        return this.prisma.teaherClass.findFirst({
+            where: { employerId, tenantId },
             include: { Class: { include: { local: true } } },
         });
     }

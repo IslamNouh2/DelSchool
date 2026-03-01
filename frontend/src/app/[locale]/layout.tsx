@@ -8,6 +8,9 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { PWAInitializer } from "@/providers/PWAProvider";
+import { AuthProvider } from "@/components/contexts/AuthContext";
+
 
 // Load Inter for LTR
 const inter = Inter({
@@ -30,8 +33,18 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: t('title'),
     description: "Secure and modern school management system",
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: t('title'),
+    },
+    formatDetection: {
+      telephone: false,
+    },
   };
 }
+
 
 export default async function RootLayout({
   children,
@@ -69,9 +82,14 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <SocketProvider>
-              {children}
+              <AuthProvider>
+                <PWAInitializer>
+                  {children}
+                </PWAInitializer>
+              </AuthProvider>
               <Toaster richColors position="top-right" />
             </SocketProvider>
+
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

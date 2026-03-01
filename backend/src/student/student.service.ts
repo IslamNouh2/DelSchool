@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SocketGateway } from 'src/socket/socket.gateway';
 
 import { CreateStudentDto } from './dto/CreateStudentDto';
@@ -57,14 +57,14 @@ export class StudentService {
         }
     }
 
-    async GetCountStudent() {
-        const total = await this.prisma.student.count();
-        const boys = await this.prisma.student.count({ where: { gender: 'Male' } });
-        const girls = await this.prisma.student.count({ where: { gender: 'Female' } });
+    async GetCountStudent(tenantId: string) {
+        const total = await this.prisma.student.count({ where: { tenantId } });
+        const boys = await this.prisma.student.count({ where: { gender: 'Male', tenantId } });
+        const girls = await this.prisma.student.count({ where: { gender: 'Female', tenantId } });
         return { total, boys, girls };
     }
 
-    async CreateStudent(dto: CreateStudentDto, photo?: Express.Multer.File) {
+    async CreateStudent(tenantId: string, dto: CreateStudentDto, photo?: Express.Multer.File) {
         const {
             firstName, lastName, dateOfBirth, gender, address, parentId,
             fatherName, fatherNumber, motherName, motherNumber,
@@ -86,6 +86,7 @@ export class StudentService {
                     motherJob: motherJob || '',
                     motherNumber: motherNumber || '',
                     fatherNumber: fatherNumber || '',
+                    tenantId, // Add tenantId
                 },
                 select: { parentId: true },
             });
@@ -108,6 +109,7 @@ export class StudentService {
                     dateInscription: new Date(dateInscription),
                     okBlock: okBlock === true,
                     photoFileName,
+                    tenantId, // Multi-tenancy
                 },
             });
             
@@ -183,6 +185,7 @@ export class StudentService {
                         classId: targetClassId,
                         schoolYearId: schoolYear.id,
                         isCurrent: true,
+                        tenantId, // Add tenantId
                     },
                 });
             }
@@ -212,9 +215,9 @@ export class StudentService {
         return `${year}-${year + 1}`;
     }
 
-    async UpdateStudent(studentId: number, dto: UpdateStudentDto, photo?: Express.Multer.File) {
+    async UpdateStudent(tenantId: string, studentId: number, dto: UpdateStudentDto, photo?: Express.Multer.File) {
         const existingStudent = await this.prisma.student.findUnique({
-            where: { studentId },
+            where: { studentId, tenantId }, // Enforce tenant check
             select: { photoFileName: true, parentId: true }
         });
 
@@ -244,7 +247,7 @@ export class StudentService {
         if ((fatherName && fatherNumber) || (motherName && motherNumber)) {
             if (parentId && parentId !== 1) {
                 await this.prisma.parent.update({
-                    where: { parentId },
+                    where: { parentId, tenantId }, // Enforce tenantId
                     data: {
                         father: fatherName || undefined,
                         mother: motherName || undefined,
@@ -264,6 +267,7 @@ export class StudentService {
                         motherJob: motherJob || '',
                         fatherNumber: fatherNumber || '',
                         motherNumber: motherNumber || '',
+                        tenantId, // Add tenantId
                     },
                 });
                 finalParentId = parent.parentId;
@@ -378,6 +382,7 @@ export class StudentService {
                     classId: targetClassId,
                     schoolYearId: schoolYear.id,
                     isCurrent: true,
+                    tenantId, // Add tenantId
                 },
             });
         }
@@ -386,9 +391,9 @@ export class StudentService {
         return updatedStudent;
     }
 
-    async DeleteStudent(id: number) {
+    async DeleteStudent(tenantId: string, id: number) {
         const student = await this.prisma.student.findUnique({
-            where: { studentId: id },
+            where: { studentId: id, tenantId },
             select: { photoFileName: true }
         });
 
@@ -400,14 +405,14 @@ export class StudentService {
             await this.deletePhotoFile(student.photoFileName);
         }
 
-        await this.prisma.student.delete({ where: { studentId: id } });
+        await this.prisma.student.delete({ where: { studentId: id, tenantId } });
         this.socketGateway.emitRefresh();
     }
 
-    async GetStudent(page: number = 1, limit: number = 10, classId?: number, status?: string) {
+    async GetStudent(tenantId: string, page: number = 1, limit: number = 10, classId?: number, status?: string, search?: string) {
         const skip = (page - 1) * limit;
 
-        const where: any = {};
+        const where: any = { tenantId };
         if (classId) {
             where.studentClasses = {
                 some: {
@@ -415,6 +420,14 @@ export class StudentService {
                     isCurrent: true
                 }
             };
+        }
+
+        if (search) {
+            where.OR = [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { code: { contains: search, mode: 'insensitive' } },
+            ];
         }
 
         // If filtering by status, we must fetch all matching students first, then filter in memory
@@ -557,9 +570,9 @@ export class StudentService {
         };
     }
 
-    async GetStudentById(id: number) {
+    async GetStudentById(tenantId: string, id: number) {
         const student = await this.prisma.student.findUnique({
-            where: { studentId: id },
+            where: { studentId: id, tenantId },
             select: {
                 studentId: true,
                 firstName: true,
@@ -634,9 +647,10 @@ export class StudentService {
         };
     }
 
-    async getLocal() {
+    async getLocal(tenantId: string) {
         try {
             return await this.prisma.local.findMany({
+                where: { tenantId },
                 select: {
                     localId: true,
                     name: true,
@@ -647,12 +661,13 @@ export class StudentService {
         }
     }
 
-    async GetStudentWithName(name: string, page: number, limit: number) {
+    async GetStudentWithName(tenantId: string, name: string, page: number, limit: number) {
         const skip = (page - 1) * limit;
 
         const [students, total] = await this.prisma.$transaction([
             this.prisma.student.findMany({
                 where: {
+                    tenantId,
                     OR: [
                         { lastName: { contains: name, mode: 'insensitive' } },
                         { firstName: { contains: name, mode: 'insensitive' } },
@@ -684,6 +699,7 @@ export class StudentService {
             }),
             this.prisma.student.count({
                 where: {
+                    tenantId,
                     OR: [
                         { lastName: { contains: name, mode: 'insensitive' } },
                         { firstName: { contains: name, mode: 'insensitive' } },
@@ -716,8 +732,8 @@ export class StudentService {
         }
     }
 
-    async GetCountParent() {
-        const total = await this.prisma.parent.count();
+    async GetCountParent(tenantId: string) {
+        const total = await this.prisma.parent.count({ where: { tenantId } });
         return { total };
     }
 }

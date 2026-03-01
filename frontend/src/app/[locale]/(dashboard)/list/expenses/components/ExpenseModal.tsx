@@ -116,7 +116,13 @@ const ExpenseModal = ({ open, setOpen, onSuccess }: ExpenseModalProps) => {
     startTransition(async () => {
         try {
             const res = await api.post("/expense", payload);
-            toast.success(t("messages.created"));
+            if (res.status === 202 || (res.data as any).offline) {
+                toast.success(t("messages.offline_success"), {
+                    description: t("messages.sync_pending_desc") || "Changes saved locally and will sync when online."
+                });
+            } else {
+                toast.success(t("messages.created"));
+            }
             onSuccess();
             setOpen(false);
         } catch (error: any) {

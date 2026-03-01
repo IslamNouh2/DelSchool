@@ -18,6 +18,7 @@ import {
 import { useTranslations, useLocale } from "next-intl";
 import { toast } from "sonner";
 import api from "@/lib/api";
+import { OfflineDB } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -72,6 +73,18 @@ export default function StudentFinancialDashboard() {
     const [status, setStatus] = useState<string>("ALL");
     const [classes, setClasses] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearchTerm, classId, status]);
 
     const fetchClasses = async () => {
         try {
@@ -100,13 +113,24 @@ export default function StudentFinancialDashboard() {
                         limit,
                         classId: classId !== "all" ? classId : undefined,
                         status: status !== "ALL" ? status : undefined,
+                        search: debouncedSearchTerm || undefined,
                     }
                 }),
                 api.get("/fees/templates"),
                 api.get("/parameter/School_System_Paid"),
             ]);
             
-            setStudents(studentRes.data.students);
+            const fetchedStudents: StudentWithFinance[] = studentRes.data.students || [];
+            const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
+            const queue = await OfflineDB.getSyncQueue(tenantId);
+            const pendingFees = queue.filter(item => item.entity === 'fee' || item.url.includes('fees'));
+
+            const mergedStudents = fetchedStudents.map(s => {
+                const hasPending = pendingFees.some(f => f.data?.studentId === s.studentId);
+                return { ...s, pendingSync: hasPending };
+            });
+
+            setStudents(mergedStudents);
             setTotalPages(studentRes.data.totalPages);
             setTemplates(templateRes.data);
             setIsSystemPaid(paidRes.data?.okActive || false);
@@ -124,7 +148,7 @@ export default function StudentFinancialDashboard() {
 
     useEffect(() => {
         fetchData();
-    }, [refreshKey, page, limit, classId, status]);
+    }, [refreshKey, page, limit, classId, status, debouncedSearchTerm]);
 
     // Optimistic UI for students list (specifically for fee operations if needed, but easier to just refresh or use specific optimistic state)
     // The user asked to "use" or "use optimse" for "add fee if fee is add not add for second time"
@@ -174,6 +198,11 @@ export default function StudentFinancialDashboard() {
             toast.success(t("messages.fee_assigned"));
             fetchData();
         } catch (error: any) {
+            if (error.isOffline) {
+                toast.info("Enregistrement local (hors ligne) 📡");
+                fetchData();
+                return;
+            }
             toast.error(error.response?.data?.message || t("messages.assign_error"));
             // Revert is automatic when `students` state updates from fetchData, 
             // but if fetchData fails, we might need to rollback. 
@@ -369,10 +398,7 @@ export default function StudentFinancialDashboard() {
             {/* Main Table Content */}
             <div className="relative">
                 <StudentTable 
-                    students={optimisticStudents.filter(s => 
-                        `${s.firstName} ${s.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        s.code.toLowerCase().includes(searchTerm.toLowerCase())
-                    )}
+                    students={optimisticStudents}
                     loading={isLoading}
                     onSubscribe={(s) => {
                         setSelectedStudent(s);

@@ -20,6 +20,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { Payroll } from "./types";
+import { OfflineDB, SyncRecord } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import Cookies from "js-cookie";
 
 interface PayrollTableProps {
   periodStart: string;
@@ -33,13 +36,54 @@ export function PayrollTable({ periodStart, periodEnd }: PayrollTableProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPayOpen, setIsPayOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [syncQueue, setSyncQueue] = useState<SyncRecord[]>([]);
+  const tenantId = Cookies.get("tenantId") as string;
 
   const fetchPayrolls = async () => {
     setLoading(true);
     try {
       // Use the api instance which has the Base URL configured
-      const res = await api.get(`/payroll?start=${periodStart}&end=${periodEnd}`);
-      setPayrolls(res.data);
+      const url = `/payroll?start=${periodStart}&end=${periodEnd}`;
+      
+      const [res, queue] = await Promise.all([
+        api.get(url),
+        OfflineDB.getSyncQueue(tenantId)
+      ]);
+      
+      setSyncQueue(queue);
+      let mergedData: Payroll[] = res.data || [];
+
+      // Merge pending generation (POST /payroll/generate)
+      // Note: backend generate returns {count, generatedPayrolls} but findAll returns Payroll[]
+      // Sync queue doesn't store the resulting fiches until synced, but we can show "Processing..." if we wanted.
+      // However, usually generate creates many. For simplicity, we mostly care about Edits and Payments.
+
+      // Merge pending updates (PATCH /payroll/:id)
+      const pendingUpdates = queue.filter(q => q.url.includes('/payroll/') && q.method === 'PATCH');
+      mergedData = mergedData.map(p => {
+        const update = pendingUpdates.find(q => q.url.endsWith(`/payroll/${p.id}`));
+        if (update) {
+            return {
+                ...p,
+                allowances: String(update.data.allowances),
+                deductions: String(update.data.deductions),
+                status: update.data.status,
+                pending: true
+            };
+        }
+        return p;
+      });
+
+      // Merge pending payments (POST /payroll/pay/:id)
+      const pendingPayments = queue.filter(q => q.url.includes('/payroll/pay/') && q.method === 'POST');
+      mergedData = mergedData.map(p => {
+          if (pendingPayments.some(q => q.url.endsWith(`/payroll/pay/${p.id}`))) {
+              return { ...p, status: 'PAID', pending: true };
+          }
+          return p;
+      });
+
+      setPayrolls(mergedData);
     } catch (error) {
       console.error("Failed to fetch payrolls", error);
     } finally {
@@ -134,10 +178,16 @@ export function PayrollTable({ periodStart, periodEnd }: PayrollTableProps) {
                     <TableCell className="text-right font-mono text-rose-600 font-bold">-{Number(payroll.deductions).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-right font-mono text-emerald-600 font-bold">+{Number(payroll.allowances).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-right font-mono font-black text-indigo-600 dark:text-indigo-400 text-base">{Number(payroll.netSalary).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DA</TableCell>
-                    <TableCell className="text-center">
-                         <Badge variant="outline" className={cn("font-bold border px-3 py-1", getStatusColor(payroll.status))}>
-                            {payroll.status}
-                        </Badge>
+                     <TableCell className="text-center">
+                         <div className="flex flex-col items-center gap-1">
+                            <Badge variant="outline" className={cn("font-bold border px-3 py-1", getStatusColor(payroll.status))}>
+                                {payroll.status}
+                            </Badge>
+                            {syncQueue.some(q => 
+                                (q.url.endsWith(`/payroll/${payroll.id}`) && q.method === 'PATCH') ||
+                                (q.url.endsWith(`/payroll/pay/${payroll.id}`) && q.method === 'POST')
+                            ) && <SyncStatusBadge id={payroll.id} isPending={true} />}
+                         </div>
                     </TableCell>
                     <TableCell className="text-center text-xs text-gray-500">
                         {payroll.compte ? payroll.compte.name : '-'}

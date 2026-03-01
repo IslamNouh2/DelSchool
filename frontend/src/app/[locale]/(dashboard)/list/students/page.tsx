@@ -19,6 +19,9 @@ import { useSocket } from "@/providers/SocketProvider";
 import { useTranslations } from "next-intl";
 import { useTranslateError } from "@/hooks/useTranslateError";
 import { toast } from "sonner";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
+import { OfflineDB } from "@/lib/db";
 import { 
     AlertDialog, 
     AlertDialogAction, 
@@ -113,6 +116,10 @@ export default function StudentListPage() {
 
 
     useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedFilterValue]);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedFilterValue(filterValue);
         }, 500);
@@ -122,6 +129,7 @@ export default function StudentListPage() {
     const fetchData = useCallback(async (page: number) => {
         setLoading(true);
         try {
+            const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
             const response = await api.get("/student/list", {
                 params: {
                     page,
@@ -129,15 +137,45 @@ export default function StudentListPage() {
                     search: debouncedFilterValue,
                 },
             });
-            setData(response.data.students);
-            setTotalCount(response.data.total);
-        } catch (error) {
+            
+            let students = response.data.students;
+            
+            // Merge pending offline student creations
+            const pendingMutations = await OfflineDB.getSyncQueue(tenantId);
+            const pendingStudents = pendingMutations
+                .filter(m => m.entity === 'student' && m.type === 'CREATE')
+                .map(m => ({
+                    ...m.data,
+                    studentId: `pending-${m.operationId}`,
+                    isPending: true
+                }));
+
+            setData([...pendingStudents, ...students]);
+            setTotalCount(response.data.total + pendingStudents.length);
+        } catch (error: any) {
             console.error("Error fetching students:", error);
-            toast.error(translateError(error));
+            
+            // If offline, try to load from cache or at least show pending
+            const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
+            if (!navigator.onLine || error.isOffline) {
+                 const pendingMutations = await OfflineDB.getSyncQueue(tenantId);
+                 const pendingStudents = pendingMutations
+                    .filter(m => m.entity === 'student' && m.type === 'CREATE')
+                    .map(m => ({
+                        ...m.data,
+                        studentId: `pending-${m.operationId}`,
+                        isPending: true
+                    }));
+                setData(pendingStudents);
+            }
+            if (!error.isOffline) {
+                toast.error(translateError(error));
+            }
         } finally {
             setLoading(false);
         }
     }, [pageSize, debouncedFilterValue, translateError]);
+
 
     const handleDeleteClick = (id: number) => {
         setStudentToDelete(id);
@@ -222,9 +260,15 @@ export default function StudentListPage() {
             header: t("table.name"),
             key: "name",
             visible: columnVisibility.name,
-            render: (student: Student) => `${student.firstName} ${student.lastName}`,
+            render: (student: Student & { isPending?: boolean }) => (
+                <div className="flex items-center gap-2">
+                    <span>{student.firstName} {student.lastName}</span>
+                    {student.isPending && <SyncStatusBadge id={student.studentId} isPending={true} />}
+                </div>
+            ),
             className: "text-muted-foreground",
         },
+
         {
             header: t("table.gender"),
             key: "gender",

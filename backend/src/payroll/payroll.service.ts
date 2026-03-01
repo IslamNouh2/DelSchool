@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CompteService } from '../compte/compte.service';
 import { CreatePayrollDto } from './dto/create-payroll.dto';
 import { UpdatePayrollDto } from './dto/update-payroll.dto';
@@ -17,7 +17,7 @@ export class PayrollService {
     private approvalService: PayrollApprovalService,
   ) {}
 
-  async create(createPayrollDto: CreatePayrollDto) {
+  async create(tenantId: string, createPayrollDto: CreatePayrollDto) {
     return this.prisma.payroll.create({
       data: {
         employerId: createPayrollDto.employerId,
@@ -28,12 +28,13 @@ export class PayrollService {
         deductions: createPayrollDto.deductions || 0,
         netSalary: createPayrollDto.netSalary,
         status: PayrollStatus.DRAFT,
+        tenantId, // Enforce tenant
       },
     });
   }
 
-  async findAll(start?: string, end?: string) {
-    const where: Prisma.PayrollWhereInput = {};
+  async findAll(tenantId: string, start?: string, end?: string) {
+    const where: Prisma.PayrollWhereInput = { tenantId }; // Enforce tenant
     if (start && end) {
       where.period_start = { gte: new Date(start) };
       where.period_end = { lte: new Date(end) };
@@ -64,18 +65,18 @@ export class PayrollService {
     });
   }
 
-  async findOne(id: number) {
-    return this.prisma.payroll.findUnique({
-      where: { id },
+  async findOne(tenantId: string, id: number) {
+    return this.prisma.payroll.findFirst({
+      where: { id, tenantId }, // Enforce tenant
       include: {
         employer: true,
       },
     });
   }
 
-  async findByEmployerId(employerId: number) {
+  async findByEmployerId(tenantId: string, employerId: number) {
     return this.prisma.payroll.findMany({
-      where: { employerId },
+      where: { employerId, tenantId }, // Enforce tenant
       include: {
         compte: {
           select: {
@@ -92,23 +93,23 @@ export class PayrollService {
   /**
    * Delegates approval to PayrollApprovalService
    */
-  async approvePayroll(id: number, adminId: number) {
-    return this.approvalService.approvePayroll(id, adminId);
+  async approvePayroll(tenantId: string, id: number, adminId: number) {
+    return this.approvalService.approvePayroll(tenantId, id, adminId);
   }
 
   /**
    * Delegates submission to PayrollApprovalService
    */
-  async submitPayroll(id: number, userId: number) {
-    return this.approvalService.submitPayroll(id, userId);
+  async submitPayroll(tenantId: string, id: number, userId: number) {
+    return this.approvalService.submitPayroll(tenantId, id, userId);
   }
 
-  async payPayroll(id: number, paymentMethod: string = 'CASH', compteId?: number, expenseAccountIdOverride?: number) {
+  async payPayroll(tenantId: string, id: number, paymentMethod: string = 'CASH', compteId?: number, expenseAccountIdOverride?: number) {
 
         // Validate Treasury Account
         if (compteId) {
-            const account = await this.prisma.compte.findUnique({
-                where: { id: compteId },
+            const account = await this.prisma.compte.findFirst({
+                where: { id: compteId, tenantId }, // Enforce tenant
                 select: { category: true, name: true }
             });
 
@@ -122,8 +123,8 @@ export class PayrollService {
         }
 
         return this.prisma.$transaction(async (tx) => {
-            const payroll = await tx.payroll.findUnique({
-                where: { id },
+            const payroll = await tx.payroll.findFirst({
+                where: { id, tenantId }, // Enforce tenant
                 include: { employer: true }
             });
 
@@ -141,6 +142,7 @@ export class PayrollService {
                     expenseAccountId = expenseAccountIdOverride;
                 } else {
                     const employerAccount = await this.compteService.getOrCreateEmployerAccount(
+                        tenantId, // Pass tenantId
                         payroll.employerId, 
                         `${payroll.employer.firstName} ${payroll.employer.lastName}`
                     );
@@ -161,7 +163,8 @@ export class PayrollService {
               where: {
                 title: { contains: `Payroll for period ${payroll.period_start.toISOString().split('T')[0]}` },
                 compteId: expenseAccountId,
-                amount: payroll.netSalary
+                amount: payroll.netSalary,
+                tenantId, // Enforce tenant
               }
             });
 
@@ -178,7 +181,8 @@ export class PayrollService {
                     expenseId: expenseId,
                     compteSourceId: compteId, // Source (Treasury)
                     compteDestId: expenseAccountId, // Destination (Expense)
-                    description: `Salary Payment #${payroll.id}`
+                    description: `Salary Payment #${payroll.id}`,
+                    tenantId, // Enforce tenant
                 } as any
             });
 
@@ -198,6 +202,7 @@ export class PayrollService {
                         totalCredit: Number(payroll.netSalary),
                         status: 'POSTED',
                         createdBy: 1,
+                        tenantId, // Enforce tenant
                         lines: {
                             create: [
                                 {
@@ -205,14 +210,16 @@ export class PayrollService {
                                     compteId: expenseAccountId,
                                     debit: Number(payroll.netSalary),
                                     credit: 0,
-                                    description: `Salaire ${payroll.employer.firstName} ${payroll.employer.lastName}`
+                                    description: `Salaire ${payroll.employer.firstName} ${payroll.employer.lastName}`,
+                                    tenantId, // Enforce tenant
                                 },
                                 {
                                     lineNumber: 2,
                                     compteId: compteId,
                                     debit: 0,
                                     credit: Number(payroll.netSalary),
-                                    description: `Paiement Salaire: ${payroll.employer.firstName} ${payroll.employer.lastName}`
+                                    description: `Paiement Salaire: ${payroll.employer.firstName} ${payroll.employer.lastName}`,
+                                    tenantId, // Enforce tenant
                                 }
                             ]
                         }
@@ -222,7 +229,7 @@ export class PayrollService {
 
             // 5. Update Payroll Record
             const updatedPayroll = await tx.payroll.update({
-                where: { id },
+                where: { id }, // id is unique globally but we already checked tenantId above
                 data: { 
                     status: PayrollStatus.PAID,
                 },
@@ -236,7 +243,7 @@ export class PayrollService {
         });
   }
 
-  async update(id: number, updatePayrollDto: UpdatePayrollDto) {
+  async update(tenantId: string, id: number, updatePayrollDto: UpdatePayrollDto) {
     const { period_start, period_end, ...rest } = updatePayrollDto;
     const data: Prisma.PayrollUpdateInput = { ...rest };
     
@@ -249,7 +256,7 @@ export class PayrollService {
         updatePayrollDto.allowances !== undefined || 
         updatePayrollDto.deductions !== undefined
     ) {
-        const payroll = await this.prisma.payroll.findUnique({ where: { id } });
+        const payroll = await this.prisma.payroll.findFirst({ where: { id, tenantId } }); // Enforce tenant
         if (!payroll) throw new BadRequestException('Payroll not found');
 
         const base = updatePayrollDto.baseSalary !== undefined ? updatePayrollDto.baseSalary : Number(payroll.baseSalary);
@@ -265,19 +272,23 @@ export class PayrollService {
     });
   }
 
-  async remove(id: number) {
+  async remove(tenantId: string, id: number) {
+    // Check tenant first
+    const check = await this.prisma.payroll.findFirst({ where: { id, tenantId } });
+    if (!check) throw new BadRequestException('Payroll not found');
+
     return this.prisma.payroll.delete({
       where: { id },
     });
   }
 
   // logic: 1 day absent = (baseSalary / 30) deduction (assuming 30 days month or actual days)
-  async generatePayroll(dto: GeneratePayrollDto) {
+  async generatePayroll(tenantId: string, dto: GeneratePayrollDto) {
     const start = new Date(dto.period_start);
     const end = new Date(dto.period_end);
 
     // 1. Get employers (all or specific)
-    const where: Prisma.EmployerWhereInput = { okBlock: false };
+    const where: Prisma.EmployerWhereInput = { okBlock: false, tenantId }; // Enforce tenant
     if (dto.employerId) {
         where.employerId = Number(dto.employerId);
     }
@@ -295,6 +306,7 @@ export class PayrollService {
                 employerId: emp.employerId,
                 period_start: start,
                 period_end: end,
+                tenantId, // Enforce tenant
             }
         });
 
@@ -310,6 +322,7 @@ export class PayrollService {
                     gte: start,
                     lte: end,
                 },
+                tenantId, // Enforce tenant
             },
         });
 
@@ -334,6 +347,7 @@ export class PayrollService {
                 attendanceSummary: calc.attendanceSummary as any,
                 compteId: dto.compteId ? Number(dto.compteId) : undefined,
                 createdAt: dto.date ? new Date(dto.date) : new Date(),
+                tenantId, // Enforce tenant
             }
         });
         generatedPayrolls.push(payroll);

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateLocalSubjectBulkDto } from './dto/create-local-subject-bulk.dto';
 import { SocketGateway } from '../socket/socket.gateway';
 
@@ -11,7 +11,7 @@ export class SubjectLocalService {
         private readonly socketGateway: SocketGateway
     ) { };
 
-    async bulkInsert(dto: CreateLocalSubjectBulkDto) {
+    async bulkInsert(tenantId: string, dto: CreateLocalSubjectBulkDto) {
         const { localId, subjectIds } = dto;
 
         const records = subjectIds.map((subjectId) => ({
@@ -19,6 +19,7 @@ export class SubjectLocalService {
             subjectId,
             cloture: false,
             dateCreate: new Date(),
+            tenantId, // Enforce tenant
         }));
 
         const result = await this.prisma.subject_local.createMany({
@@ -30,20 +31,24 @@ export class SubjectLocalService {
     }
 
 
-    async getSubjectsByLocal(localId: number) {
+    async getSubjectsByLocal(tenantId: string, localId: number) {
         return this.prisma.subject_local.findMany({
-            where: { localId: Number(localId) },
+            where: { 
+                localId: Number(localId),
+                tenantId // Enforce tenant
+            },
             include: {
                 subject: true, // includes subject details (name, etc.)
             },
         });
     }
 
-    async removeSubjectFromLocal(localId: number, subjectId: number) {
+    async removeSubjectFromLocal(tenantId: string, localId: number, subjectId: number) {
         const record = await this.prisma.subject_local.findFirst({
             where: {
                 localId,
                 subjectId,
+                tenantId // Enforce tenant
             },
         });
 

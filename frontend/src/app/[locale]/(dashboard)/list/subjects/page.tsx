@@ -11,6 +11,9 @@ import { fetchUser } from "@/lib/getRoleFromToken";
 import SubjectForm from "@/components/forms/SubjectForm";
 import { useSocket } from "@/providers/SocketProvider";
 import { useTranslations } from "next-intl";
+import { OfflineDB, SyncRecord } from "@/lib/db";
+import Cookies from "js-cookie";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 export default function SubjectListPage() {
     const t = useTranslations("subjects");
@@ -18,7 +21,9 @@ export default function SubjectListPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [role, setRole] = useState<string>("guest");
+    const [syncQueue, setSyncQueue] = useState<SyncRecord[]>([]);
     const { refreshKey } = useSocket();
+    const tenantId = Cookies.get("tenantId") as string;
 
     
     // Dialog states
@@ -37,15 +42,51 @@ export default function SubjectListPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fetch all subjects to handle grouping on client side
-            const response = await api.get("/subject", {
-                params: {
-                    page: 1,
-                    limit: 1000, 
-                },
+            const [response, queue] = await Promise.all([
+                api.get("/subject", {
+                    params: {
+                        page: 1,
+                        limit: 1000, 
+                    },
+                }),
+                OfflineDB.getSyncQueue(tenantId)
+            ]);
+            
+            setSyncQueue(queue);
+            let allSubjects: Subject[] = response.data.subjects || [];
+
+            // 1. Merge pending updates (PATCH /subject/:id)
+            const pendingUpdates = queue.filter(q => q.url.includes('/subject/') && q.method === 'PATCH');
+            allSubjects = allSubjects.map(s => {
+                const update = pendingUpdates.find(q => q.url.endsWith(`/subject/${s.subjectId}`));
+                if (update) {
+                    return {
+                        ...s,
+                        subjectName: update.data.subjectName,
+                        totalGrads: update.data.totalGrads,
+                        okBlock: update.data.okBlock,
+                        pending: true
+                    };
+                }
+                return s;
+            });
+
+            // 2. Merge pending creations (POST /subject/createSub)
+            const pendingCreations = queue.filter(q => q.url.endsWith('/subject/createSub') && q.method === 'POST');
+            pendingCreations.forEach(q => {
+                const newSub: Subject = {
+                    subjectId: (q as any).id || Date.now(), // Use record ID if available, otherwise fallback
+                    subjectName: q.data.subjectName,
+                    totalGrads: q.data.totalGrads,
+                    parentId: q.data.parentId,
+                    okBlock: q.data.okBlock,
+                    parentName: "...", // Unknown until sync
+                    pending: true,
+                    children: []
+                };
+                allSubjects.push(newSub);
             });
             
-            const allSubjects: Subject[] = response.data.subjects;
             
             // Build tree structure
             const subjectMap = new Map<number, Subject>();
@@ -165,7 +206,7 @@ export default function SubjectListPage() {
                         />
                     </div>
                     
-                    {isAdmin && (
+                    <PermissionGuard permissions={['subject:create']}>
                         <Button 
                             onClick={() => {
                                 setSelectedSubject(null);
@@ -176,7 +217,7 @@ export default function SubjectListPage() {
                             <Plus className="w-5 h-5" />
                             <span>{t("add_subject")}</span>
                         </Button>
-                    )}
+                    </PermissionGuard>
                 </div>
             </div>
 

@@ -165,7 +165,11 @@ export default function GradeForm({ onSuccess, onCancel, initialExamId, initialC
       
       toast.success("Grades saved successfully");
       // if (onSuccess) onSuccess(); // Keep dialog open per user request
-    } catch (error) {
+    } catch (error: any) {
+      if (error.isOffline) {
+        toast.info("Grades saved locally (offline) 📡");
+        return;
+      }
       console.error("Error saving grades:", error);
       toast.error("Failed to save grades");
     } finally {

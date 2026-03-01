@@ -24,6 +24,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSocket } from "@/providers/SocketProvider";
+import { OfflineDB } from "@/lib/db";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { useAuth } from "@/components/contexts/AuthContext";
 
 export type GradeRow = {
   studentId: number;
@@ -37,6 +40,7 @@ export type GradeRow = {
 };
 
 function ExamGradesContent() {
+  const { hasPermission } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const examIdParam = searchParams.get("examId");
@@ -93,9 +97,36 @@ function ExamGradesContent() {
     setLoading(true);
     try {
       const res = await api.get(`/exam/subjects/${formData.classId}/${formData.id}`);
-      setGrades(res.data);
-      if (res.data.length > 0) {
-        const allSubjects = res.data[0].subjects.map((s: any) => s.subjectName);
+      let serverGrades: GradeRow[] = res.data;
+
+      // Merge offline data
+      const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
+      const queue = await OfflineDB.getSyncQueue(tenantId);
+      const pendingGrades = queue.filter(item => 
+        (item.entity === 'exam' && item.url.includes('grades')) &&
+        item.data.classId === formData.classId &&
+        item.data.examId === formData.id
+      );
+
+      let mergedGrades = [...serverGrades];
+
+      pendingGrades.forEach(item => {
+        const itemGrades = item.data.grades;
+        itemGrades.forEach((pg: any) => {
+          const studentIndex = mergedGrades.findIndex(sg => sg.studentId === pg.studentId);
+          if (studentIndex !== -1) {
+            const subjectIndex = mergedGrades[studentIndex].subjects.findIndex(s => s.subjectId === pg.subjectId);
+            if (subjectIndex !== -1) {
+              mergedGrades[studentIndex].subjects[subjectIndex].grade = pg.grade;
+              // we might want a flag for the specific cell, but for now we'll just merge
+            }
+          }
+        });
+      });
+
+      setGrades(mergedGrades);
+      if (mergedGrades.length > 0) {
+        const allSubjects = mergedGrades[0].subjects.map((s: any) => s.subjectName);
         setSubjects(allSubjects);
       }
     } catch (err) {
@@ -141,7 +172,11 @@ function ExamGradesContent() {
 
       await api.post("exam/grades", payload);
       toast.success("✅ Notes enregistrées avec succès !");
-    } catch (err) {
+    } catch (err: any) {
+      if (err.isOffline) {
+        toast.info("Enregistré localement (hors ligne) 📡");
+        return;
+      }
       console.error(err);
       toast.error("❌ Erreur lors de l’enregistrement des notes");
     } finally {
@@ -313,6 +348,7 @@ function ExamGradesContent() {
                                                             min={0}
                                                             max={20}
                                                             step={0.25}
+                                                            disabled={!hasPermission('grade:create')}
                                                             value={subject.grade ?? ""}
                                                             onChange={(e) => {
                                                                 const val = e.target.value;
@@ -324,6 +360,7 @@ function ExamGradesContent() {
                                                                 }
                                                             }}
                                                             className={`w-16 h-10 text-center font-bold text-sm transition-all duration-200 rounded-xl bg-gray-50 dark:bg-slate-800/50 outline-none border-2
+                                                                ${!hasPermission('grade:create') ? "opacity-50 cursor-not-allowed border-gray-100" : ""}
                                                                 ${isFailing ? "text-rose-600 border-rose-100 dark:border-rose-900/30 bg-rose-50 dark:bg-rose-900/10" : 
                                                                   isExcellent ? "text-emerald-600 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-900/10" :
                                                                   isGood ? "text-blue-600 border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10" :
@@ -341,33 +378,35 @@ function ExamGradesContent() {
                         </div>
 
                         {/* Sticky Save Button */}
-                        <div className="fixed bottom-10 right-10 z-50">
-                            <motion.div
-                                whileHover={{ scale: 1.05, y: -4 }}
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                <Button
-                                    onClick={handleSaveAll}
-                                    disabled={isSaving}
-                                    size="lg"
-                                    className="h-16 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-full shadow-2xl shadow-blue-500/50 hover:shadow-blue-500/70 transition-all border-none flex items-center gap-4 text-base font-bold"
+                        <PermissionGuard permissions={['grade:create']}>
+                            <div className="fixed bottom-10 right-10 z-50">
+                                <motion.div
+                                    whileHover={{ scale: 1.05, y: -4 }}
+                                    whileTap={{ scale: 0.95 }}
                                 >
-                                    {isSaving ? (
-                                        <>
-                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Saving Results...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="p-2 bg-white/20 rounded-full">
-                                                <Save className="w-5 h-5" />
-                                            </div>
-                                            Save All Grades
-                                        </>
-                                    )}
-                                </Button>
-                            </motion.div>
-                        </div>
+                                    <Button
+                                        onClick={handleSaveAll}
+                                        disabled={isSaving}
+                                        size="lg"
+                                        className="h-16 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-full shadow-2xl shadow-blue-500/50 hover:shadow-blue-500/70 transition-all border-none flex items-center gap-4 text-base font-bold"
+                                    >
+                                        {isSaving ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                Saving Results...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="p-2 bg-white/20 rounded-full">
+                                                    <Save className="w-5 h-5" />
+                                                </div>
+                                                Save All Grades
+                                            </>
+                                        )}
+                                    </Button>
+                                </motion.div>
+                            </div>
+                        </PermissionGuard>
                     </motion.div>
                 ) : (
                     <motion.div

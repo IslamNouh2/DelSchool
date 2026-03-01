@@ -10,6 +10,9 @@ import { useSocket } from "@/providers/SocketProvider";
 import CompteForm from "@/components/forms/CompteForm";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { OfflineDB, SyncRecord } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import Cookies from "js-cookie";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -50,7 +53,9 @@ export default function CompteListPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [filterValue, setFilterValue] = useState("");
     const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
+    const [syncQueue, setSyncQueue] = useState<SyncRecord[]>([]);
     const { refreshKey } = useSocket();
+    const tenantId = Cookies.get("tenantId") as string;
     const t = useTranslations("finance.accounts");
     const tCommon = useTranslations("common");
 
@@ -113,21 +118,53 @@ export default function CompteListPage() {
     const fetchData = useCallback(async (page: number) => {
         setLoading(true);
         try {
-            const response = await api.get("/compte", {
-                params: {
-                    page,
-                    limit: pageSize,
-                    name: debouncedFilterValue,
-                },
+            const [response, queue] = await Promise.all([
+                api.get("/compte", {
+                    params: {
+                        page,
+                        limit: pageSize,
+                        search: debouncedFilterValue,
+                    },
+                }),
+                OfflineDB.getSyncQueue(tenantId)
+            ]);
+
+            setSyncQueue(queue);
+            let mergedData = response.data.comptes || [];
+
+            // Merge pending creations
+            const pendingCreations = queue.filter(q => 
+                q.entity === 'compte' && 
+                q.method === 'POST' &&
+                (debouncedFilterValue ? q.data?.name?.toLowerCase().includes(debouncedFilterValue.toLowerCase()) : true)
+            );
+
+            pendingCreations.forEach(q => {
+                if (!mergedData.some((c: any) => c.id === q.operationId)) {
+                    mergedData.unshift({
+                        id: q.operationId as any,
+                        name: q.data.name,
+                        code: q.data.code,
+                        nature: q.data.nature,
+                        category: q.data.category,
+                        isPosted: false,
+                        parent: { name: 'Pending...' }
+                    });
+                }
             });
-            setData(response.data.comptes);
-            setTotalCount(response.data.total);
+
+            // Merge pending deletions
+            const pendingDeletions = queue.filter(q => q.entity === 'compte' && q.method === 'DELETE');
+            mergedData = mergedData.filter((c: any) => !pendingDeletions.some(q => q.url.includes(`/compte/${c.id}`)));
+
+            setData(mergedData);
+            setTotalCount(response.data.total + pendingCreations.length);
         } catch (error) {
             console.error("Error fetching accounts:", error);
         } finally {
             setLoading(false);
         }
-    }, [pageSize, debouncedFilterValue]);
+    }, [pageSize, debouncedFilterValue, tenantId]);
 
     const handleDelete = useCallback(async (id: number) => {
         if (!confirm(t("messages.delete_confirm"))) return;
@@ -197,8 +234,19 @@ export default function CompteListPage() {
             visible: columnVisibility.name,
             render: (compte: Compte) => (
                 <div className="flex flex-col gap-0.5">
-                    <span className="font-black text-gray-900 dark:text-gray-100 uppercase tracking-tighter">{compte.name}</span>
-                    <span className="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest leading-none">{compte.nature}</span>
+                    <div className="flex items-center gap-2">
+                         <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50 leading-none">
+                            {/* @ts-ignore - backend returns code but interface might be missing it */}
+                            {compte.code}
+                        </span>
+                        <span className="font-black text-gray-900 dark:text-gray-100 uppercase tracking-tighter">{compte.name}</span>
+                        {syncQueue.some(q => 
+                            (q.method === 'POST' && q.data?.name === compte.name) ||
+                            (q.method === 'PATCH' && q.url.includes(`/compte/${compte.id}`)) ||
+                            (q.method === 'DELETE' && q.url.includes(`/compte/${compte.id}`))
+                        ) && <SyncStatusBadge id={compte.id} isPending={true} />}
+                    </div>
+                    <span className="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest leading-none ml-[42px]">{compte.nature}</span>
                 </div>
             )
         },
@@ -322,6 +370,38 @@ export default function CompteListPage() {
                         loading={loading}
                         rowKey={(compte) => compte.id}
                         columns={columns}
+                        footer={
+                            totalCount > pageSize && (
+                                <div className="flex items-center justify-between px-8 py-5">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                        {tCommon("showing")} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalCount)} {tCommon("of")} {totalCount}
+                                    </p>
+                                    <div className="flex items-center gap-4">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1 || loading}
+                                            className="rounded-xl h-10 border-gray-200 dark:border-slate-800 font-bold"
+                                        >
+                                            {tCommon("previous")}
+                                        </Button>
+                                        <span className="text-xs font-black uppercase tracking-widest text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900/50">
+                                            {currentPage} / {Math.ceil(totalCount / pageSize)}
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalCount / pageSize), p + 1))}
+                                            disabled={currentPage >= Math.ceil(totalCount / pageSize) || loading}
+                                            className="rounded-xl h-10 border-gray-200 dark:border-slate-800 font-bold"
+                                        >
+                                            {tCommon("next")}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )
+                        }
                     />
                 </CardContent>
             </Card>

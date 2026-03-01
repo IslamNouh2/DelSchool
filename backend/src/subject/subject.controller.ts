@@ -15,63 +15,64 @@ import {
 import { SubjectService } from './subject.service';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { Role } from 'src/auth/dto/register.dto';
-import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
-//@UseGuards(JwtAuthGuard, RolesGuard)
+
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('subject')
 export class SubjectController {
   constructor(private readonly subjectsService: SubjectService) { }
 
   @Post('createSub')
-  create(@Body() createSubjectDto: CreateSubjectDto) {
-    return this.subjectsService.create(createSubjectDto);
+  create(@Req() req: any, @Body() createSubjectDto: CreateSubjectDto) {
+    return this.subjectsService.create(req.tenantId, createSubjectDto);
   }
 
 
   @Get('sub-subjects')
-  findSubSubjects() {
-    return this.subjectsService.findSubSubjects();
+  findSubSubjects(@Req() req: any) {
+    return this.subjectsService.findSubSubjects(req.tenantId);
   }
 
-  //@Roles(Role.TEACHER, Role.ADMIN)
+  //@Roles('TEACHER', 'ADMIN')
   @Get()
   async findAll(
+    @Req() req: any,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('orderBy') orderByField: string = 'dateCreate',
     @Query('name') name?: string,        // ✅ search by name
     @Query('status') status?: string,    // ✅ filter by active / blocked
   ) {
-    return this.subjectsService.findAll(page, limit, orderByField, name, status);
+    return this.subjectsService.findAll(req.tenantId, page, limit, orderByField, name, status);
   }
-  @Roles(Role.TEACHER, Role.ADMIN)
+  @Roles('TEACHER', 'ADMIN')
   @Get('count')
-  count(@Req() req) {
+  count(@Req() req: any) {
     //console.log('Authenticated user:', req.user);
-    return this.subjectsService.StubjectCount();
+    return this.subjectsService.StubjectCount(req.tenantId);
   }
 
-  @Roles(Role.TEACHER, Role.ADMIN)
+  @Roles('TEACHER', 'ADMIN')
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.subjectsService.findOne(id);
+  findOne(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.subjectsService.findOne(req.tenantId, id);
   }
 
-  @Roles(Role.TEACHER, Role.ADMIN)
+  @Roles('TEACHER', 'ADMIN')
   @Patch(':id')
   update(
+    @Req() req: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSubjectDto: UpdateSubjectDto,
   ) {
-    return this.subjectsService.update(id, updateSubjectDto);
+    return this.subjectsService.update(req.tenantId, id, updateSubjectDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.subjectsService.remove(id);
+  remove(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.subjectsService.remove(req.tenantId, id);
   }
 }

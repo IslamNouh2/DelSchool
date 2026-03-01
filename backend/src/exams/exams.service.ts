@@ -14,7 +14,7 @@ export class ExamService {
     ) { }
 
 
-    async create(createExamDto: CreateExamDto): Promise<Exam> {
+    async create(tenantId: string, createExamDto: CreateExamDto): Promise<Exam> {
         // Validate dates
         const startDate = new Date(createExamDto.dateStart);
         const endDate = new Date(createExamDto.dateEnd);
@@ -23,18 +23,20 @@ export class ExamService {
             throw new BadRequestException('End date must be after start date');
         }
 
-        const exam = await this.examRepository.create(createExamDto);
+        const exam = await this.examRepository.create(tenantId, createExamDto);
         this.socketGateway.emitRefresh();
         return exam;
     }
 
     async findAll(
+        tenantId: string,
         page: number = 1,
         limit: number = 10,
         search?: string,
     ): Promise<{ exams: Exam[]; total: number; page: number; totalPages: number }> {
         const skip = (page - 1) * limit;
         const { exams, total } = await this.examRepository.findAll({
+            tenantId,
             skip,
             take: limit,
             search,
@@ -48,29 +50,29 @@ export class ExamService {
         };
     }
 
-    async findOne(id: number): Promise<Exam> {
-        const exam = await this.examRepository.findOne(id);
+    async findOne(tenantId: string, id: number): Promise<Exam> {
+        const exam = await this.examRepository.findOne(tenantId, id);
         if (!exam) {
             throw new NotFoundException(`Exam with ID ${id} not found`);
         }
         return exam;
     }
 
-    async getExams() {
-        return this.examRepository.getExams();
+    async getExams(tenantId: string) {
+        return this.examRepository.getExams(tenantId);
     }
 
-    async getSubjectOfClass(classId: number, examId: number) {
-        return this.examRepository.getSubjectOfClass(classId, examId);
+    async getSubjectOfClass(tenantId: string, classId: number, examId: number) {
+        return this.examRepository.getSubjectOfClass(tenantId, classId, examId);
     }
 
-    async saveGrades(dto: UpsertGradesDto) {
-        return this.examRepository.upsertGrades(dto.classId, dto.examId, dto.grades);
+    async saveGrades(tenantId: string, dto: UpsertGradesDto) {
+        return this.examRepository.upsertGrades(tenantId, dto.classId, dto.examId, dto.grades);
     }
 
-    async update(id: number, updateExamDto: UpdateExamDto): Promise<Exam> {
+    async update(tenantId: string, id: number, updateExamDto: UpdateExamDto): Promise<Exam> {
         // Check if exam exists
-        await this.findOne(id);
+        await this.findOne(tenantId, id);
 
         // Validate dates if both are provided
         if (updateExamDto.dateStart && updateExamDto.dateEnd) {
@@ -82,40 +84,48 @@ export class ExamService {
             }
         }
 
-        const exam = await this.examRepository.update(id, updateExamDto);
+        const exam = await this.examRepository.update(tenantId, id, updateExamDto);
         this.socketGateway.emitRefresh();
         return exam;
     }
 
-    async remove(id: number): Promise<{ message: string }> {
-        await this.findOne(id);
-        await this.examRepository.remove(id);
+    async remove(tenantId: string, id: number): Promise<{ message: string }> {
+        await this.findOne(tenantId, id);
+        await this.examRepository.remove(tenantId, id);
         this.socketGateway.emitRefresh();
         return { message: `Exam with ID ${id} has been deleted` };
     }
 
-    async togglePublish(id: number, publish: boolean): Promise<Exam> {
-        await this.findOne(id);
-        return this.examRepository.togglePublish(id, publish);
+    async togglePublish(tenantId: string, id: number, publish: boolean): Promise<Exam> {
+        await this.findOne(tenantId, id);
+        return this.examRepository.togglePublish(tenantId, id, publish);
     }
 
-    async getDashboardStats() {
-        return this.examRepository.getDashboardStats();
+    async getDashboardStats(tenantId: string) {
+        return this.examRepository.getDashboardStats(tenantId);
     }
 
-    async getSubjectPerformance() {
-        return this.examRepository.getSubjectPerformance();
+    async getSubjectPerformance(tenantId: string) {
+        return this.examRepository.getSubjectPerformance(tenantId);
     }
 
-    async getGradeDistribution() {
-        return this.examRepository.getGradeDistribution();
+    async getGradeDistribution(tenantId: string) {
+        return this.examRepository.getGradeDistribution(tenantId);
     }
 
-    async getClassPerformance() {
-        return this.examRepository.getClassPerformance();
+    async getClassPerformance(tenantId: string) {
+        return this.examRepository.getClassPerformance(tenantId);
     }
 
-    async getStudentGrades(studentId: number) {
-        return this.examRepository.getStudentGrades(studentId);
+    async getStudentGrades(tenantId: string, studentId: number) {
+        return this.examRepository.getStudentGrades(tenantId, studentId);
+    }
+
+    async getTopStudents(tenantId: string, classId?: number) {
+        return this.examRepository.getTopStudents(tenantId, classId);
+    }
+
+    async getUpcomingExams(tenantId: string, classId?: number) {
+        return this.examRepository.getUpcomingExams(tenantId, classId);
     }
 }

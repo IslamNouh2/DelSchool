@@ -17,11 +17,14 @@
   "menu": {
     "dashboard": "Tableau de bord",
     "employers": "Employeurs",
+    "teachers": "Enseignants",
     "students": "Étudiants",
+    "student": "Étudiant",
     "timetable": "Emploi du temps",
     "subjects": "Matières",
     "classes": "Classes",
     "levels": "Niveaux",
+    "local": "Locaux",
     "attendance": {
       "title": "Présence",
       "employer": "Employeur",
@@ -222,6 +225,11 @@
       }
     },
     "treasury": "Trésorerie",
+    "payroll": "Paie",
+    "expenses": "Dépenses",
+    "comptes": "Comptes",
+    "studentfee": "Frais Étudiant",
+    "feestemplate": "Modèles de Frais",
     "settings": {
       "title": "Paramètres",
       "general": "Général",
@@ -232,7 +240,11 @@
     "enterprise": "Entreprise",
     "startup": "Startup",
     "free": "Gratuit",
-    "admin": "Admin"
+    "admin": {
+      "title": "Admin",
+      "users": "Utilisateurs",
+      "roles": "Rôles"
+    }
   },
   "actions": {
     "add": "Ajouter",
@@ -319,7 +331,8 @@
     "events_title": "Événements",
     "announcements_title": "Annonces",
     "view_all": "Tout afficher",
-    "performance_by_class": "Performance par classe"
+    "performance_by_class": "Performance par classe",
+    "attendance": "Présence"
   },
   "nav": {
     "upgrade_pro": "Passer Pro",

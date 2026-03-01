@@ -15,6 +15,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { fetchUser } from "@/lib/getRoleFromToken";
 import { useSocket } from "@/providers/SocketProvider";
+import { OfflineDB } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { useAuth } from "@/components/contexts/AuthContext";
 import {
   BarChart,
   Bar,
@@ -35,9 +39,12 @@ interface Exam {
   dateStart: string;
   dateEnd: string;
   publish: boolean;
+  pendingSync?: boolean;
+  operationId?: string;
 }
 
 export default function ExamListPage() {
+  const { hasPermission } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,7 +52,6 @@ export default function ExamListPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [role, setRole] = useState<string | null>(null);
   const { refreshKey } = useSocket();
 
   // Dashboard state
@@ -73,13 +79,6 @@ export default function ExamListPage() {
     publish: false,
   });
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const user = await fetchUser();
-      if (user) setRole(user.role);
-    };
-    loadUser();
-  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -87,6 +86,10 @@ export default function ExamListPage() {
     }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -115,7 +118,38 @@ export default function ExamListPage() {
         },
         withCredentials: true,
       });
-      setExams(response.data.exams || []);
+
+      const fetchedExams = response.data.exams || [];
+      const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
+      const queue = await OfflineDB.getSyncQueue(tenantId);
+      const pendingExamsOperations = queue.filter(item => item.entity === 'exam');
+
+      let mergedExams = [...fetchedExams];
+
+      pendingExamsOperations.forEach(item => {
+        if (item.type === 'CREATE' || (item.method === 'POST' && item.url === '/exam')) {
+          // Check if already in list (idempotency)
+          if (!mergedExams.some(e => e.operationId === item.operationId)) {
+            mergedExams.unshift({
+              ...item.data,
+              id: item.operationId as any,
+              pendingSync: true,
+              operationId: item.operationId
+            });
+          }
+        } else if (item.type === 'UPDATE' || item.method === 'PUT' || item.method === 'PATCH') {
+          const id = parseInt(item.url.split('/').pop() || '0');
+          const index = mergedExams.findIndex(e => e.id === id);
+          if (index !== -1) {
+            mergedExams[index] = { ...mergedExams[index], ...item.data, pendingSync: true };
+          }
+        } else if (item.type === 'DELETE' || item.method === 'DELETE') {
+          const id = parseInt(item.url.split('/').pop() || '0');
+          mergedExams = mergedExams.filter(e => e.id !== id);
+        }
+      });
+
+      setExams(mergedExams);
       setTotalCount(response.data.total || 0);
     } catch (error) {
       console.error("Failed to fetch exams:", error);
@@ -281,7 +315,12 @@ export default function ExamListPage() {
     {
       header: "Nom de l'examen",
       key: "examName",
-      className: "font-medium text-gray-900 dark:text-slate-100",
+      render: (item: Exam) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-900 dark:text-slate-100">{item.examName}</span>
+          <SyncStatusBadge id={item.id} isPending={!!item.pendingSync} />
+        </div>
+      ),
     },
     {
       header: "Date début",
@@ -303,7 +342,7 @@ export default function ExamListPage() {
           <Switch
             checked={item.publish}
             onCheckedChange={(checked) => handleTogglePublish(item, checked)}
-            disabled={role?.toLowerCase() !== "admin"}
+            disabled={!hasPermission('exam:update')}
             className="data-[state=checked]:bg-green-500"
           />
           <span
@@ -325,55 +364,58 @@ export default function ExamListPage() {
       className: "text-right",
       render: (item: Exam) => (
         <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => {
-              setPrefilledExamId(item.id.toString());
-              setIsGradeDialogOpen(true);
-            }}
-            className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors group"
-            title="Saisir les notes"
-          >
-            <Award className="w-4 h-4 text-gray-400 group-hover:text-green-600" />
-          </button>
-          {role?.toLowerCase() === "admin" && (
-            <>
-              <button
-                onClick={() => handleEditExam(item)}
-                className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors group"
-                title="Modifier"
-              >
-                <Edit className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
-              </button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors group"
-                    title="Supprimer"
-                  >
-                    <Trash2 className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-gray-900 dark:text-slate-100">Confirmer la suppression</AlertDialogTitle>
-                    <AlertDialogDescription className="text-gray-500 dark:text-slate-400">
-                      Cette action supprimera définitivement cet examen.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border-gray-200 dark:border-slate-800">Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-red-600 hover:bg-red-700 text-white">
-                      Confirmer
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          )}
+          <PermissionGuard permissions={['grade:create']}>
+            <button
+              onClick={() => {
+                setPrefilledExamId(item.id.toString());
+                setIsGradeDialogOpen(true);
+              }}
+              className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors group"
+              title="Saisir les notes"
+            >
+              <Award className="w-4 h-4 text-gray-400 group-hover:text-green-600" />
+            </button>
+          </PermissionGuard>
+          <PermissionGuard permissions={['exam:update']}>
+            <button
+              onClick={() => handleEditExam(item)}
+              className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors group"
+              title="Modifier"
+            >
+              <Edit className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+            </button>
+          </PermissionGuard>
+
+          <PermissionGuard permissions={['exam:delete']}>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors group"
+                  title="Supprimer"
+                >
+                  <Trash2 className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-gray-900 dark:text-slate-100">Confirmer la suppression</AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-500 dark:text-slate-400">
+                    Cette action supprimera définitivement cet examen.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border-gray-200 dark:border-slate-800">Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-red-600 hover:bg-red-700 text-white">
+                    Confirmer
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </PermissionGuard>
         </div>
       ),
     },
-  ], [role, handleTogglePublish, handleEditExam, handleDelete]);
+  ], [handleTogglePublish, handleEditExam, handleDelete]);
 
     return (
         <div className="space-y-6 p-6">
@@ -387,8 +429,8 @@ export default function ExamListPage() {
                         Manage exams and visualize academic performance
                     </p>
                 </div>
-                {role?.toLowerCase() === "admin" && (
-                    <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <PermissionGuard permissions={['grade:create']}>
                         <Dialog open={isGradeDialogOpen} onOpenChange={setIsGradeDialogOpen}>
                             <DialogTrigger asChild>
                                 <Button
@@ -428,7 +470,9 @@ export default function ExamListPage() {
                                 </div>
                             </DialogContent>
                         </Dialog>
+                    </PermissionGuard>
 
+                    <PermissionGuard permissions={['exam:create']}>
                         <Button
                             onClick={handleAddExam}
                             className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
@@ -436,8 +480,8 @@ export default function ExamListPage() {
                             <Plus className="w-5 h-5" />
                             <span>Add Exam</span>
                         </Button>
-                    </div>
-                )}
+                    </PermissionGuard>
+                </div>
             </div>
 
             {/* Stats Cards */}

@@ -17,11 +17,14 @@
   "menu": {
     "dashboard": "Dashboard",
     "employers": "Employers",
+    "teachers": "Teachers",
     "students": "Students",
+    "student": "Student",
     "timetable": "Timetable",
     "subjects": "Subjects",
     "classes": "Classes",
     "levels": "Levels",
+    "local": "Local",
     "attendance": {
       "title": "Attendance",
       "employer": "Employer",
@@ -222,6 +225,11 @@
       }
     },
     "treasury": "Treasury",
+    "payroll": "Payroll",
+    "expenses": "Expenses",
+    "comptes": "Accounts",
+    "studentfee": "Student Fees",
+    "feestemplate": "Fee Templates",
     "settings": {
       "title": "Settings",
       "general": "General",
@@ -232,7 +240,11 @@
     "enterprise": "Enterprise",
     "startup": "Startup",
     "free": "Free",
-    "admin": "Admin"
+    "admin": {
+      "title": "Admin",
+      "users": "Users",
+      "roles": "Roles"
+    }
   },
   "actions": {
     "add": "Add",
@@ -319,7 +331,8 @@
     "events_title": "Events",
     "announcements_title": "Announcements",
     "view_all": "View All",
-    "performance_by_class": "Performance by Class"
+    "performance_by_class": "Performance by Class",
+    "attendance": "Attendance"
   },
   "nav": {
     "upgrade_pro": "Upgrade to Pro",
@@ -502,7 +515,7 @@
         "type_admin": "Admin",
         "type_teacher": "Teacher",
         "type_employer": "Employer",
-        "address": "Adresse"
+        "address": "Address"
       },
       "placeholders": {
         "code": "Employer Code",

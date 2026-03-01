@@ -14,7 +14,8 @@ import {
     Building2,
     Loader2,
     Trash2,
-    DollarSign
+    DollarSign,
+    Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -28,6 +29,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TransactionModal } from "@/components/finance/TransactionModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { OfflineDB, SyncRecord } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import Cookies from "js-cookie";
 
 // Define Transaction Interface
 interface Transaction {
@@ -46,10 +50,13 @@ interface Transaction {
 export default function TreasuryPage() {
     const [accounts, setAccounts] = useState<any[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+    const [syncQueue, setSyncQueue] = useState<SyncRecord[]>([]);
+    const tenantId = Cookies.get("tenantId") as string;
     
     // Data State
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+    const [backendStats, setBackendStats] = useState({ totalIn: 0, totalOut: 0, totalBalance: 0 });
     
     // Concurrent Features
     const [isPending, startTransition] = useTransition();
@@ -76,19 +83,37 @@ export default function TreasuryPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
+    // Pagination & Search States
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize] = useState(20);
+    const [totalCount, setTotalCount] = useState(0);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearchTerm, startDate, endDate, selectedAccountId]);
+
     // Initial Load of Accounts
     useEffect(() => {
         fetchAccounts();
     }, []);
 
-    // Fetch Transactions when filters change
+    // Fetch Transactions when filters or page change
     useEffect(() => {
         if (selectedAccountId) {
             startTransition(() => {
-                fetchTransactions(selectedAccountId);
+                fetchTransactions(selectedAccountId, currentPage);
             });
         }
-    }, [selectedAccountId, startDate, endDate]);
+    }, [selectedAccountId, startDate, endDate, debouncedSearchTerm, currentPage]);
 
     const fetchAccounts = async () => {
         try {
@@ -108,43 +133,82 @@ export default function TreasuryPage() {
         }
     };
 
-    const fetchTransactions = async (id: string) => {
-        // We don't set loading=true here to avoid blocking UI, 
-        // rely on isPending from useTransition if possible but fetch is async...
-        // Actually startTransition doesn't wait for async fetch unless we use Suspense or a specific pattern.
-        // Standard pattern: 
-        // startTransition(() => { setFilter(newVal) }) -> triggers effect -> fetch
-        // BUT to mark fetch as pending, we usually need useDeferredValue or Suspense.
-        // For manual fetch, we can just use a local 'isFetching' or rely on the fact 
-        // that we are inside a transition if we update state *after* fetch? No.
-        
-        // Refined approach for React 18 without Suspense data fetching:
-        // We want the UI to be responsive.
-        // We will keep 'setLoading' false basically, and use isPending for visual cues?
-        // Actually, let's use a separate isFetching state that doesn't block input.
-        
+    const fetchTransactions = async (id: string, page: number = 1) => {
         try {
             let url = `/compte/${id}/transactions`;
             const params = new URLSearchParams();
             if (startDate) params.append('startDate', startDate);
             if (endDate) params.append('endDate', endDate);
+            if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+            params.append('page', String(page));
+            params.append('limit', String(pageSize));
             
             const queryString = params.toString();
             if (queryString) url += `?${queryString}`;
 
-            const res = await api.get(url);
+            const [res, queue] = await Promise.all([
+                api.get(url),
+                OfflineDB.getSyncQueue(tenantId)
+            ]);
             
-            // This state update will be low priority if called inside startTransition? 
-            // Actually the Effect call isn't inside startTransition unless the dependency update was.
-            // Let's just update the data.
+            setSyncQueue(queue);
+            let mergedData = res.data.transactions || [];
+
+            // Merge pending creations (encaissement/décaissement)
+            const pendingCreations = queue.filter(q => 
+                q.url.includes(`/compte/${id}/transaction`) && 
+                q.method === 'POST' &&
+                (debouncedSearchTerm ? q.data?.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) : true)
+            );
+
+            pendingCreations.forEach(q => {
+                const txId = (q.operationId as unknown as number);
+                if (!mergedData.some((t: any) => t.id === txId)) {
+                    mergedData.unshift({
+                        id: txId,
+                        date: new Date().toISOString(),
+                        reference: "...",
+                        description: q.data.description,
+                        debit: q.data.type === 'DEBIT' ? q.data.amount : 0,
+                        credit: q.data.type === 'CREDIT' ? q.data.amount : 0,
+                        pending: true
+                    });
+                }
+            });
+
+            // Merge pending deletions
+            const pendingDeletions = queue.filter(q => q.url.includes(`/compte/transaction/`) && q.method === 'DELETE');
+            mergedData = mergedData.filter((t: any) => !pendingDeletions.some(q => q.url.includes(`/compte/transaction/${t.entryId}`)));
+
+            // Merge pending updates
+            const pendingUpdates = queue.filter(q => q.url.includes(`/compte/transaction/`) && q.method === 'PATCH');
+            mergedData = mergedData.map((t: any) => {
+                const update = pendingUpdates.find(q => q.url.includes(`/compte/transaction/${t.entryId}`));
+                if (update) {
+                    return {
+                        ...t,
+                        description: update.data.description,
+                        debit: update.data.type === 'DEBIT' ? update.data.amount : 0,
+                        credit: update.data.type === 'CREDIT' ? update.data.amount : 0,
+                        pending: true
+                    };
+                }
+                return t;
+            });
+
+            // Oh, wait, the state is 'transactions'.
             startTransition(() => {
-                 setTransactions(res.data || []);
-                 // Sync optimistic state if needed? 
-                 // No, useOptimistic uses 'transactions' as base.
+                 setTransactions(mergedData);
+                 setTotalCount((res.data.total || 0) + pendingCreations.length);
+                 if (res.data.stats) {
+                    setBackendStats(res.data.stats);
+                 }
             });
            
         } catch (error) {
             console.error("Failed to fetch transactions", error);
+            setTransactions([]);
+            setTotalCount(0);
         }
     };
 
@@ -167,10 +231,16 @@ export default function TreasuryPage() {
 
         // 2. API Call
         try {
-            await api.post(`/compte/${selectedAccountId}/transaction`, data);
-            toast.success("Transaction enregistrée");
+            const res = await api.post(`/compte/${selectedAccountId}/transaction`, data);
+            if (res.status === 202 || (res.data as any).offline) {
+                toast.success("Opération enregistrée localement", {
+                    description: "La transaction sera synchronisée dès que possible."
+                });
+            } else {
+                toast.success("Transaction enregistrée");
+            }
             // 3. Refresh Real Data
-            await fetchTransactions(selectedAccountId);
+            await fetchTransactions(selectedAccountId, currentPage);
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Erreur");
             // Revert is automatic if we rely on 'transactions' state which hasn't changed if fetch fails?
@@ -202,12 +272,18 @@ export default function TreasuryPage() {
             // We need entryId. Transaction interface needs to include it first!
             // I added entryId to CompteService but did I add it to the Interface in TreasuryPage?
             // Need to check line 34.
-            await api.patch(`/compte/transaction/${editingTransaction.entryId}`, {
+            const res = await api.patch(`/compte/transaction/${editingTransaction.entryId}`, {
                 ...data,
                 compteId: Number(selectedAccountId)
             });
-            toast.success("Transaction modifiée");
-            await fetchTransactions(selectedAccountId);
+            if (res.status === 202 || (res.data as any).offline) {
+                toast.success("Modification enregistrée localement", {
+                    description: "La transaction sera synchronisée dès que possible."
+                });
+            } else {
+                toast.success("Transaction modifiée");
+            }
+            await fetchTransactions(selectedAccountId, currentPage);
         } catch (error: any) {
              toast.error(error.response?.data?.message || "Erreur lors de la modification");
              fetchTransactions(selectedAccountId);
@@ -226,7 +302,7 @@ export default function TreasuryPage() {
                  await api.delete(`/compte/transaction/${entryId}`);
             }
             toast.success("Transaction supprimée");
-            await fetchTransactions(selectedAccountId);
+            await fetchTransactions(selectedAccountId, currentPage);
         } catch (error: any) {
              toast.error(error.response?.data?.message || "Erreur lors de la suppression");
              fetchTransactions(selectedAccountId);
@@ -237,10 +313,12 @@ export default function TreasuryPage() {
     // Derived state for totals...
     const selectedAccount = accounts.find(a => String(a.id) === selectedAccountId);
 
-    // Calculate totals from optimistic transactions
-    const totalIn = optimisticTransactions.reduce((sum, t) => sum + t.debit, 0);
-    const totalOut = optimisticTransactions.reduce((sum, t) => sum + t.credit, 0);
-    const totalBalance = optimisticTransactions.reduce((sum, t) => sum + t.debit - t.credit, 0);
+    // Calculate totals from backend stats (full period)
+    const totalIn = backendStats.totalIn;
+    const totalOut = backendStats.totalOut;
+    const totalBalance = backendStats.totalBalance;
+
+    const totalPages = Math.ceil(totalCount / pageSize);
 
     const handleOpenModal = (type: 'DEBIT' | 'CREDIT') => {
         setModalType(type);
@@ -399,6 +477,16 @@ export default function TreasuryPage() {
                         <History className="text-gray-400" />
                         Historique des opérations
                     </h3>
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Rechercher..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border-none rounded-xl w-full focus:ring-2 focus:ring-blue-500/20 outline-none text-sm font-medium"
+                        />
+                    </div>
                 </div>
                 
                 <Table>
@@ -448,6 +536,11 @@ export default function TreasuryPage() {
                                         <span className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-xs font-bold text-gray-600 dark:text-gray-300 font-mono">
                                             {t.reference}
                                         </span>
+                                        {syncQueue.some(q => 
+                                            (q.method === 'POST' && (q.operationId as unknown as number) === t.id) ||
+                                            (q.method === 'PATCH' && q.url.includes(`/compte/transaction/${t.entryId}`)) ||
+                                            (q.method === 'DELETE' && q.url.includes(`/compte/transaction/${t.entryId}`))
+                                        ) && <SyncStatusBadge id={t.id} isPending={true} />}
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
@@ -503,6 +596,46 @@ export default function TreasuryPage() {
                         )}
                     </TableBody>
                 </Table>
+                
+                {/* Pagination */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between px-8 py-6 bg-gray-50/30 dark:bg-slate-950/30 border-t border-gray-100 dark:border-slate-800 gap-4">
+                        <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">
+                            Affichage de <span className="text-gray-900 dark:text-white">{(currentPage - 1) * pageSize + 1}</span> à{" "}
+                            <span className="text-gray-900 dark:text-white">{Math.min(currentPage * pageSize, totalCount)}</span> sur{" "}
+                            <span className="text-gray-900 dark:text-white">{totalCount}</span> transactions
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="border-gray-200 dark:border-slate-700 dark:text-gray-300 rounded-xl h-10 px-4"
+                            >
+                                Précédent
+                            </Button>
+                            <div className="flex items-center gap-1 mx-2">
+                                <span className="text-sm font-bold text-gray-900 dark:text-white px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                    {currentPage}
+                                </span>
+                                <span className="text-sm text-gray-400 mx-1">/</span>
+                                <span className="text-sm text-gray-500 dark:text-slate-400 font-bold">
+                                    {totalPages}
+                                </span>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="border-gray-200 dark:border-slate-700 dark:text-gray-300 rounded-xl h-10 px-4"
+                            >
+                                Suivant
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal */}

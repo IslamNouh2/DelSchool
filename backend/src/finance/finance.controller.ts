@@ -1,37 +1,40 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
 import { FinanceService } from './finance.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('finance')
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
   @Get('stats')
-  getStats() {
-    return this.financeService.getStats();
+  getStats(@Req() req: any) {
+    return this.financeService.getStats(req.tenantId);
   }
 
   @Get('chart')
-  getChartData(@Query('period') period?: string) {
-    return this.financeService.getChartData(period);
+  getChartData(@Req() req: any, @Query('period') period?: string) {
+    return this.financeService.getChartData(req.tenantId, period);
   }
 
   @Get('recent')
-  getRecentTransactions() {
-    return this.financeService.getRecentTransactions();
+  getRecentTransactions(@Req() req: any) {
+    return this.financeService.getRecentTransactions(req.tenantId);
   }
 
   @Get('categories')
-  getExpenseCategories() {
-    return this.financeService.getExpenseCategories();
+  getExpenseCategories(@Req() req: any) {
+    return this.financeService.getExpenseCategories(req.tenantId);
   }
 
   @Get('student-payments')
-  getRecentStudentPayments() {
-    return this.financeService.getRecentStudentPayments();
+  getRecentStudentPayments(@Req() req: any) {
+    return this.financeService.getRecentStudentPayments(req.tenantId);
   }
 
   @Get('expenses')
-  getRecentExpenses() {
-    return this.financeService.getRecentExpenses();
+  getRecentExpenses(@Req() req: any) {
+    return this.financeService.getRecentExpenses(req.tenantId);
   }
 }

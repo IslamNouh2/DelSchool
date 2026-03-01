@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SocketGateway } from 'src/socket/socket.gateway';
 
 
@@ -14,12 +14,15 @@ export class SubjectService {
 
 
 
-    async create(createSubjectDto: CreateSubjectDto) {
+    async create(tenantId: string, createSubjectDto: CreateSubjectDto) {
         let { subjectName, totalGrads } = createSubjectDto;
 
         // Step 0: Get the parameter that controls sub-subjects
         const getParam = await this.prisma.parameter.findFirst({
-            where: { paramName: 'Ok_Sub_subject' },
+            where: { 
+                paramName: 'Ok_Sub_subject',
+                OR: [{ tenantId }, { tenantId: null }]
+            },
             select: { okActive: true },
         });
 
@@ -32,8 +35,8 @@ export class SubjectService {
         }
 
         // Step 1: Get BG, BD, and calculate level of the parent
-        const parent = await this.prisma.subject.findUnique({
-            where: { subjectId: parentId },
+        const parent = await this.prisma.subject.findFirst({
+            where: { subjectId: parentId, tenantId },
             select: { BG: true, BD: true, level: true },
         });
 
@@ -54,12 +57,11 @@ export class SubjectService {
         return this.prisma.$transaction(async (tx) => {
             // Update existing subjects' BG/BD values
             await tx.subject.updateMany({
-                where: { BG: { gt: parentBD } },
+                where: { BG: { gt: parentBD }, tenantId },
                 data: { BG: { increment: 2 } },
             });
-
             await tx.subject.updateMany({
-                where: { BD: { gte: parentBD } },
+                where: { BD: { gte: parentBD }, tenantId },
                 data: { BD: { increment: 2 } },
             });
 
@@ -75,6 +77,7 @@ export class SubjectService {
                     dateCreate: new Date(),
                     dateModif: new Date(),
                     okBlock: false,
+                    tenantId, // Enforce tenant
                     translations: createSubjectDto.translations ? {
                         create: Object.entries(createSubjectDto.translations).map(([locale, name]) => ({
                             locale,
@@ -91,10 +94,11 @@ export class SubjectService {
     }
 
 
-    async findSubSubjects() {
+    async findSubSubjects(tenantId: string) {
         return this.prisma.subject.findMany({
             where: {
-                parentId: -1 // Only get subjects that have a parent
+                parentId: -1, // Only get subjects that have a parent
+                tenantId, // Enforce tenant
             },
             select: {
                 subjectId: true,
@@ -108,6 +112,7 @@ export class SubjectService {
 
 
     async findAll(
+        tenantId: string,
         page: number = 1,
         limit: number = 10,
         orderByField: string = 'dateCreate',
@@ -119,6 +124,7 @@ export class SubjectService {
         // Build dynamic "where" filter
         const where: any = {
             subjectId: { gt: -1 },
+            tenantId, // Enforce tenant
         };
 
         // 🔍 Filter by name (case-insensitive)
@@ -171,20 +177,23 @@ export class SubjectService {
         };
     }
 
-    async findOne(id: number) {
-        return this.prisma.subject.findUnique({
-            where: { subjectId: id },
+    async findOne(tenantId: string, id: number) {
+        return this.prisma.subject.findFirst({
+            where: { subjectId: id, tenantId },
             include: { parent: { select: { subjectId: true, subjectName: true } } },
         });
     }
 
 
-    async update(subjectId: number, updateDto: UpdateSubjectDto) {
+    async update(tenantId: string, subjectId: number, updateDto: UpdateSubjectDto) {
         const { subjectName, totalGrads, parentId: newParentIdInput, okBlock } = updateDto;
 
         // Get Ok_sub_subject param
-        const param = await this.prisma.parameter.findUnique({
-            where: { paramName: 'Ok_Sub_subject' },
+        const param = await this.prisma.parameter.findFirst({
+            where: { 
+                paramName: 'Ok_Sub_subject',
+                OR: [{ tenantId }, { tenantId: null }]
+            },
             select: { okActive: true },
         });
 
@@ -192,15 +201,15 @@ export class SubjectService {
         const parentId = param?.okActive === false ? -1 : newParentIdInput;
 
         // Fetch current node and new parent node
-        const current = await this.prisma.subject.findUnique({
-            where: { subjectId },
+        const current = await this.prisma.subject.findFirst({
+            where: { subjectId, tenantId },
             select: { BG: true, BD: true, parentId: true },
         });
 
         if (!current) throw new Error('Subject not found');
 
-        const parent = await this.prisma.subject.findUnique({
-            where: { subjectId: parentId },
+        const parent = await this.prisma.subject.findFirst({
+            where: { subjectId: parentId, tenantId },
             select: { BD: true },
         });
 
@@ -216,6 +225,7 @@ export class SubjectService {
                     where: {
                         BG: { gte: current.BG },
                         BD: { lte: current.BD },
+                        tenantId, // Enforce tenant
                     },
                     data: {
                         BG: { increment: -current.BG },
@@ -224,12 +234,12 @@ export class SubjectService {
                 });
 
                 await tx.subject.updateMany({
-                    where: { BG: { gt: current.BD } },
+                    where: { BG: { gt: current.BD }, tenantId },
                     data: { BG: { decrement: width } },
                 });
 
                 await tx.subject.updateMany({
-                    where: { BD: { gt: current.BD } },
+                    where: { BD: { gt: current.BD }, tenantId },
                     data: { BD: { decrement: width } },
                 });
 
@@ -237,18 +247,18 @@ export class SubjectService {
                 const newPos = parentId === -1 ? 1 : parent!.BD;
 
                 await tx.subject.updateMany({
-                    where: { BG: { gte: newPos } },
+                    where: { BG: { gte: newPos }, tenantId },
                     data: { BG: { increment: width } },
                 });
 
                 await tx.subject.updateMany({
-                    where: { BD: { gte: newPos } },
+                    where: { BD: { gte: newPos }, tenantId },
                     data: { BD: { increment: width } },
                 });
 
                 // Step 3: Move subtree to new location
                 await tx.subject.updateMany({
-                    where: { BG: { lt: 0 } },
+                    where: { BG: { lt: 0 }, tenantId },
                     data: {
                         BG: { increment: newPos },
                         BD: { increment: newPos },
@@ -269,7 +279,10 @@ export class SubjectService {
         } else {
             // ✅ Parent not changed, just update name, totalGrads, and okBlock
             await this.prisma.subject.update({
-                where: { subjectId },
+                where: { subjectId }, // subjectId is unique globally but we should still be careful. 
+                // However update unique already knows the ID. 
+                // We could use update on a where that includes tenantId if we had a composite unique key.
+                // Since subjectId is @id, it's enough, but for completeness:
                 data: {
                     subjectName,
                     totalGrads,
@@ -291,9 +304,9 @@ export class SubjectService {
 
 
 
-    async remove(id: number) {
-        const subject = await this.prisma.subject.findUnique({
-            where: { subjectId: id }
+    async remove(tenantId: string, id: number) {
+        const subject = await this.prisma.subject.findFirst({
+            where: { subjectId: id, tenantId }
         });
 
         if (!subject) {
@@ -304,8 +317,8 @@ export class SubjectService {
         this.socketGateway.emitRefresh();
     }
 
-    async StubjectCount() {
-        const count = await this.prisma.subject.count();
+    async StubjectCount(tenantId: string) {
+        const count = await this.prisma.subject.count({ where: { tenantId } });
         return count
     }
 

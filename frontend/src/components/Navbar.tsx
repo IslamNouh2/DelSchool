@@ -15,6 +15,7 @@ import {
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { useTranslations } from 'next-intl'
+import { ConnectivityIndicator } from "@/components/pwa/ConnectivityIndicator"
 
 const Navbar = () => {
     const { setTheme } = useTheme()
@@ -31,6 +32,7 @@ const Navbar = () => {
                 </div>
                 {/*Icons and Users */}
                 <div className="flex items-center justify-end gap-6 w-full">
+                    <ConnectivityIndicator />
                     <div className="hidden sm:block">
                         <LanguageSwitcher />
                     </div>

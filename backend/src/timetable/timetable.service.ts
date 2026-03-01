@@ -1,4 +1,4 @@
-import { PrismaService } from "prisma/prisma.service";
+import { PrismaService } from "../prisma/prisma.service";
 import { CreateTimetableDto } from "./dto/create-timetable.dto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { UpdateTimetableDto } from "./dto/update-timetable.dto";
@@ -11,7 +11,7 @@ export class TimetableService {
         private readonly socketGateway: SocketGateway
     ) { }
 
-    async create(dto: CreateTimetableDto) {
+    async create(tenantId: string, dto: CreateTimetableDto) {
         return this.prisma.$transaction(async (tx) => {
             // ✅ 1. Prevent duplicate timetables
             const exists = await tx.timetable.findFirst({
@@ -20,6 +20,7 @@ export class TimetableService {
                     classId: dto.classId,
                     timeSlotId: dto.timeSlotId,
                     academicYear: dto.academicYear,
+                    tenantId, // Enforce tenant
                 },
             });
 
@@ -37,6 +38,7 @@ export class TimetableService {
                     where: {
                         subjectId: dto.subjectId,
                         isCurrent: true,
+                        tenantId, // Enforce tenant
                     },
                     select: { employerId: true },
                 });
@@ -52,6 +54,7 @@ export class TimetableService {
                 data: {
                     ...dto,
                     employerId: assignedTeacherId,
+                    tenantId, // Enforce tenant
                 },
                 include: {
                     teacher: true,
@@ -65,8 +68,9 @@ export class TimetableService {
         });
     }
 
-    async getAll() {
+    async getAll(tenantId: string) {
         return this.prisma.timetable.findMany({
+            where: { tenantId }, // Enforce tenant
             include: {
                 timeSlot: true,
                 subject: true,
@@ -77,9 +81,9 @@ export class TimetableService {
         });
     }
 
-    async getByClass(classId: number) {
+    async getByClass(tenantId: string, classId: number) {
         return this.prisma.timetable.findMany({
-            where: { classId },
+            where: { classId, tenantId }, // Enforce tenant
             include: {
                 teacher: true,
                 subject: true,
@@ -89,9 +93,9 @@ export class TimetableService {
         });
     }
 
-    async getByTeacher(employerId: number) {
+    async getByTeacher(tenantId: string, employerId: number) {
         return this.prisma.timetable.findMany({
-            where: { employerId },
+            where: { employerId, tenantId }, // Enforce tenant
             include: {
                 Class: true,
                 subject: true,
@@ -100,10 +104,10 @@ export class TimetableService {
         });
     }
 
-    async getByStudent(studentId: number) {
+    async getByStudent(tenantId: string, studentId: number) {
         // Find the current class of the student
         const currentClass = await this.prisma.studentClass.findFirst({
-            where: { studentId, isCurrent: true },
+            where: { studentId, isCurrent: true, tenantId }, // Enforce tenant
             select: { classId: true },
         });
 
@@ -113,7 +117,7 @@ export class TimetableService {
 
         // Fetch timetable by classId
         return this.prisma.timetable.findMany({
-            where: { classId: currentClass.classId },
+            where: { classId: currentClass.classId, tenantId }, // Enforce tenant
             include: {
                 teacher: true,
                 subject: true,
@@ -124,6 +128,7 @@ export class TimetableService {
     }
 
     async findByUniqueFields(
+        tenantId: string,
         day: string,
         classId: number,
         timeSlotId: number,
@@ -135,6 +140,7 @@ export class TimetableService {
                 classId,
                 timeSlotId,
                 academicYear,
+                tenantId, // Enforce tenant
             },
             include: {
                 subject: true,
@@ -146,6 +152,7 @@ export class TimetableService {
     }
 
     async checkDuplicate(
+        tenantId: string,
         day: string,
         classId: number,
         timeSlotId: number,
@@ -157,6 +164,7 @@ export class TimetableService {
                 classId,
                 timeSlotId,
                 academicYear,
+                tenantId, // Enforce tenant
             },
             include: {
                 subject: true,
@@ -167,8 +175,10 @@ export class TimetableService {
         });
     }
 
-    async update(id: number, dto: UpdateTimetableDto) {
-        const existing = await this.prisma.timetable.findUnique({ where: { id } });
+    async update(tenantId: string, id: number, dto: UpdateTimetableDto) {
+        const existing = await this.prisma.timetable.findFirst({ 
+            where: { id, tenantId } 
+        });
         if (!existing) throw new NotFoundException("Timetable not found");
 
         const result = await this.prisma.timetable.update({
@@ -185,8 +195,10 @@ export class TimetableService {
         return result;
     }
 
-    async remove(id: number) {
-        const existing = await this.prisma.timetable.findUnique({ where: { id } });
+    async remove(tenantId: string, id: number) {
+        const existing = await this.prisma.timetable.findFirst({ 
+            where: { id, tenantId } 
+        });
         if (!existing) throw new NotFoundException("Timetable not found");
 
         const result = await this.prisma.timetable.delete({ where: { id } });

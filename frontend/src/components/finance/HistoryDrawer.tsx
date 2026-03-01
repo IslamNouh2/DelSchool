@@ -13,7 +13,8 @@ import {
     ArrowUpRight,
     Loader2,
     History as HistoryIcon,
-    Trash2
+    Trash2,
+    ArrowDownLeft
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr, arDZ, enUS } from "date-fns/locale";
@@ -91,7 +92,7 @@ export function HistoryDrawer({ student, history, open, onOpenChange, loading, o
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-950 px-2 py-0.5 rounded-full">
-                                                        #{item.id}
+                                                        {item.id}
                                                     </span>
                                                     {isFee && onDeleteFee && (
                                                         <button 

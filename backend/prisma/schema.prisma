@@ -8,14 +8,66 @@ datasource db {
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
-  username      String         @unique
-  password      String
-  role          Role
-  refreshTokens RefreshToken[]
-  deletedAt     DateTime?
+  id                    Int               @id @default(autoincrement())
+  email                 String            @unique
+  username              String            @unique
+  password              String
+  roleId                Int?
+  role                  Role?             @relation(fields: [roleId], references: [id])
+  status                UserStatus        @default(ACTIVE)
+  failedLoginAttempts  Int               @default(0)
+  lockUntil             DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @default(now()) @updatedAt
+  tenantId              String?
+  refreshTokens         RefreshToken[]
+  userPermissions       UserPermission[]
+  deletedAt             DateTime?
 }
+
+model Role {
+  id            Int              @id @default(autoincrement())
+  name          String           @unique
+  description   String?
+  parentId      Int?
+  parent        Role?            @relation("RoleHierarchy", fields: [parentId], references: [id])
+  children      Role[]           @relation("RoleHierarchy")
+  users         User[]
+  permissions   RolePermission[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique // e.g., "user:create"
+  description String?
+  roles       RolePermission[]
+  users       UserPermission[]
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  @@id([roleId, permissionId])
+}
+
+model UserPermission {
+  userId       Int
+  permissionId Int
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  @@id([userId, permissionId])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}
+
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
@@ -25,6 +77,12 @@ model AuditLog {
   userId    Int?
   details   Json?
   createdAt DateTime @default(now())
+  
+  tenantId    String
+  version     Int      @default(1)
+  operationId String?  @unique
+
+  @@index([tenantId])
 }
 
 model RefreshToken {
@@ -34,6 +92,7 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   revoked   Boolean  @default(false)
   deviceId  String?
 }
@@ -67,6 +126,13 @@ model Student {
   dateInscription   DateTime
   okBlock           Boolean             @default(false)
   photoFileName     String?
+  
+  // Sync & Multi-tenancy
+  tenantId          String
+  version           Int                 @default(1)
+  operationId       String?             @unique
+  lastModifiedBy    Int?
+
   fees              Fee[]
   payments          Payment[]
   studentAttendance StudentAttendance[]
@@ -77,6 +143,7 @@ model Student {
   @@map("students")
   @@index([firstName, lastName])
   @@index([parentId])
+  @@index([tenantId])
 }
 
 model Parent {
@@ -87,9 +154,15 @@ model Parent {
   motherJob    String?
   fatherNumber String?
   motherNumber String?
+  
+  tenantId     String
+  version      Int       @default(1)
+  operationId  String?   @unique
+
   students     Student[]
 
   @@map("parents")
+  @@index([tenantId])
 }
 
 model Local {
@@ -100,8 +173,15 @@ model Local {
   dateModif     DateTime?
   NumClass      Int?
   size          Int             @default(0)
+
+  tenantId      String
+  version       Int             @default(1)
+  operationId   String?         @unique
+
   classes       classes[]
   subject_local subject_local[]
+
+  @@index([tenantId])
 }
 
 model classes {
@@ -114,6 +194,11 @@ model classes {
   localId           Int
   okBlock           String              @default("N")
   cloture           Boolean             @default(false)
+
+  tenantId          String
+  version           Int                 @default(1)
+  operationId       String?             @unique
+
   fees              Fee[]
   studentAttendance StudentAttendance[]
   TeacherCalsses    TeaherClass[]
@@ -121,6 +206,8 @@ model classes {
   local             Local               @relation(fields: [localId], references: [localId])
   studentClasses    StudentClass[]
   translations      ClassTranslation[]
+
+  @@index([tenantId])
 }
 
 model ClassTranslation {
@@ -144,6 +231,11 @@ model subject {
   dateCreate      DateTime?
   dateModif       DateTime?
   okBlock         Boolean          @default(false)
+
+  tenantId        String
+  version         Int              @default(1)
+  operationId     String?          @unique
+
   Teachersubjects TeacherSubject[]
   Timetables      Timetable[]
   grads           Grads[]
@@ -151,6 +243,8 @@ model subject {
   children        subject[]        @relation("SubjectToParent")
   subject_local   subject_local[]
   translations    SubjectTranslation[]
+
+  @@index([tenantId])
 }
 
 model SubjectTranslation {
@@ -168,6 +262,12 @@ model parameter {
   paramName String  @unique
   okActive  Boolean @default(false)
   paramValue String? // Extended for non-boolean settings
+
+  tenantId    String?   // Optional for global settings, but mostly per tenant
+  version     Int       @default(1)
+  operationId String?   @unique
+
+  @@index([tenantId])
 }
 
 model subject_local {
@@ -177,10 +277,16 @@ model subject_local {
   cloture        Boolean   @default(false)
   dateCreate     DateTime?
   dateModif      DateTime?
+
+  tenantId       String?
+  version        Int       @default(1)
+  operationId    String?   @unique
+
   local          Local     @relation(fields: [localId], references: [localId])
   subject        subject   @relation(fields: [subjectId], references: [subjectId])
 
   @@unique([subjectId, localId])
+  @@index([tenantId])
 }
 
 model StudentClass {
@@ -195,8 +301,13 @@ model StudentClass {
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
   Student      Student    @relation(fields: [studentId], references: [studentId])
 
+  tenantId    String?
+  version     Int        @default(1)
+  operationId String?    @unique
+
   @@unique([studentId, schoolYearId])
   @@map("student_classes")
+  @@index([tenantId])
 }
 
 model SchoolYear {
@@ -205,9 +316,15 @@ model SchoolYear {
   startDate      DateTime
   endDate        DateTime
   isCurrent      Boolean        @default(false)
+
+  tenantId       String
+  version        Int            @default(1)
+  operationId    String?        @unique
+
   studentClasses StudentClass[]
 
   @@map("school_years")
+  @@index([tenantId])
 }
 
 model Employer {
@@ -240,6 +357,11 @@ model Employer {
   salaryBasis        String               @default("DAILY") // DAILY or HOURLY
   checkInTime        String?              @default("08:00")
   checkOutTime       String?              @default("16:00")
+
+  tenantId           String
+  version            Int                  @default(1)
+  operationId        String?              @unique
+
   employerAttendance EmployerAttendance[]
   payments           Payment[]
   payroll            Payroll[]
@@ -249,6 +371,7 @@ model Employer {
   compte             Compte?
 
   @@map("employers")
+  @@index([tenantId])
 }
 
 model TeaherClass {
@@ -256,8 +379,15 @@ model TeaherClass {
   employerId Int      @unique
   classId    Int
   isCurrent  Boolean  @default(false)
+
+  tenantId   String
+  version    Int      @default(1)
+  operationId String? @unique
+
   Class      classes  @relation(fields: [classId], references: [classId])
   Employer   Employer @relation(fields: [employerId], references: [employerId])
+
+  @@index([tenantId])
 }
 
 model TeacherSubject {
@@ -265,10 +395,16 @@ model TeacherSubject {
   employerId Int
   subjectId  Int
   isCurrent  Boolean  @default(false)
+
+  tenantId   String
+  version    Int      @default(1)
+  operationId String? @unique
+
   Employer   Employer @relation(fields: [employerId], references: [employerId])
   subject    subject  @relation(fields: [subjectId], references: [subjectId])
 
   @@unique([employerId, subjectId])
+  @@index([tenantId])
 }
 
 model TimeSlot {
@@ -278,7 +414,14 @@ model TimeSlot {
   endTime    String
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+
+  tenantId   String
+  version    Int         @default(1)
+  operationId String?    @unique
+
   Timetables Timetable[]
+
+  @@index([tenantId])
 }
 
 model Timetable {
@@ -289,12 +432,18 @@ model Timetable {
   timeSlotId   Int
   employerId   Int?
   academicYear String
+
+  tenantId     String
+  version      Int       @default(1)
+  operationId  String?   @unique
+
   Class        classes   @relation(fields: [classId], references: [classId])
   teacher      Employer? @relation(fields: [employerId], references: [employerId])
   subject      subject   @relation(fields: [subjectId], references: [subjectId])
   timeSlot     TimeSlot  @relation(fields: [timeSlotId], references: [id])
 
   @@unique([day, timeSlotId, classId, academicYear])
+  @@index([tenantId])
 }
 
 model StudentAttendance {
@@ -304,10 +453,16 @@ model StudentAttendance {
   date         DateTime         @default(now())
   status       AttendanceStatus @default(ABSENT)
   academicYear String
+
+  tenantId     String
+  version      Int              @default(1)
+  operationId  String?          @unique
+
   class        classes          @relation(fields: [classId], references: [classId])
   student      Student          @relation(fields: [studentId], references: [studentId])
 
   @@unique([studentId, date, academicYear])
+  @@index([tenantId])
 }
 
 model EmployerAttendance {
@@ -320,9 +475,15 @@ model EmployerAttendance {
   remarks      String?
   lateMinutes  Int?             @default(0)
   academicYear String
+
+  tenantId     String
+  version      Int              @default(1)
+  operationId  String?          @unique
+
   employer     Employer         @relation(fields: [employerId], references: [employerId])
 
   @@unique([employerId, date, academicYear])
+  @@index([tenantId])
 }
 
 model Exam {
@@ -333,23 +494,36 @@ model Exam {
   dateCreate DateTime?
   dateModif  DateTime?
   publish    Boolean
+
+  tenantId   String
+  version    Int       @default(1)
+  operationId String?    @unique
+
   grads      Grads[]
+
+  @@index([tenantId])
 }
 
 model Grads {
   id             Int          @id @default(autoincrement())
-  grads          Float
-  dateCreate     DateTime?
-  dateModif      DateTime?
-  examId         Int
   studentClassId Int
   subjectId      Int
+  examId         Int
+  grads          Float
+  dateCreate     DateTime?    @default(now())
+  dateModif      DateTime?    @updatedAt
+
+  tenantId       String
+  version        Int          @default(1)
+  operationId    String?      @unique
+
   exam           Exam         @relation(fields: [examId], references: [id])
   studentClass   StudentClass @relation(fields: [studentClassId], references: [id])
   subject        subject      @relation(fields: [subjectId], references: [subjectId])
 
   @@unique([examId, studentClassId, subjectId])
   @@map("grads")
+  @@index([tenantId])
 }
 
 model Compte {
@@ -371,6 +545,11 @@ model Compte {
   showInParent      Boolean        @default(true)
   nature            AccountNature  @default(ASSET)
   category          CompteCategory @default(GENERAL)
+
+  tenantId          String
+  version           Int            @default(1)
+  operationId       String?        @unique
+
   fees              Fee[]
   journalEntryLines JournalLine[]
   payments          Payment[]
@@ -385,6 +564,7 @@ model Compte {
   translations      CompteTranslation[]
 
   @@map("comptes")
+  @@index([tenantId])
 }
 
 model CompteTranslation {
@@ -410,10 +590,17 @@ model Fee {
   compteId              Int?
   dateEndConsommation   DateTime?
   dateStartConsommation DateTime?
+
+  tenantId              String
+  version               Int       @default(1)
+  operationId           String?   @unique
+
   class                 classes?  @relation(fields: [classId], references: [classId])
   compte                Compte?   @relation(fields: [compteId], references: [id])
   student               Student?  @relation(fields: [studentId], references: [studentId])
   payments              Payment[]
+
+  @@index([tenantId])
 }
 
 model Payroll {
@@ -429,9 +616,16 @@ model Payroll {
   attendanceSummary Json?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+
+  tenantId          String
+  version           Int           @default(1)
+  operationId       String?       @unique
+
   employer          Employer      @relation(fields: [employerId], references: [employerId])
   compteId          Int?
   compte            Compte?       @relation(fields: [compteId], references: [id])
+
+  @@index([tenantId])
 }
 
 model Expense {
@@ -449,7 +643,14 @@ model Expense {
   compte                Compte?   @relation(fields: [compteId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  tenantId    String
+  version     Int       @default(1)
+  operationId String?   @unique
+
   payments    Payment[]
+
+  @@index([tenantId])
 }
 
 model Payment {
@@ -467,6 +668,11 @@ model Payment {
   compteSourceId Int?
   compteDestId   Int?
   expenseId     Int?
+
+  tenantId      String
+  version       Int           @default(1)
+  operationId   String?       @unique
+
   compte        Compte?       @relation(fields: [compteId], references: [id])
   compteSource  Compte?       @relation("PaymentSource", fields: [compteSourceId], references: [id])
   compteDest    Compte?       @relation("PaymentDest", fields: [compteDestId], references: [id])
@@ -478,6 +684,7 @@ model Payment {
   @@index([studentId])
   @@index([employerId])
   @@index([date])
+  @@index([tenantId])
 }
 
 model Journal {
@@ -489,9 +696,15 @@ model Journal {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   createdBy Int
+
+  tenantId  String
+  version   Int            @default(1)
+  operationId String?      @unique
+
   entries   JournalEntry[]
 
   @@map("journals")
+  @@index([tenantId])
 }
 
 model JournalEntry {
@@ -509,10 +722,16 @@ model JournalEntry {
   postedAt      DateTime?
   createdBy     Int
   postedBy      Int?
+
+  tenantId      String
+  version       Int                @default(1)
+  operationId   String?            @unique
+
   journal       Journal            @relation(fields: [journalId], references: [id])
   lines         JournalLine[]
 
   @@index([date])
+  @@index([tenantId])
 }
 
 model JournalLine {
@@ -523,10 +742,16 @@ model JournalLine {
   debit       Decimal      @default(0) @db.Decimal(15, 2)
   credit      Decimal      @default(0) @db.Decimal(15, 2)
   description String?
+
+  tenantId    String
+  version     Int          @default(1)
+  operationId String?      @unique
+
   compte      Compte       @relation(fields: [compteId], references: [id])
   entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@index([compteId])
+  @@index([tenantId])
 }
 
 model FiscalYear {
@@ -537,12 +762,6 @@ model FiscalYear {
   isClosed  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-enum Role {
-  ADMIN
-  TEACHER
-  STUDENT
 }
 
 enum AttendanceStatus {
@@ -612,5 +831,11 @@ model Event {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenantId    String
+  version     Int      @default(1)
+  operationId String?  @unique
+  isPublic    Boolean  @default(true)
+
   @@map("events")
+  @@index([tenantId])
 }

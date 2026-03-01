@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 
@@ -7,7 +7,7 @@ import { UpdateExpenseDto } from './dto/update-expense.dto';
 export class ExpenseService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateExpenseDto) {
+  async create(tenantId: string, dto: CreateExpenseDto) {
     return this.prisma.$transaction(async (tx) => {
       let realStart: Date | null = dto.dateStartConsommation ? new Date(dto.dateStartConsommation) : null;
       if (dto.isAmortization) {
@@ -27,6 +27,7 @@ export class ExpenseService {
           dateEndConsommation: dto.dateEndConsommation ? new Date(dto.dateEndConsommation) : null,
           compteId: dto.compteId, // Expense Account
           isPaid: !!dto.payment, // Mark as paid if payment info exists
+          tenantId, // Enforce tenant
         },
       });
 
@@ -48,6 +49,7 @@ export class ExpenseService {
                 compteSourceId: dto.payment.treasuryId, // Source
                 compteDestId: dto.compteId, // Destination
                 description: `Expense Payment: ${dto.title}`,
+                tenantId, // Enforce tenant
             } as any
         });
 
@@ -69,6 +71,7 @@ export class ExpenseService {
                     totalCredit: Number(dto.amount),
                     status: 'POSTED',
                     createdBy: 1, 
+                    tenantId, // Enforce tenant
                     lines: {
                         create: [
                             {
@@ -76,14 +79,16 @@ export class ExpenseService {
                                 compteId: dto.compteId, // Debit Expense
                                 debit: Number(dto.amount),
                                 credit: 0,
-                                description: dto.title
+                                description: dto.title,
+                                tenantId, // Enforce tenant
                             },
                             {
                                 lineNumber: 2,
                                 compteId: dto.payment.treasuryId, // Credit Treasury
                                 debit: 0,
                                 credit: Number(dto.amount),
-                                description: `Paiement: ${dto.title}`
+                                description: `Paiement: ${dto.title}`,
+                                tenantId, // Enforce tenant
                             }
                         ]
                     }
@@ -96,30 +101,60 @@ export class ExpenseService {
     });
   }
 
-  async findAll() {
-    return this.prisma.expense.findMany({
-      where: {
-          category: {
-              not: 'Salaires'
-          }
-      },
-      orderBy: { expenseDate: 'desc' },
-      include: {
-        compte: true
-      }
-    });
+  async findAll(tenantId: string, page: number = 1, limit: number = 10, search?: string) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        tenantId, // Enforce tenant
+        category: {
+            not: 'Salaires'
+        }
+    };
+
+    if (search) {
+        where.AND = [
+            { tenantId }, // Enforce tenant
+            { category: { not: 'Salaires' } },
+            {
+                OR: [
+                    { title: { contains: search, mode: 'insensitive' } },
+                    { category: { contains: search, mode: 'insensitive' } },
+                ]
+            }
+        ];
+    }
+
+    const [expenses, total] = await this.prisma.$transaction([
+        this.prisma.expense.findMany({
+            where,
+            orderBy: { expenseDate: 'desc' },
+            include: {
+                compte: true
+            },
+            skip,
+            take: limit,
+        }),
+        this.prisma.expense.count({ where }),
+    ]);
+
+    return {
+        expenses,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findOne(id: number) {
+  async findOne(tenantId: string, id: number) {
     return this.prisma.expense.findUnique({
-      where: { id },
+      where: { id, tenantId }, // Enforce tenant
       include: { compte: true }
     });
   }
 
-  async update(id: number, dto: UpdateExpenseDto) {
+  async update(tenantId: string, id: number, dto: UpdateExpenseDto) {
     return this.prisma.expense.update({
-      where: { id },
+      where: { id, tenantId }, // Enforce tenant
       data: {
           ...dto,
           expenseDate: dto.expenseDate ? new Date(dto.expenseDate) : undefined,
@@ -129,13 +164,15 @@ export class ExpenseService {
     });
   }
 
-  async remove(id: number) {
-    return this.prisma.expense.delete({ where: { id } });
+  async remove(tenantId: string, id: number) {
+    return this.prisma.expense.delete({ 
+        where: { id, tenantId } // Enforce tenant
+    });
   }
 
-  async pay(id: number, payload: { treasuryId: number; method: string }) {
+  async pay(tenantId: string, id: number, payload: { treasuryId: number; method: string }) {
     return this.prisma.$transaction(async (tx) => {
-      const expense = await tx.expense.findUnique({ where: { id } });
+      const expense = await tx.expense.findUnique({ where: { id, tenantId } }); // Enforce tenant
       if (!expense) throw new BadRequestException('Expense not found');
       if (expense.isPaid) throw new BadRequestException('Expense already paid');
 
@@ -153,6 +190,7 @@ export class ExpenseService {
           compteSourceId: payload.treasuryId,
           compteDestId: expense.compteId,
           description: `Paiement Dépense: ${expense.title}`,
+          tenantId, // Enforce tenant
         } as any
       });
 
@@ -171,6 +209,7 @@ export class ExpenseService {
                 totalCredit: Number(expense.amount),
                 status: 'POSTED',
                 createdBy: 1, 
+                tenantId, // Enforce tenant
                 lines: {
                     create: [
                         {
@@ -178,14 +217,16 @@ export class ExpenseService {
                             compteId: expense.compteId, // Debit Expense Account
                             debit: Number(expense.amount),
                             credit: 0,
-                            description: expense.title
+                            description: expense.title,
+                            tenantId, // Enforce tenant
                         },
                         {
                             lineNumber: 2,
                             compteId: payload.treasuryId, // Credit Treasury Account
                             debit: 0,
                             credit: Number(expense.amount),
-                            description: `Paiement: ${expense.title}`
+                            description: `Paiement: ${expense.title}`,
+                            tenantId, // Enforce tenant
                         }
                     ]
                 }
@@ -195,7 +236,7 @@ export class ExpenseService {
 
       // Update Expense
       return tx.expense.update({
-        where: { id },
+        where: { id, tenantId }, // Enforce tenant
         data: { isPaid: true }
       });
     });

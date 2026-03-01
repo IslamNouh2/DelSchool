@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SocketGateway } from '../socket/socket.gateway';
 
 @Injectable()
@@ -9,13 +9,14 @@ export class TransitionService {
         private readonly socketGateway: SocketGateway
     ) { }
 
-    async getPassingStudents(classId: number) {
+    async getPassingStudents(tenantId: string, classId: number) {
         // Fetch students in the class
         const studentClasses = await this.prisma.studentClass.findMany({
             where: {
                 classId: classId,
                 isCurrent: true,
                 cloture: false,
+                tenantId, // Filter by tenantId
             },
             include: {
                 Student: true,
@@ -41,7 +42,7 @@ export class TransitionService {
         return studentsWithAverages.filter(s => s.average >= 10);
     }
 
-    async transitionStudents(dto: {
+    async transitionStudents(tenantId: string, dto: {
         nextYear: string,
         transitions: { studentId: number, studentClassId: number, nextClassId: number }[]
     }) {
@@ -49,16 +50,16 @@ export class TransitionService {
         const nextClassIds = [...new Set(dto.transitions.map(t => t.nextClassId))];
         
         for (const nextClassId of nextClassIds) {
-            const nextClass = await this.prisma.classes.findUnique({
-                where: { classId: nextClassId },
+            const nextClass = await this.prisma.classes.findFirst({
+                where: { classId: nextClassId, tenantId },
                 include: { local: true }
             });
 
             if (!nextClass) throw new BadRequestException(`Class ${nextClassId} not found`);
 
             const local = nextClass.local;
-            const schoolYear = await this.prisma.schoolYear.findUnique({
-                where: { year: dto.nextYear }
+            const schoolYear = await this.prisma.schoolYear.findFirst({
+                where: { year: dto.nextYear, tenantId }
             });
             if (!schoolYear) throw new BadRequestException(`School year ${dto.nextYear} not found`);
 
@@ -67,6 +68,7 @@ export class TransitionService {
                 const studentCountInLocal = await this.prisma.studentClass.count({
                     where: {
                         schoolYearId: schoolYear.id,
+                        tenantId,
                         Class: {
                             localId: local.localId
                         }
@@ -83,7 +85,7 @@ export class TransitionService {
                 // Note: The user's logic "if local size 60 and create 2class with size 30 you can not create another class"
                 // suggests we should also check the SUM of Class.NumStudent in that local.
                 const otherClassesInLocal = await this.prisma.classes.findMany({
-                    where: { localId: local.localId }
+                    where: { localId: local.localId, tenantId }
                 });
                 const totalTargetCapacity = otherClassesInLocal.reduce((acc, c) => acc + c.NumStudent, 0);
 
@@ -99,8 +101,8 @@ export class TransitionService {
             }
         }
 
-        const schoolYear = await this.prisma.schoolYear.findUnique({
-            where: { year: dto.nextYear }
+        const schoolYear = await this.prisma.schoolYear.findFirst({
+            where: { year: dto.nextYear, tenantId }
         });
         if (!schoolYear) throw new BadRequestException(`School year ${dto.nextYear} not found`);
 
@@ -113,7 +115,8 @@ export class TransitionService {
                     where: { id: transition.studentClassId },
                     data: {
                         isCurrent: false,
-                        cloture: true
+                        cloture: true,
+                        tenantId: tenantId // Add tenantId
                     }
                 });
 
@@ -124,7 +127,8 @@ export class TransitionService {
                         classId: transition.nextClassId,
                         schoolYearId: schoolYear.id,
                         isCurrent: true,
-                        cloture: false
+                        cloture: false,
+                        tenantId // Add tenantId
                     }
                 });
                 results.push(newSc);

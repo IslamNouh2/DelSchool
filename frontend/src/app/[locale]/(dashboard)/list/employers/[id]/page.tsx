@@ -253,7 +253,7 @@ export default function EmployerProfile() {
                             <p className="text-sm font-medium text-slate-500">{isTeacher ? "Assigned Classes" : "Department"}</p>
                             <div className="flex items-center gap-3">
                                 <span className="text-3xl font-bold text-white leading-none">
-                                    {isTeacher ? (assignedClass ? "1" : "0") : (employer?.department || "Admin")}
+                                    {/* {isTeacher ? (assignedClass ? "1" : "0") : (employer?.department || "Admin")} */}
                                 </span>
                                 <span className="text-xs font-medium text-slate-500 mt-1">{isTeacher ? "Active" : "Department"}</span>
                             </div>

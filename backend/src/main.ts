@@ -2,11 +2,11 @@ import * as dotenv from 'dotenv'; // Reload triggered
 dotenv.config();
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
-import * as compression from 'compression';
+import compression from 'compression';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/logger/winston.config';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -36,15 +36,24 @@ async function bootstrap() {
   app.use(compression());
   app.use(cookieParser());
 
-  // Enable CORS with strict configuration
+  // Enable CORS with enterprise-grade configuration
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://delschool-2.onrender.com',
+  ];
+
   app.enableCors({
-    origin: [
-      'http://localhost:3000',                 // local dev
-      'https://delschool-2.onrender.com',    // DEPLOYED FRONTEND
-    ],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Operation-Id', 'Accept'],
+    exposedHeaders: ['Set-Cookie'],
   });
 
   app.useGlobalPipes(new ValidationPipe({

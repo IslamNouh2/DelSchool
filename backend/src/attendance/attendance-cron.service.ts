@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { AttendanceStatus } from '@prisma/client';
 
 @Injectable()
@@ -48,6 +48,7 @@ export class AttendanceCronService {
             status: AttendanceStatus.ABSENT,
             academicYear: '2024-2025',
             remarks: 'Auto-marked absent by system cron',
+            tenantId: emp.tenantId, // Scoped from employer
           },
         });
         this.logger.log(`Marked Employer ${emp.employerId} as ABSENT for ${today.toDateString()}`);

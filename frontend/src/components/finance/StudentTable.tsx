@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { StudentWithFinance, FinancialStatus } from "./types";
 import { cn } from "@/lib/utils";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
 
 interface StudentTableProps {
     students: StudentWithFinance[];
@@ -98,9 +99,12 @@ export function StudentTable({ students, onSubscribe, onPay, onViewHistory, load
                                                 )}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
-                                                    {student.lastName} {student.firstName}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
+                                                      {student.lastName} {student.firstName}
+                                                  </span>
+                                                  <SyncStatusBadge id={student.studentId} isPending={!!student.pendingSync} />
+                                                </div>
                                                 <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-tighter">
                                                     {student.code}
                                                 </span>

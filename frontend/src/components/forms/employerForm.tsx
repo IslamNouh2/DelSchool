@@ -403,43 +403,14 @@ export default function EmployerDialog({
             } else {
                 if (onSuccess) onSuccess()
                 if (onOpenChange) onOpenChange(false)
-                
-                setForm({
-                    code: "",
-                    firstName: "",
-                    lastName: "",
-                    dateNaissance: "",
-                    dateInscription: "",
-                    lieuNaissance: "",
-                    nationality: "",
-                    gender: "",
-                    carteNationale: "",
-                    etatCivil: "",
-                    etatSante: "",
-                    groupeSanguin: "",
-                    identifiantScolaire: "",
-                    address: "",
-                    observation: "",
-                    pereNom: "",
-                    mereNom: "",
-                    phone: "",
-                    type: "",
-                    okBlock: false,
-                    weeklyWorkload: 20,
-                    salary: 0,
-                    salaryBasis: "DAILY",
-                    checkInTime: "08:00",
-                    checkOutTime: "16:00",
-                    photo: null,
-                })
-                setBirthDate(undefined)
-                setRegisterDate(undefined)
-                setPhotoPreview(null)
-                setSelectedSubjects([])
-                setCreatedEmployerId(null)
-                setInitialAssignedSubjects([])
             }
         } catch (err: any) {
+            if (err.isOffline) {
+                toast.info("Enregistré localement (hors ligne) 📡. Les affectations de matières seront différées jusqu'à la synchronisation.");
+                if (onSuccess) onSuccess();
+                if (onOpenChange) onOpenChange(false);
+                return;
+            }
             toast.error(translateError(err) || t("messages.delete_error"))
         } finally {
             setIsLoading(false)

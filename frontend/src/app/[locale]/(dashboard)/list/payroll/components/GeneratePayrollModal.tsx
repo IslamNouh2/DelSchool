@@ -101,8 +101,13 @@ export function GeneratePayrollModal({
 
       const res = await api.post("/payroll/generate", payload);
 
-      const data = res.data;
-      toast.success(`Generated ${data.count} payroll records successfully.`);
+      if (res.status === 202 || (res.data as any).offline) {
+          toast.success("Génération en cours localement", {
+              description: "Les fiches de paie seront générées sur le serveur lors de la synchronisation."
+          });
+      } else {
+          toast.success(`Generated ${res.data.count} payroll records successfully.`);
+      }
       setOpen(false);
       onSuccess();
     } catch (error) {

@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CollectPaymentDto } from './dto/collect-payment.dto';
 import { JournalEntryStatus } from '@prisma/client';
 
@@ -45,6 +45,7 @@ export class PaymentService {
                     feeId: dto.feeId,
                     studentId: fee.studentId,
                     compteId: destinationAccountId,
+                    tenantId: fee.tenantId,
                 },
             });
 
@@ -65,6 +66,7 @@ export class PaymentService {
                     totalCredit: dto.amount,
                     status: JournalEntryStatus.POSTED,
                     createdBy: 1,
+                    tenantId: fee.tenantId,
                     lines: {
                         create: [
                             {
@@ -72,12 +74,14 @@ export class PaymentService {
                                 compteId: destinationAccountId,
                                 debit: dto.amount,
                                 credit: 0,
+                                tenantId: fee.tenantId,
                             },
                             {
                                 lineNumber: 2,
                                 compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
                                 debit: 0,
                                 credit: dto.amount,
+                                tenantId: fee.tenantId,
                             },
                         ],
                     },

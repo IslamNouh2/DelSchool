@@ -1,10 +1,4 @@
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
-
-export enum Role {
-    ADMIN = 'ADMIN',
-    TEACHER = 'TEACHER',
-    STUDENT = 'STUDENT',
-}
+import { IsEmail, IsString, MinLength, IsInt, IsOptional } from 'class-validator';
 
 export class RegisterDto {
     @IsEmail()
@@ -19,6 +13,7 @@ export class RegisterDto {
     password: string;
 
     @IsOptional()
-    @IsEnum(Role)
-    role?: Role = Role.STUDENT;
+    @IsInt()
+    roleId?: number;
 }
+

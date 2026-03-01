@@ -21,6 +21,7 @@ export interface StudentWithFinance {
         };
     }>;
     financial: StudentFinancial;
+    pendingSync?: boolean;
 }
 
 export interface FeeTemplate {

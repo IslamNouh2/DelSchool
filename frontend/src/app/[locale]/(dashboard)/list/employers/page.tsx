@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CustomTable } from "@/components/CustomTable";
 import { useSocket } from "@/providers/SocketProvider";
+import { OfflineDB } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
 import { useTranslations } from "next-intl";
 import { useTranslateError } from "@/hooks/useTranslateError";
 import { toast } from "sonner";
@@ -45,6 +47,8 @@ interface Employer {
     dateInscription?: string;
     cid?: string;
     numNumerisation?: string;
+    pendingSync?: boolean;
+    operationId?: string;
 }
 
 export default function TeacherListPage() {
@@ -58,7 +62,7 @@ export default function TeacherListPage() {
     const { refreshKey } = useSocket();
     const t = useTranslations("employers");
     const tActions = useTranslations("actions");
-    const translateError = useTranslateError();
+    const { translateError } = useTranslateError();
 
     // Delete confirmation state
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -102,6 +106,10 @@ export default function TeacherListPage() {
     const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
 
     useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedFilterValue]);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedFilterValue(filterValue);
         }, 500);
@@ -119,8 +127,43 @@ export default function TeacherListPage() {
                     type: "teacher", // Specifically for teachers list
                 },
             });
-            setData(response.data.teachers || response.data.employers);
-            setTotalCount(response.data.total);
+            const fetched = response.data.teachers || response.data.employers || [];
+            
+            // Merge offline data
+            const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
+            const queue = await OfflineDB.getSyncQueue(tenantId);
+            const pendingEmployers = queue.filter(item => item.entity === 'employer' || item.url.includes('employer'));
+
+            let mergedData = [...fetched];
+
+            pendingEmployers.forEach(item => {
+                if (item.type === 'CREATE' || (item.method === 'POST' && item.url.includes('/create'))) {
+                    // Check idempotency via operationId
+                    if (!mergedData.some(e => e.operationId === item.operationId)) {
+                        // Reconstruct employer from FormData or object
+                        const d = item.data instanceof FormData ? Object.fromEntries(item.data.entries()) : item.data;
+                        mergedData.unshift({
+                            ...d,
+                            employerId: item.operationId as any,
+                            pendingSync: true,
+                            operationId: item.operationId
+                        } as any);
+                    }
+                } else if (item.type === 'UPDATE' || item.method === 'PUT') {
+                    const id = parseInt(item.url.split('/').pop() || '0');
+                    const index = mergedData.findIndex(e => e.employerId === id);
+                    if (index !== -1) {
+                        const d = item.data instanceof FormData ? Object.fromEntries(item.data.entries()) : item.data;
+                        mergedData[index] = { ...mergedData[index], ...d, pendingSync: true };
+                    }
+                } else if (item.type === 'DELETE' || item.method === 'DELETE') {
+                    const id = parseInt(item.url.split('/').pop() || '0');
+                    mergedData = mergedData.filter(e => e.employerId !== id);
+                }
+            });
+
+            setData(mergedData);
+            setTotalCount(response.data.total || mergedData.length);
         } catch (error) {
             console.error("Error fetching teachers:", error);
         } finally {
@@ -205,7 +248,12 @@ export default function TeacherListPage() {
             header: t("table.name"),
             key: "name",
             visible: columnVisibility.name,
-            render: (teacher: Employer) => `${teacher.firstName} ${teacher.lastName}`,
+            render: (teacher: Employer) => (
+                <div className="flex items-center gap-2">
+                    <span>{teacher.firstName} {teacher.lastName}</span>
+                    <SyncStatusBadge id={teacher.employerId} isPending={!!teacher.pendingSync} />
+                </div>
+            ),
             className: "text-foreground",
         },
         {

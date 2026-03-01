@@ -19,6 +19,8 @@ import { toast as sonnerToast } from "sonner";
 import dynamic from "next/dynamic";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
+import { OfflineDB } from "@/lib/db";
+import Cookies from "js-cookie";
 
 // Lazy load Combobox
 const ComboboxDemo = dynamic(
@@ -108,6 +110,7 @@ export default function SubjectDialog({
         { value: string; label: string }[]
     >([]);
     const [selectedSubSubjectId, setSelectedSubSubjectId] = useState<number>(-1);
+    const tenantId = Cookies.get("tenantId") as string;
 
     useEffect(() => {
         const fetchParam = async () => {
@@ -170,10 +173,16 @@ export default function SubjectDialog({
         };
 
         try {
+            let res;
             if (type === "create") {
                 console.log("✅ subjects:", payload);
-                await api.post("/subject/createSub", payload, { withCredentials: true });
-                sonnerToast.success("Subject created successfully"); // Keys exist in common or I can use static if needed but better to use localized
+                res = await api.post("/subject/createSub", payload, { withCredentials: true });
+                
+                if (res.status === 202 || (res.data as any).offline) {
+                    sonnerToast.success(t("creation_offline_success") || "Subject creation queued offline");
+                } else {
+                    sonnerToast.success(t("creation_success") || "Subject created successfully");
+                }
             } else {
                 const id = data.subjectId ?? data.SubjectId;
                 if (!id) {
@@ -183,8 +192,13 @@ export default function SubjectDialog({
                     return;
                 }
 
-                await api.patch(`/subject/${id}`, payload, { withCredentials: true });
-                sonnerToast.success("Subject updated successfully");
+                res = await api.patch(`/subject/${id}`, payload, { withCredentials: true });
+                
+                if (res.status === 202 || (res.data as any).offline) {
+                    sonnerToast.success(t("update_offline_success") || "Subject update queued offline");
+                } else {
+                    sonnerToast.success(t("update_success") || "Subject updated successfully");
+                }
             }
             onOpenChange?.(false);
             onSuccess?.();

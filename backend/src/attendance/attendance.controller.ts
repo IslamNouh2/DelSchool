@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { SaveStudentAttendanceDto } from './dto/create-student-attendance.dto';
 import { UpdateStudentAttendanceDto } from './dto/update-attendance.dto';
@@ -7,131 +7,134 @@ import { UpdateEmployerAttendanceDto } from './dto/update-employer-attendance.dt
 
 
 @Controller('attendance')
+
 export class AttendanceController {
   constructor(private readonly service: AttendanceService) { }
 
   // 🧒 Student
   @Post('save')
-async saveStudentAttendance(@Body() body: any) {
+async saveStudentAttendance(@Req() req: any, @Body() body: any) {
   console.log("🧾 Received attendance payload:", JSON.stringify(body, null, 2));
-  return this.service.saves(body);
+  return this.service.saves(req.tenantId, body);
 }
 
   @Patch('student/:id')
-  updateStudent(@Param('id') id: string, @Body() dto: UpdateStudentAttendanceDto) {
-    return this.service.updateStudent(Number(id), dto);
+  updateStudent(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateStudentAttendanceDto) {
+    return this.service.updateStudent(req.tenantId, Number(id), dto);
   }
 
   @Delete('student/:id')
-  deleteStudent(@Param('id') id: string) {
-    return this.service.deleteStudent(Number(id));
+  deleteStudent(@Req() req: any, @Param('id') id: string) {
+    return this.service.deleteStudent(req.tenantId, Number(id));
   }
 
   @Get('student')
-  getStudents() {
-    return this.service.getAllStudents();
+  getStudents(@Req() req: any) {
+    return this.service.getAllStudents(req.tenantId);
   }
 
   @Get('students/:classId')
-  async getStudentsByClass(@Param('classId', ParseIntPipe) classId: number) {
-    return this.service.getStudentsByClassId(classId);
+  async getStudentsByClass(@Req() req: any, @Param('classId', ParseIntPipe) classId: number) {
+    return this.service.getStudentsByClassId(req.tenantId, classId);
   }
 
   @Get('class')
-  async findAll() {
-    return this.service.getAllClasses();
+  async findAll(@Req() req: any) {
+    return this.service.getAllClasses(req.tenantId);
   }
 
   @Get('existing/:classId/:date')
   async getExistingAttendance(
+    @Req() req: any,
     @Param('classId', ParseIntPipe) classId: number,
     @Param('date') date: string
   ) {
-    return this.service.getExistingAttendance(classId, date);
+    return this.service.getExistingAttendance(req.tenantId, classId, date);
   }
   
   // 👩‍🏫 Employer
   @Post('employer')
-  createEmployer(@Body() dto: CreateEmployerAttendanceDto) {
-    return this.service.createEmployer(dto);
+  createEmployer(@Req() req: any, @Body() dto: CreateEmployerAttendanceDto) {
+    return this.service.createEmployer(req.tenantId, dto);
   }
 
   @Patch('employer/:id')
-  updateEmployer(@Param('id') id: string, @Body() dto: UpdateEmployerAttendanceDto) {
-    return this.service.updateEmployer(Number(id), dto);
+  updateEmployer(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateEmployerAttendanceDto) {
+    return this.service.updateEmployer(req.tenantId, Number(id), dto);
   }
 
   @Get('employer')
-  getEmployers() {
-    return this.service.getAllEmployers();
+  getEmployers(@Req() req: any) {
+    return this.service.getAllEmployers(req.tenantId);
   }
 
   // Employers basic list for taking attendance
   @Get('employers')
-  getEmployersBasic() {
-    return this.service.getAllEmployerBasics();
+  getEmployersBasic(@Req() req: any) {
+    return this.service.getAllEmployerBasics(req.tenantId);
   }
 
   // Existing employer attendance by date (?date=YYYY-MM-DD)
   @Get('employer-existing')
-  getExistingEmployer(@Query('date') date: string) {
-    return this.service.getExistingEmployerAttendance(date);
+  getExistingEmployer(@Req() req: any, @Query('date') date: string) {
+    return this.service.getExistingEmployerAttendance(req.tenantId, date);
   }
 
   @Delete('employer/:id')
-  deleteEmployerAttendance(@Param('id') id: string) {
-    return this.service.deleteEmployerAttendance(Number(id));
+  deleteEmployerAttendance(@Req() req: any, @Param('id') id: string) {
+    return this.service.deleteEmployerAttendance(req.tenantId, Number(id));
   }
 
   @Get('student-last7days/:classId')
-  getStudentLast7Days(@Param('classId', ParseIntPipe) classId: number) {
-    return this.service.getStudentLast7DaysAttendance(classId);
+  getStudentLast7Days(@Req() req: any, @Param('classId', ParseIntPipe) classId: number) {
+    return this.service.getStudentLast7DaysAttendance(req.tenantId, classId);
   }
 
   @Get('employer-last7days')
-  getEmployerLast7Days() {
-    return this.service.getEmployerLast7DaysAttendance();
+  getEmployerLast7Days(@Req() req: any) {
+    return this.service.getEmployerLast7DaysAttendance(req.tenantId);
   }
   @Get('student-weekly-chart/:classId')
-  getStudentWeeklyChart(@Param('classId', ParseIntPipe) classId: number) {
-    return this.service.getStudentWeeklyChartData(classId);
+  getStudentWeeklyChart(@Req() req: any, @Param('classId', ParseIntPipe) classId: number) {
+    return this.service.getStudentWeeklyChartData(req.tenantId, classId);
   }
 
   @Get('student-daily-summary/:classId/:date')
   getStudentDailySummary(
+    @Req() req: any,
     @Param('classId', ParseIntPipe) classId: number,
     @Param('date') date: string
   ) {
-    return this.service.getStudentDailySummaryData(classId, date);
+    return this.service.getStudentDailySummaryData(req.tenantId, classId, date);
   }
 
   @Get('student/:id/history')
-  getStudentAttendance(@Param('id', ParseIntPipe) id: number) {
-    return this.service.getStudentAttendance(id);
+  getStudentAttendance(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.service.getStudentAttendance(req.tenantId, id);
   }
 
   @Get('global-weekly-chart')
-  getGlobalWeeklyChart() {
-    return this.service.getGlobalWeeklyChartData();
+  getGlobalWeeklyChart(@Req() req: any) {
+    return this.service.getGlobalWeeklyChartData(req.tenantId);
   }
 
   @Get('global-daily-summary/:date')
-  getGlobalDailySummary(@Param('date') date: string) {
-    return this.service.getGlobalDailySummaryData(date);
+  getGlobalDailySummary(@Req() req: any, @Param('date') date: string) {
+    return this.service.getGlobalDailySummaryData(req.tenantId, date);
   }
 
   @Get('employer-weekly-chart')
-  getEmployerWeeklyChart() {
-    return this.service.getEmployerWeeklyChartData();
+  getEmployerWeeklyChart(@Req() req: any) {
+    return this.service.getEmployerWeeklyChartData(req.tenantId);
   }
 
   @Get('employer-daily-summary/:date')
-  getEmployerDailySummary(@Param('date') date: string) {
-    return this.service.getEmployerDailySummaryData(date);
+  getEmployerDailySummary(@Req() req: any, @Param('date') date: string) {
+    return this.service.getEmployerDailySummaryData(req.tenantId, date);
   }
 
   @Get('employer/:id/stats')
-  async getEmployerStats(@Param('id', ParseIntPipe) id: number) {
-    return this.service.getEmployerStats(id);
+  async getEmployerStats(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.service.getEmployerStats(req.tenantId, id);
   }
 }

@@ -8,6 +8,7 @@ import api from "@/lib/api";
 import dynamic from "next/dynamic";
 import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
+import { toast } from "sonner";
 
 // Dynamically import ComboboxDemo with fallback
 const ComboboxDemo = dynamic(
@@ -121,16 +122,25 @@ const ClassForm: React.FC<ClassFormProps> = ({
         };
 
         try {
+            let response;
             if (type === "create") {
-                await api.post("/class/create", payload, {
+                response = await api.post("/class/create", payload, {
                     withCredentials: true,
                     headers: { "Content-Type": "application/json" },
                 });
             } else {
-                await api.put(`/class/${data.classId}`, payload, {
+                response = await api.put(`/class/${data.classId}`, payload, {
                     withCredentials: true,
                     headers: { "Content-Type": "application/json" },
                 });
+            }
+
+            if (response.status === 202 || (response.data as any).offline) {
+                toast.success(t("messages.offline_success"), {
+                    description: t("messages.sync_pending_desc")
+                });
+            } else {
+                toast.success(type === "create" ? t("messages.create_success") : t("messages.update_success"));
             }
 
             setOpen(false);

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateCompteDto } from './dto/create-compte.dto';
 import { UpdateCompteDto } from './dto/update-compte.dto';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SocketGateway } from 'src/socket/socket.gateway';
 
 
@@ -13,7 +13,7 @@ export class CompteService {
     ) { }
 
 
-    async create(createCompteDto: CreateCompteDto) {
+    async create(tenantId: string, createCompteDto: CreateCompteDto) {
         let { 
             name, code, nameAr, parentId, employerId, studentId, isPosted,
             category, nature, selectionCode,
@@ -23,7 +23,7 @@ export class CompteService {
 
         // Step 1: Get BG, BD, and calculate level of the parent
         const parent = await this.prisma.compte.findUnique({
-            where: { id: parentId },
+            where: { id: parentId, tenantId }, // Enforce tenant
             select: { BG: true, BD: true, level: true },
         });
 
@@ -44,12 +44,12 @@ export class CompteService {
         return this.prisma.$transaction(async (tx) => {
             // Update existing accounts' BG/BD values
             await tx.compte.updateMany({
-                where: { BG: { gt: parentBD } },
+                where: { BG: { gt: parentBD }, tenantId }, // Enforce tenant
                 data: { BG: { increment: 2 } },
             });
 
             await tx.compte.updateMany({
-                where: { BD: { gte: parentBD } },
+                where: { BD: { gte: parentBD }, tenantId }, // Enforce tenant
                 data: { BD: { increment: 2 } },
             });
 
@@ -73,6 +73,7 @@ export class CompteService {
                     isFeeCash: isFeeCash ?? false,
                     showInParent: showInParent ?? true,
                     selectionCode,
+                    tenantId, // Enforce tenant
                 } as any,
             });
 
@@ -82,22 +83,24 @@ export class CompteService {
     }
 
     async findAll(
+        tenantId: string,
         page: number = 1,
         limit: number = 10,
-        name?: string,
+        search?: string,
         status?: string,
     ) {
         const skip = (page - 1) * limit;
 
         const where: any = {
+            tenantId, // Enforce tenant
             id: { gt: -1 },
         };
 
-        if (name) {
-            where.name = {
-                contains: name,
-                mode: 'insensitive',
-            };
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: 'insensitive' } },
+                { code: { contains: search, mode: 'insensitive' } },
+            ];
         }
 
         if (status) {
@@ -179,9 +182,9 @@ export class CompteService {
         };
     }
 
-    async findOne(id: number) {
+    async findOne(tenantId: string, id: number) {
         return this.prisma.compte.findUnique({
-            where: { id },
+            where: { id, tenantId }, // Enforce tenant
             include: { 
                 parent: { select: { id: true, name: true } },
                 employer: true,
@@ -190,7 +193,7 @@ export class CompteService {
         });
     }
 
-    async update(id: number, updateDto: UpdateCompteDto) {
+    async update(tenantId: string, id: number, updateDto: UpdateCompteDto) {
         const { 
             name, code, nameAr, parentId: newParentIdInput, isPosted, employerId, studentId,
             category, nature, isFeeCash, showInParent, selectionCode
@@ -198,7 +201,7 @@ export class CompteService {
         const parentId = newParentIdInput;
 
         const current = await this.prisma.compte.findUnique({
-            where: { id },
+            where: { id, tenantId }, // Enforce tenant
             select: { BG: true, BD: true, parentId: true },
         });
 
@@ -207,7 +210,7 @@ export class CompteService {
         // If parent changed, handle nested set movement
         if (parentId !== undefined && current.parentId !== parentId) {
             const parent = await this.prisma.compte.findUnique({
-                where: { id: parentId },
+                where: { id: parentId, tenantId }, // Enforce tenant
                 select: { BD: true },
             });
 
@@ -221,6 +224,7 @@ export class CompteService {
                     where: {
                         BG: { gte: current.BG },
                         BD: { lte: current.BD },
+                        tenantId // Enforce tenant
                     },
                     data: {
                         BG: { increment: -current.BG },
@@ -229,12 +233,12 @@ export class CompteService {
                 });
 
                 await tx.compte.updateMany({
-                    where: { BG: { gt: current.BD } },
+                    where: { BG: { gt: current.BD }, tenantId }, // Enforce tenant
                     data: { BG: { decrement: width } },
                 });
 
                 await tx.compte.updateMany({
-                    where: { BD: { gt: current.BD } },
+                    where: { BD: { gt: current.BD }, tenantId }, // Enforce tenant
                     data: { BD: { decrement: width } },
                 });
 
@@ -242,18 +246,18 @@ export class CompteService {
                 const newPos = parentId === -1 ? 1 : parent!.BD;
 
                 await tx.compte.updateMany({
-                    where: { BG: { gte: newPos } },
+                    where: { BG: { gte: newPos }, tenantId }, // Enforce tenant
                     data: { BG: { increment: width } },
                 });
 
                 await tx.compte.updateMany({
-                    where: { BD: { gte: newPos } },
+                    where: { BD: { gte: newPos }, tenantId }, // Enforce tenant
                     data: { BD: { increment: width } },
                 });
 
                 // Move subtree to new location
                 await tx.compte.updateMany({
-                    where: { BG: { lt: 0 } },
+                    where: { BG: { lt: 0 }, tenantId }, // Enforce tenant
                     data: {
                         BG: { increment: newPos },
                         BD: { increment: newPos },
@@ -261,7 +265,7 @@ export class CompteService {
                 });
 
                 await tx.compte.update({
-                    where: { id },
+                    where: { id, tenantId }, // Enforce tenant
                     data: {
                         name,
                         code,
@@ -281,7 +285,7 @@ export class CompteService {
             });
         } else {
             await this.prisma.compte.update({
-                where: { id },
+                where: { id, tenantId }, // Enforce tenant
                 data: {
                     name,
                     code,
@@ -303,83 +307,118 @@ export class CompteService {
         return { message: 'Account updated successfully' };
     }
 
-    async getTransactions(id: number, startDate?: string, endDate?: string) {
-        const where: any = { compteId: id };
+    async getTransactions(tenantId: string, id: number, startDate?: string, endDate?: string, page: number = 1, limit: number = 20, search?: string) {
+        const skip = (page - 1) * limit;
+        const where: any = { compteId: id, tenantId }; // Enforce tenant
 
-        if (startDate && endDate) {
-            where.entry = {
-                date: {
-                    gte: new Date(startDate),
-                    lte: new Date(endDate),
-                }
-            };
-        } else if (startDate) {
-             where.entry = {
-                date: {
-                    gte: new Date(startDate),
-                }
-            };
-        } else if (endDate) {
-             where.entry = {
-                date: {
-                    lte: new Date(endDate),
-                }
-            };
+        const dateFilter: any = {};
+        if (startDate) dateFilter.gte = new Date(startDate);
+        if (endDate) dateFilter.lte = new Date(endDate);
+
+        if (Object.keys(dateFilter).length > 0) {
+            where.entry = { date: dateFilter };
         }
 
-        // Fetch journal lines where this account is involved
-        // Order by date descending
-        const lines = await this.prisma.journalLine.findMany({
-            where,
-            include: {
-                entry: {
-                    include: {
-                        lines: {
-                            include: {
-                                compte: {
-                                    select: { name: true, code: true }
+        if (search) {
+            where.AND = [
+                ...(where.entry ? [{ entry: where.entry }] : []),
+                {
+                    OR: [
+                        { description: { contains: search, mode: 'insensitive' } },
+                        {
+                            entry: {
+                                OR: [
+                                    { entryNumber: { contains: search, mode: 'insensitive' } },
+                                    { description: { contains: search, mode: 'insensitive' } },
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ];
+            // Remove the top-level entry filter if we moved it into AND
+            delete where.entry;
+        }
+
+        const [lines, total, aggregates] = await this.prisma.$transaction([
+            this.prisma.journalLine.findMany({
+                where,
+                include: {
+                    entry: {
+                        include: {
+                            lines: {
+                                include: {
+                                    compte: {
+                                        select: { name: true, code: true }
+                                    }
                                 }
                             }
                         }
-                    }
-                }, 
-            },
-            orderBy: {
-                entry: {
-                    date: 'desc',
+                    },
                 },
-            },
-        });
+                orderBy: {
+                    entry: {
+                        date: 'desc',
+                    },
+                },
+                skip,
+                take: limit,
+            }),
+            this.prisma.journalLine.count({ where }),
+            this.prisma.journalLine.aggregate({
+                where,
+                _sum: {
+                    debit: true,
+                    credit: true,
+                }
+            })
+        ]);
 
-        // Calculate running balance or just return lines?
-        // For simple history, just lines is fine. Frontend can calc totals.
-        return lines.map(line => {
-            // Find the other side of the transaction (partner)
-            // It's the line in the same entry that does NOT match this account ID.
-            // If multiple lines, we might just take the first one or join them.
-            // For simple Double Entry, it's just the other one.
+        const transactions = lines.map(line => {
             const otherLine = line.entry.lines.find(l => l.compteId !== id);
             const partnerAccount = otherLine ? otherLine.compte.name : null;
             const partnerCode = otherLine ? otherLine.compte.code : null;
 
             return {
                 id: line.id,
-                entryId: line.entry.id, 
+                entryId: line.entry.id,
                 date: line.entry.date,
                 description: line.description || line.entry.description,
-                // Ensure we return numbers, even if 0
                 debit: Number(line.debit),
                 credit: Number(line.credit),
                 reference: line.entry.entryNumber,
-                referenceType: line.entry.referenceType, 
+                referenceType: line.entry.referenceType,
                 referenceId: line.entry.referenceId,
                 partnerAccount,
                 partnerCode
             };
         });
+
+        const totalIn = Number(aggregates._sum.debit || 0);
+        const totalOut = Number(aggregates._sum.credit || 0);
+
+        return {
+            transactions,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            stats: {
+                totalIn,
+                totalOut,
+                totalBalance: totalIn - totalOut // Adjust based on account logic? 
+                // For Treasury view (Caisse/Banque), usually In - Out = Current Balance in period
+            }
+        };
+
+        return {
+            transactions,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        };
     }
 
-    async createTransaction(compteId: number, dto: any, userId: number) {
+    async createTransaction(tenantId: string, compteId: number, dto: any, userId: number) {
         // userId 1 as default if not provided, though controller should provide it
         const currentUserId = userId || 1; 
         
@@ -408,14 +447,14 @@ export class CompteService {
 
             // Verify accounts exist
             const accountCheck = await tx.compte.findMany({
-                where: { id: { in: [debitAccount, creditAccount] } }
+                where: { id: { in: [debitAccount, creditAccount] }, tenantId } // Enforce tenant
             });
             if (accountCheck.length !== 2) throw new Error("One or both accounts not found");
 
             // Create Journal Entry
             // We need a Journal. Let's use GEN (1) for now or maybe CASH (2) if it involves Caisse?
             // If compteId is Caisse, use Caisse Journal.
-            const mainAccount = await tx.compte.findUnique({ where: { id: compteId } });
+            const mainAccount = await tx.compte.findUnique({ where: { id: compteId, tenantId } }); // Enforce tenant
             let journalId = 1; // Default General
             if (mainAccount?.category === 'CAISSE') journalId = 2;
             if (mainAccount?.category === 'BANQUE') journalId = 3;
@@ -430,6 +469,7 @@ export class CompteService {
                     totalCredit: amount,
                     status: 'POSTED',
                     createdBy: currentUserId,
+                    tenantId, // Enforce tenant
                     lines: {
                         create: [
                             {
@@ -437,14 +477,16 @@ export class CompteService {
                                 compteId: debitAccount,
                                 debit: amount,
                                 credit: 0,
-                                description
+                                description,
+                                tenantId, // Enforce tenant
                             },
                             {
                                 lineNumber: 2,
                                 compteId: creditAccount,
                                 debit: 0,
                                 credit: amount,
-                                description
+                                description,
+                                tenantId, // Enforce tenant
                             }
                         ]
                     }
@@ -456,7 +498,7 @@ export class CompteService {
         });
     }
 
-    async updateTransaction(entryId: number, dto: any, userId: number) {
+    async updateTransaction(tenantId: string, entryId: number, dto: any, userId: number) {
         const { amount, type, description, contraAccountId, date } = dto;
         const transactionDate = date ? new Date(date) : new Date();
         const mainAccountId = dto.compteId; 
@@ -464,7 +506,7 @@ export class CompteService {
         return this.prisma.$transaction(async (tx) => {
              // 1. Get existing entry with lines
             const existingEntry = await tx.journalEntry.findUnique({
-                where: { id: entryId },
+                where: { id: entryId, tenantId }, // Enforce tenant
                 include: { lines: true }
             });
 
@@ -492,13 +534,13 @@ export class CompteService {
 
              // Verify accounts exist
              const accountCheck = await tx.compte.findMany({
-                where: { id: { in: [debitAccount, creditAccount] } }
+                where: { id: { in: [debitAccount, creditAccount] }, tenantId } // Enforce tenant
             });
             if (accountCheck.length !== 2) throw new Error("One or both accounts not found");
 
             // 3. Update Entry Header
             await tx.journalEntry.update({
-                where: { id: entryId },
+                where: { id: entryId, tenantId }, // Enforce tenant
                 data: {
                     date: transactionDate,
                     description,
@@ -512,7 +554,7 @@ export class CompteService {
             // Easier to delete and recreate lines? Or update in place?
             // Delete and recreate is safer to ensure correct debit/credit assignment
             await tx.journalLine.deleteMany({
-                where: { entryId }
+                where: { entryId, tenantId } // Enforce tenant
             });
 
             await tx.journalLine.createMany({
@@ -523,7 +565,8 @@ export class CompteService {
                         compteId: debitAccount,
                         debit: amount,
                         credit: 0,
-                        description
+                        description,
+                        tenantId // Enforce tenant
                     },
                     {
                         entryId,
@@ -531,7 +574,8 @@ export class CompteService {
                         compteId: creditAccount,
                         debit: 0,
                         credit: amount,
-                        description
+                        description,
+                        tenantId // Enforce tenant
                     }
                 ]
             });
@@ -541,10 +585,10 @@ export class CompteService {
         });
     }
 
-    async deleteTransaction(entryId: number) {
+    async deleteTransaction(tenantId: string, entryId: number) {
         // Find entry to ensure it exists
         const entry = await this.prisma.journalEntry.findUnique({
-            where: { id: entryId }
+            where: { id: entryId, tenantId } // Enforce tenant
         });
         
         if (!entry) throw new Error("Transaction not found");
@@ -552,17 +596,17 @@ export class CompteService {
         // Delete Entry (Cascade delete configured? If not, delete lines first)
         // Prisma schema usually handles cascade if defined, but safe manual delete:
         await this.prisma.$transaction(async (tx) => {
-            await tx.journalLine.deleteMany({ where: { entryId } });
-            await tx.journalEntry.delete({ where: { id: entryId } });
+            await tx.journalLine.deleteMany({ where: { entryId, tenantId } }); // Enforce tenant
+            await tx.journalEntry.delete({ where: { id: entryId, tenantId } }); // Enforce tenant
         });
         
         this.socketGateway.emitRefresh();
         return { message: "Transaction deleted" };
     }
 
-    async remove(id: number) {
+    async remove(tenantId: string, id: number) {
         const compte = await this.prisma.compte.findUnique({
-            where: { id }
+            where: { id, tenantId } // Enforce tenant
         });
 
         if (!compte) {
@@ -570,35 +614,36 @@ export class CompteService {
         }
 
         // For Nested Set, we should ideally update other nodes, but following subject pattern
-        await this.prisma.compte.delete({ where: { id } });
+        await this.prisma.compte.delete({ where: { id, tenantId } }); // Enforce tenant
         this.socketGateway.emitRefresh();
     }
 
     // Helper to ensure "Salaires" parent account exists
-    async ensureSalaryParentAccount() {
+    async ensureSalaryParentAccount(tenantId: string) {
         const salaryAccount = await this.prisma.compte.findFirst({
             where: { 
                 code: '63', 
+                tenantId // Enforce tenant
             }
         });
 
         if (salaryAccount) return salaryAccount;
 
         // Find Class 6 root
-        let class6 = await this.prisma.compte.findFirst({ where: { code: '6' } });
+        let class6 = await this.prisma.compte.findFirst({ where: { code: '6', tenantId } }); // Enforce tenant
 
         if (!class6) {
              // Create 'Salaires' at root if 6 missing
-             return this.create({
-                 name: "Charges de personnel",
-                 code: "63",
-                 category: "EXPENSE",
-                 nature: "EXPENSE",
-                 parentId: -1
-             } as any);
+              return this.create(tenantId, {
+                  name: "Charges de personnel",
+                  code: "63",
+                  category: "EXPENSE",
+                  nature: "EXPENSE",
+                  parentId: -1
+              } as any);
         }
 
-        return this.create({
+        return this.create(tenantId, {
             name: "Personnel et comptes rattachés",
             code: "63",
             category: "EXPENSE",
@@ -607,10 +652,10 @@ export class CompteService {
         } as any);
     }
 
-    async getOrCreateEmployerAccount(employerId: number, name: string) {
+    async getOrCreateEmployerAccount(tenantId: string, employerId: number, name: string) {
         // Check if account exists for this employer
         const existingAccount = await this.prisma.compte.findFirst({
-            where: { employerId }
+            where: { employerId, tenantId } // Enforce tenant
         });
 
         if (existingAccount) return existingAccount;
@@ -619,6 +664,7 @@ export class CompteService {
         // Try to find a parent with code 63 or name containing Salaires
         let parent = await this.prisma.compte.findFirst({
              where: { 
+                 tenantId, // Enforce tenant
                  OR: [
                      { code: { startsWith: '63' } },
                      { name: { contains: 'Salaire', mode: 'insensitive' } },
@@ -629,7 +675,7 @@ export class CompteService {
 
         if (!parent) {
             // Create Parent
-            parent = await this.ensureSalaryParentAccount();
+            parent = await this.ensureSalaryParentAccount(tenantId);
         }
 
         // Create Employer Account
@@ -639,10 +685,10 @@ export class CompteService {
         const code = `${parent.code}${employerId.toString().padStart(3, '0')}`;
 
         // Check if code collision (unlikely but safe)
-        const check = await this.prisma.compte.findUnique({ where: { code } });
+        const check = await this.prisma.compte.findFirst({ where: { code, tenantId } }); // Enforce tenant
         if (check) return check; 
 
-        return this.create({
+        return this.create(tenantId, {
             name: `Salaire - ${name}`,
             code, 
             parentId: parent.id,

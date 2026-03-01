@@ -83,11 +83,26 @@ export default function CompteForm({ type, data, setOpen, onSuccess, promises }:
 
                 let response;
                 if (type === "create") {
+                    response = await api.post("/compte", payload);
+                    if (response.status === 202 || (response.data as any).offline) {
+                        toast.success(t("messages.offline_success"), {
+                            description: t("messages.sync_pending_desc") || "Changes saved locally and will sync when online."
+                        });
+                    } else {
+                        toast.success(t("messages.save_success"));
+                    }
+                } else {
                     response = await api.patch(`/compte/${data.id}`, payload);
-                    toast.success(t("messages.update_success"));
+                    if (response.status === 202 || (response.data as any).offline) {
+                        toast.success(t("messages.offline_success"), {
+                            description: t("messages.sync_pending_desc") || "Changes saved locally and will sync when online."
+                        });
+                    } else {
+                        toast.success(t("messages.update_success"));
+                    }
                 }
                 
-                onSuccess(response.data);
+                onSuccess(response?.data);
                 setOpen(false);
             } catch (error) {
                 toast.error(t("messages.save_error"));

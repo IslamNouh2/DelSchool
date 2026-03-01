@@ -3,7 +3,7 @@ import { StudentService } from './student.service';
 import { StudentController } from './student.controller';
 import { ParentController } from './parent.controller';
 import { LocalService } from 'src/local/local.service';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { FeeModule } from 'src/fee/fee.module';
 
 @Module({

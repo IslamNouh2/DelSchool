@@ -29,6 +29,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import ClassForm from "@/components/forms/ClassForm";
 import { useSocket } from "@/providers/SocketProvider";
 import { useTranslateError } from "@/hooks/useTranslateError";
+import { OfflineDB, SyncRecord } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import Cookies from "js-cookie";
 
 
 interface Class {
@@ -55,12 +58,14 @@ export default function ClassListPage() {
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [filterValue, setFilterValue] = useState("");
+    const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formType, setFormType] = useState<"create" | "update">("create");
     const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+    const [syncQueue, setSyncQueue] = useState<SyncRecord[]>([]);
     const { refreshKey } = useSocket();
-
+    const tenantId = Cookies.get("tenantId") as string;
 
     // Column Visibility State
     const [columnVisibility, setColumnVisibility] = useState({
@@ -73,25 +78,72 @@ export default function ClassListPage() {
 
     const { translateError } = useTranslateError();
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedFilterValue(filterValue);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [filterValue]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedFilterValue]);
+
     const fetchData = useCallback(async (page: number) => {
         setLoading(true);
         try {
-            const response = await api.get("/class", {
-                params: {
-                    page,
-                    limit: pageSize,
-                    search: filterValue,
-                },
+            const [response, queue] = await Promise.all([
+                api.get("/class", {
+                    params: {
+                        page,
+                        limit: pageSize,
+                        search: debouncedFilterValue || undefined,
+                    },
+                }),
+                OfflineDB.getSyncQueue(tenantId)
+            ]);
+
+            setSyncQueue(queue);
+            
+            // Merge logic
+            let mergedData = [...response.data.classes];
+            
+            // Handle pending creations
+            const pendingCreations = queue.filter(q => 
+                q.entity === 'class' && 
+                q.method === 'POST' &&
+                (debouncedFilterValue ? (
+                    q.data?.ClassName?.toLowerCase().includes(debouncedFilterValue.toLowerCase()) ||
+                    q.data?.code?.toLowerCase().includes(debouncedFilterValue.toLowerCase())
+                ) : true)
+            );
+
+            pendingCreations.forEach(q => {
+                if (!mergedData.some(c => c.classId === q.operationId)) {
+                    mergedData.unshift({
+                        classId: q.operationId as any,
+                        ClassName: q.data.ClassName,
+                        NumStudent: q.data.NumStudent,
+                        localId: q.data.localId,
+                        okBlock: q.data.okBlock,
+                        local: { name: q.data.localName || 'Pending...' }
+                    });
+                }
             });
-            setData(response.data.classes);
-            setTotalCount(response.data.total);
+
+            // Handle pending deletions
+            const pendingDeletions = queue.filter(q => q.entity === 'class' && q.method === 'DELETE');
+            mergedData = mergedData.filter(c => !pendingDeletions.some(q => q.url.includes(`/class/${c.classId}`)));
+
+            setData(mergedData);
+            setTotalCount(response.data.total + pendingCreations.length);
         } catch (error) {
             console.error("Error fetching classes:", error);
             toast.error(translateError(error));
         } finally {
             setLoading(false);
         }
-    }, [pageSize, filterValue, translateError]);
+    }, [pageSize, debouncedFilterValue, translateError, tenantId]);
 
     const handleDelete = async (id: number) => {
         try {
@@ -197,7 +249,16 @@ export default function ClassListPage() {
                         header: t("table.name"),
                         key: "name",
                         visible: columnVisibility.name,
-                        render: (item) => item.ClassName,
+                        render: (item) => (
+                            <div className="flex items-center gap-2">
+                                <span>{item.ClassName}</span>
+                                {syncQueue.some(q => 
+                                    (q.method === 'POST' && q.data?.ClassName === item.ClassName) ||
+                                    (q.method === 'PUT' && q.url.includes(`/class/${item.classId}`)) ||
+                                    (q.method === 'DELETE' && q.url.includes(`/class/${item.classId}`))
+                                ) && <SyncStatusBadge id={item.classId} isPending={true} />}
+                            </div>
+                        ),
                         className: "font-medium text-gray-900 dark:text-slate-100",
                     },
                     {

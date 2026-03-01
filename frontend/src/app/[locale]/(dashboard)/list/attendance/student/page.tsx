@@ -8,6 +8,11 @@ import api from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useSocket } from "@/providers/SocketProvider";
+import { OfflineDB } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import Cookies from "js-cookie";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { useAuth } from "@/components/contexts/AuthContext";
 
 // Mock data removed as we now fetch real data
 
@@ -28,6 +33,7 @@ interface AttendanceRecord {
 }
 
 export default function AttendancePage() {
+    const { hasPermission } = useAuth();
     const [classes, setClasses] = useState<{ classId: number; ClassName: string }[]>([]);
     const [selectedClassId, setSelectedClassId] = useState<number>(0);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -38,7 +44,9 @@ export default function AttendancePage() {
     const [saving, setSaving] = useState(false);
     const [hasExistingData, setHasExistingData] = useState(false);
     const [existingRecords, setExistingRecords] = useState<any[]>([]);
+    const [syncQueue, setSyncQueue] = useState<any[]>([]);
     const { refreshKey } = useSocket();
+    const tenantId = Cookies.get("tenantId") as string;
 
     // Fetch classes on mount
     useEffect(() => {
@@ -75,9 +83,19 @@ export default function AttendancePage() {
                     setHasExistingData(false);
                 }
 
-                // 3. Merge Data
+                // 3. Get Offline Data
+                const queue = await OfflineDB.getSyncQueue(tenantId);
+                setSyncQueue(queue);
+
+                // 4. Merge Data
                 const mergedData: AttendanceRecord[] = students.map(s => {
                     const record = existing.find((r: any) => r.studentId === s.studentId);
+                    
+                    // Check for pending local changes for this student/date/class
+                    // Mutations could be POST /attendance/save or DELETE /attendance/student/:id
+                    // This is complex for attendance because it's a batch save.
+                    // For now, let's just show a general badge if there's a pending batch save for this class/date.
+                    
                     return {
                         id: s.studentId,
                         name: `${s.firstName} ${s.lastName}`,
@@ -89,7 +107,7 @@ export default function AttendancePage() {
 
                 setAttendanceData(mergedData);
 
-                // 4. Fetch Chart Data
+                // 5. Fetch Chart Data
                 const weeklyRes = await api.get(`/attendance/student-weekly-chart/${selectedClassId}`);
                 setWeeklyChartData(weeklyRes.data);
 
@@ -339,28 +357,36 @@ export default function AttendancePage() {
                                         {student.rollNo.slice(-2)}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-gray-900 dark:text-white font-bold truncate leading-tight">{student.name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-gray-900 dark:text-white font-bold truncate leading-tight">{student.name}</p>
+                                            {syncQueue.some(q => 
+                                                q.url.includes('/attendance/save') && 
+                                                q.data?.records?.some((r: any) => r.studentId === student.id)
+                                            ) && <SyncStatusBadge id={student.id} isPending={true} />}
+                                        </div>
                                         <p className="text-gray-400 dark:text-slate-500 text-xs font-mono mt-0.5">{student.rollNo}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => toggleAttendance(student.id)}
+                                        disabled={!hasPermission('attendance:create')}
                                         className={`px-4 py-2 rounded-xl transition-all font-bold text-xs uppercase tracking-wider ${
                                             student.status === 'present'
                                                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
                                                 : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-600 border border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
-                                        }`}
+                                        } ${!hasPermission('attendance:create') ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         Present
                                     </button>
                                     <button
                                         onClick={() => toggleAttendance(student.id)}
+                                        disabled={!hasPermission('attendance:create')}
                                         className={`px-4 py-2 rounded-xl transition-all font-bold text-xs uppercase tracking-wider ${
                                             student.status === 'absent'
                                                 ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                                                 : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-600 border border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
-                                        }`}
+                                        } ${!hasPermission('attendance:create') ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         Absent
                                     </button>
@@ -371,14 +397,16 @@ export default function AttendancePage() {
                 )}
 
                 <div className="mt-8 flex justify-end">
-                    <Button 
-                        onClick={handleSave} 
-                        disabled={saving || loading || attendanceData.length === 0}
-                        className="h-14 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all border-none flex items-center gap-3 font-bold text-base"
-                    >
-                        {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        <span>Save Attendance Records</span>
-                    </Button>
+                    <PermissionGuard permissions={['attendance:create']}>
+                        <Button 
+                            onClick={handleSave} 
+                            disabled={saving || loading || attendanceData.length === 0}
+                            className="h-14 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all border-none flex items-center gap-3 font-bold text-base"
+                        >
+                            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            <span>Save Attendance Records</span>
+                        </Button>
+                    </PermissionGuard>
                 </div>
             </motion.div>
 

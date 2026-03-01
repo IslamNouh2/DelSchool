@@ -3,7 +3,7 @@ import { Input } from "../ui/input";
 import { ComboboxDemo } from "../ui/combobox";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
-import api from "@/lib/api";
+import { api } from "@/lib/api";
 import Image from "next/image";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -208,6 +208,51 @@ const StudentForm: React.FC<StudentFormProps> = ({
         if (form.photo) formData.append("photo", form.photo);
 
         try {
+            if (!navigator.onLine) {
+                const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
+                const pendingData = {
+                    firstName: form.nom,
+                    lastName: form.prenom,
+                    dateOfBirth: form.dateNaissance,
+                    gender: form.genre,
+                    address: form.adresse,
+                    code: form.code,
+                    health: form.etatSante,
+                    lieuOfBirth: form.lieuNaissance,
+                    bloodType: form.groupeSanguin,
+                    etatCivil: form.etatCivil,
+                    cid: form.carteNationale,
+                    nationality: form.nationalite,
+                    observation: form.observation,
+                    numNumerisation: form.identifiantScolaire || "0001",
+                    dateInscription: form.dateInscription,
+                    fatherName: form.pereNom,
+                    fatherNumber: form.pereTel,
+                    fatherJob: form.pereEmploi,
+                    motherName: form.mereNom,
+                    motherNumber: form.mereTel,
+                    motherJob: form.mereEmploi,
+                    localId: Number(form.localId),
+                    classId: form.classId ? Number(form.classId) : undefined,
+                };
+
+                const { OfflineDB } = await import("@/lib/db");
+                await OfflineDB.addToSyncQueue({
+                    operationId: crypto.randomUUID(),
+                    url: type === "create" ? "/student/create" : `/student/update/${data.studentId}`,
+                    type: type === "create" ? "CREATE" : "UPDATE",
+                    entity: "student",
+                    data: pendingData,
+                    timestamp: Date.now(),
+                    tenantId,
+                });
+
+                toast.warning(t("messages.offline_save") || "Offline: Student saved locally and will sync when online.");
+                setOpen(false);
+                if (onSuccess) onSuccess({ studentId: -1, localId: Number(form.localId) });
+                return;
+            }
+
             const endpoint = type === "create" ? "/student/create" : `/student/update/${data.studentId}`;
             const method = type === "create" ? "post" : "put";
             const response = await api[method](endpoint, formData, {
@@ -224,6 +269,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
         } finally {
             setIsLoading(false);
         }
+
     };
 
     const localOptions = locals.map((l) => ({

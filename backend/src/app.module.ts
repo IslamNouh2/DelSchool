@@ -1,7 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { SubjectModule } from './subject/subject.module';
 import { ParameterModule } from './parameter/parameter.module';
 import { LocalModule } from './local/local.module';
@@ -20,12 +20,16 @@ import { SocketModule } from './socket/socket.module';
 import { SchoolYearModule } from './school-year/school-year.module';
 import { TransitionModule } from './transition/transition.module';
 import { PayrollModule } from './payroll/payroll.module';
-import { PrismaModule } from 'prisma/prisma.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { FeeModule } from './fee/fee.module';
 import { PaymentModule } from './payment/payment.module';
 import { ExpenseModule } from './expense/expense.module';
 import { FinanceModule } from './finance/finance.module';
 import { EventModule } from './event/event.module';
+import { SyncModule } from './sync/sync.module';
+import { CoreModule } from './core/core.module';
+import { RolesModule } from './roles/roles.module';
+import { UsersModule } from './users/users.module';
 
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -43,6 +47,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     }]),
     PrismaModule,
     AuthModule,
+    RolesModule,
+    UsersModule,
     SubjectModule,
     ParameterModule,
     LocalModule,
@@ -66,6 +72,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     ExpenseModule,
     FinanceModule,
     EventModule,
+    SyncModule,
+    CoreModule,
   ],
   
 })

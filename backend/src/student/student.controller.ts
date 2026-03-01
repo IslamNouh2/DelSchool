@@ -14,10 +14,12 @@ import {
   HttpException,
   HttpStatus,
   InternalServerErrorException,
-  BadRequestException
+  BadRequestException,
+  UseGuards,
+  Req
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { StudentService } from './student.service';
 import { CreateStudentDto } from './dto/CreateStudentDto';
 import { UpdateStudentDto } from './dto/UpdateStudentDto';
@@ -26,6 +28,7 @@ import { LocalService } from 'src/local/local.service';
 import { FeeService } from 'src/fee/fee.service';
 
 @Controller('student')
+
 export class StudentController {
   constructor(
     private readonly studentService: StudentService,
@@ -34,25 +37,23 @@ export class StudentController {
   ) { }
 
   @Get('all-locals')
-  async getLocalsFromStudentController() {
+  async getLocalsFromStudentController(@Req() req: any) {
     try {
-      return await this.localservice.getAllLocals();
+      return await this.localservice.getAllLocals(req.tenantId);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   @Get('count')
-  async getCountStudent() {
-    return this.studentService.GetCountStudent();
+  async getCountStudent(@Req() req: any) {
+    return this.studentService.GetCountStudent(req.tenantId);
   }
 
   @Get('counts-by-gender')
-  async getCountsByGender() {
-    return this.studentService.GetCountStudent();
+  async getCountsByGender(@Req() req: any) {
+    return this.studentService.GetCountStudent(req.tenantId);
   }
-
-
 
   @Post('create')
   @UseInterceptors(FileInterceptor('photo', {
@@ -69,10 +70,11 @@ export class StudentController {
     },
   }))
   async createStudent(
+    @Req() req: any,
     @Body() dto: CreateStudentDto,
     @UploadedFile() photo?: Express.Multer.File
   ) {
-    return this.studentService.CreateStudent(dto, photo);
+    return this.studentService.CreateStudent(req.tenantId, dto, photo);
   }
 
   @Put('update/:id')
@@ -90,43 +92,46 @@ export class StudentController {
     },
   }))
   async updateStudent(
+    @Req() req: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStudentDto,
     @UploadedFile() photo?: Express.Multer.File
   ) {
-    return this.studentService.UpdateStudent(id, dto, photo);
+    return this.studentService.UpdateStudent(req.tenantId, id, dto, photo);
   }
 
   @Delete('delete/:id')
-  async deleteStudent(@Param('id', ParseIntPipe) id: number) {
-    return this.studentService.DeleteStudent(id);
+  async deleteStudent(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.studentService.DeleteStudent(req.tenantId, id);
   }
 
   @Get('list')
   async getStudents(
+    @Req() req: any,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('classId') classId?: number,
     @Query('status') status?: string,
+    @Query('search') search?: string,
   ) {
-    return this.studentService.GetStudent(page, limit, classId, status);
+    return this.studentService.GetStudent(req.tenantId, page, limit, classId, status, search);
   }
 
   @Get(':id')
-  async getStudentById(@Param('id', ParseIntPipe) id: number) {
-    return this.studentService.GetStudentById(id);
+  async getStudentById(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.studentService.GetStudentById(req.tenantId, id);
   }
 
   @Get('search')
   async searchStudents(
+    @Req() req: any,
     @Query('name') name: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
   ) {
-    return this.studentService.GetStudentWithName(name, page, limit);
+    return this.studentService.GetStudentWithName(req.tenantId, name, page, limit);
   }
 
-  // New endpoint to serve photo files
   @Get('photo/:fileName')
   async getPhoto(
     @Param('fileName') fileName: string,
@@ -136,14 +141,13 @@ export class StudentController {
       const photoBuffer = await this.studentService.getPhotoFile(fileName);
       const fileExtension = path.extname(fileName).toLowerCase();
 
-      // Set appropriate content type
       let contentType = 'image/jpeg';
       if (fileExtension === '.png') contentType = 'image/png';
       if (fileExtension === '.webp') contentType = 'image/webp';
 
       res.set({
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        'Cache-Control': 'public, max-age=31536000',
       });
 
       res.send(photoBuffer);
@@ -153,7 +157,7 @@ export class StudentController {
   }
 
   @Get(':id/pending-fees')
-  async getPendingFees(@Param('id', ParseIntPipe) id: number) {
-    return this.feeService.getPendingFees(id);
+  async getPendingFees(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.feeService.getPendingFees(req.tenantId, id);
   }
 }

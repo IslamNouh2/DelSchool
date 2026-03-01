@@ -1,17 +1,19 @@
 import { Controller, Post, Body, UseGuards, Get, Request, Response } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, Role } from './dto/register.dto';
+import { RegisterDto } from './dto/register.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Response as ExpressResponse } from 'express';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
 
+    @Public()
     @Post('register')
     async register(
         @Body() registerDto: RegisterDto,
@@ -20,6 +22,7 @@ export class AuthController {
         return this.authService.register(registerDto, response);
     }
 
+    @Public()
     @UseGuards(LocalAuthGuard)
     @Post('login')
     async login(
@@ -29,6 +32,7 @@ export class AuthController {
         return this.authService.login(req.user, response);
     }
 
+    @Public()
     @Post('refresh')
     async refresh(
         @Request() req,
@@ -56,26 +60,30 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     @Get('me')
     async getCurrentUser(@CurrentUser() user) {
+        const profile = await this.authService.getProfile(user.id);
         return {
             user: {
                 id: user.id,
                 username: user.username,
                 email: user.email,
                 role: user.role,
+                permissions: user.permissions,
+                profileId: profile?.profileId,
+                tenantId: profile?.tenantId,
             },
         };
     }
 
     // Protected routes with role-based access
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN)
+    @Roles('ADMIN')
     @Get('admin-only')
     adminOnly() {
         return { message: 'This is an admin-only endpoint' };
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN, Role.TEACHER)
+    @Roles('ADMIN', 'TEACHER')
     @Get('teacher-admin')
     teacherAdmin() {
         return { message: 'This endpoint is for teachers and admins' };

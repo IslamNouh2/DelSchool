@@ -1,46 +1,45 @@
-import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { FeeService } from './fee.service';
 import { CreateFeeDto } from './dto/create-fee.dto';
 import { SubscribeStudentDto } from './dto/subscribe-student.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('fees')
-@UseGuards(JwtAuthGuard)
+
 export class FeeController {
     constructor(private readonly feeService: FeeService) { }
 
     @Post('templates')
-    createTemplate(@Body() dto: CreateFeeDto) {
-        return this.feeService.createTemplate(dto);
+    createTemplate(@Req() req: any, @Body() dto: CreateFeeDto) {
+        return this.feeService.createTemplate(req.tenantId, dto);
     }
 
     @Get('templates')
-    findAllTemplates() {
-        return this.feeService.findAllTemplates();
+    findAllTemplates(@Req() req: any) {
+        return this.feeService.findAllTemplates(req.tenantId);
     }
 
     @Post('subscribe')
-    subscribeStudent(@Body() dto: SubscribeStudentDto) {
-        return this.feeService.subscribeStudent(dto);
+    subscribeStudent(@Req() req: any, @Body() dto: SubscribeStudentDto) {
+        return this.feeService.subscribeStudent(req.tenantId, dto);
     }
 
     @Post('subscribe-all')
-    subscribeAll(@Body() body: { templateId: number, dueDate: string }) {
-        return this.feeService.subscribeAll(body.templateId, body.dueDate);
+    subscribeAll(@Req() req: any, @Body() body: { templateId: number, dueDate: string }) {
+        return this.feeService.subscribeAll(req.tenantId, body.templateId, body.dueDate);
     }
 
     @Post('manual')
-    createManualFee(@Body() dto: CreateFeeDto) {
-        return this.feeService.createManualFee(dto);
+    createManualFee(@Req() req: any, @Body() dto: CreateFeeDto) {
+        return this.feeService.createManualFee(req.tenantId, dto);
     }
 
     @Get('student/:id')
-    getStudentFees(@Param('id', ParseIntPipe) id: number) {
-        return this.feeService.getStudentFees(id);
+    getStudentFees(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+        return this.feeService.getStudentFees(req.tenantId, id);
     }
 
     @Delete(':id')
-    deleteFee(@Param('id', ParseIntPipe) id: number) {
-        return this.feeService.deleteFee(id);
+    deleteFee(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+        return this.feeService.deleteFee(req.tenantId, id);
     }
 }

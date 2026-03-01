@@ -1,6 +1,9 @@
 const createNextIntlPlugin = require('next-intl/plugin');
 const withNextIntl = createNextIntlPlugin();
 
+const isProd = process.env.NODE_ENV === "production";
+const API_URL = process.env.BACKEND_URL || (isProd ? "https://delschool-2.onrender.com" : "http://localhost:47005");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -9,14 +12,9 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "localhost",
-        port: "47005",
-        pathname: "/api/student/photo/**",
-      },
-      {
-        protocol: "https",
-        hostname: "delschool-2.onrender.com",
+        protocol: isProd ? "https" : "http",
+        hostname: isProd ? "delschool-2.onrender.com" : "localhost",
+        port: isProd ? "" : "47005",
         pathname: "/api/student/photo/**",
       },
     ],
@@ -28,11 +26,11 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+        destination: `${API_URL}/api/:path*`,
       },
       {
         source: "/student/photo/:filename",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/student/photo/:filename`,
+        destination: `${API_URL}/student/photo/:filename`,
       }
     ];
   },
@@ -50,4 +48,48 @@ const nextConfig = {
   },
 };
 
-module.exports = withNextIntl(nextConfig);
+const withPWA = require("@ducanh2912/next-pwa").default({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  skipWaiting: true,
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
+  reloadOnOnline: true,
+  swMinify: true,
+  workboxOptions: {
+    disableDevLogs: true,
+    // Enterprise hardening: NEVER cache auth, sync, or dynamic API calls
+    runtimeCaching: [
+      {
+        // 1. Auth & Sync: NetworkOnly (Absolute source of truth)
+        urlPattern: ({ url }) => 
+          url.pathname.includes('/api/auth/') || 
+          url.pathname.includes('/api/sync/') ||
+          url.pathname.includes('/api/me'),
+        handler: 'NetworkOnly',
+      },
+      {
+        // 2. Photos: CacheFirst (Static-like assets)
+        urlPattern: ({ url }) => url.pathname.includes('/api/student/photo/'),
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'student-photos',
+          expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 }
+        }
+      },
+      {
+        // 3. Navigation: NetworkFirst
+        urlPattern: ({ request }) => request.mode === 'navigate',
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'pages-cache',
+          networkTimeoutSeconds: 5,
+        },
+      }
+    ],
+  },
+});
+
+module.exports = withPWA(withNextIntl(nextConfig));
+

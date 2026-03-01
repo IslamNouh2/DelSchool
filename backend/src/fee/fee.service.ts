@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateFeeDto } from './dto/create-fee.dto';
 import { SubscribeStudentDto } from './dto/subscribe-student.dto';
 import { JournalEntryStatus } from '@prisma/client';
@@ -13,7 +13,7 @@ export class FeeService {
     private readonly INCOME_ACCOUNT_ID = 5; // Placeholder
     private readonly GENERAL_JOURNAL_ID = 1; // Placeholder
 
-    async createTemplate(dto: CreateFeeDto) {
+    async createTemplate(tenantId: string, dto: CreateFeeDto) {
         return this.prisma.fee.create({
             data: {
                 title: dto.title,
@@ -23,15 +23,17 @@ export class FeeService {
                 compteId: dto.compteId,
                 dateStartConsommation: dto.dateStartConsommation ? new Date(dto.dateStartConsommation) : null,
                 dateEndConsommation: dto.dateEndConsommation ? new Date(dto.dateEndConsommation) : null,
+                tenantId,
             }
         });
     }
 
-    async findAllTemplates() {
+    async findAllTemplates(tenantId: string) {
         return this.prisma.fee.findMany({
             where: {
                 studentId: null,
                 classId: null,
+                tenantId,
             },
             orderBy: {
                 createdAt: 'desc',
@@ -39,11 +41,12 @@ export class FeeService {
         });
     }
 
-    async subscribeStudent(dto: SubscribeStudentDto) {
+    async subscribeStudent(tenantId: string, dto: SubscribeStudentDto) {
         return this.prisma.$transaction(async (tx) => {
             const templates = await tx.fee.findMany({
                 where: {
                     id: { in: dto.templateIds },
+                    tenantId,
                 },
             });
 
@@ -60,16 +63,11 @@ export class FeeService {
                         title: template.title,
                         amount: template.amount,
                         dueDate: new Date(dto.dueDate || template.dueDate),
+                        tenantId,
                     }
                 });
 
                 if (existing) {
-                    // Skip if already exists to prevent duplicate (or throw error if strict)
-                    // The user asked to "check if fee is add not add for second time", implying idempotency is preferred over error, 
-                    // but usually feedback is good. Let's skip and maybe inform.
-                    // However, returning a result that implies success might be misleading if we skip.
-                    // Use case: user clicks confirm twice. We should just return the existing one or skip.
-                    // For now, let's skip but add to results so front end thinks it's processed (idempotent).
                     results.push(existing);
                     continue; 
                 }
@@ -84,6 +82,7 @@ export class FeeService {
                         compteId: template.compteId,
                         dateStartConsommation: template.dateStartConsommation,
                         dateEndConsommation: template.dateEndConsommation,
+                        tenantId,
                     },
                 });
 
@@ -98,6 +97,7 @@ export class FeeService {
                         totalCredit: template.amount,
                         status: JournalEntryStatus.POSTED,
                         createdBy: 1,
+                        tenantId,
                         lines: {
                             create: [
                                 {
@@ -105,12 +105,14 @@ export class FeeService {
                                     compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
                                     debit: template.amount,
                                     credit: 0,
+                                    tenantId,
                                 },
                                 {
                                     lineNumber: 2,
                                     compteId: template.compteId || this.INCOME_ACCOUNT_ID,
                                     debit: 0,
                                     credit: template.amount,
+                                    tenantId,
                                 },
                             ],
                         },
@@ -122,12 +124,12 @@ export class FeeService {
         });
     }
 
-    async subscribeAll(templateId: number, dueDate: string) {
+    async subscribeAll(tenantId: string, templateId: number, dueDate: string) {
         return this.prisma.$transaction(async (tx) => {
-            const template = await tx.fee.findUnique({ where: { id: templateId } });
+            const template = await tx.fee.findUnique({ where: { id: templateId, tenantId } });
             if (!template) throw new NotFoundException('Template not found');
 
-            const students = await tx.student.findMany({ select: { studentId: true } });
+            const students = await tx.student.findMany({ where: { tenantId }, select: { studentId: true } });
             
             const results: any[] = [];
             for (const student of students) {
@@ -141,6 +143,7 @@ export class FeeService {
                         compteId: template.compteId,
                         dateStartConsommation: template.dateStartConsommation,
                         dateEndConsommation: template.dateEndConsommation,
+                        tenantId,
                     },
                 });
 
@@ -155,6 +158,7 @@ export class FeeService {
                         totalCredit: template.amount,
                         status: JournalEntryStatus.POSTED,
                         createdBy: 1,
+                        tenantId,
                         lines: {
                             create: [
                                 {
@@ -162,12 +166,14 @@ export class FeeService {
                                     compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
                                     debit: template.amount,
                                     credit: 0,
+                                    tenantId,
                                 },
                                 {
                                     lineNumber: 2,
                                     compteId: template.compteId || this.INCOME_ACCOUNT_ID,
                                     debit: 0,
                                     credit: template.amount,
+                                    tenantId,
                                 },
                             ],
                         },
@@ -179,7 +185,7 @@ export class FeeService {
         });
     }
 
-    async createManualFee(dto: CreateFeeDto) {
+    async createManualFee(tenantId: string, dto: CreateFeeDto) {
         // Check for duplicate fee
         const existingFee = await this.prisma.fee.findFirst({
             where: {
@@ -187,6 +193,7 @@ export class FeeService {
                 title: dto.title,
                 amount: dto.amount,
                 dueDate: new Date(dto.dueDate),
+                tenantId,
             }
         });
 
@@ -205,6 +212,7 @@ export class FeeService {
                     compteId: dto.compteId,
                     dateStartConsommation: dto.dateStartConsommation ? new Date(dto.dateStartConsommation) : null,
                     dateEndConsommation: dto.dateEndConsommation ? new Date(dto.dateEndConsommation) : null,
+                    tenantId,
                 }
             });
 
@@ -219,6 +227,7 @@ export class FeeService {
                     totalCredit: dto.amount,
                     status: JournalEntryStatus.POSTED,
                     createdBy: 1,
+                    tenantId,
                     lines: {
                         create: [
                             {
@@ -226,12 +235,14 @@ export class FeeService {
                                 compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
                                 debit: dto.amount,
                                 credit: 0,
+                                tenantId,
                             },
                             {
                                 lineNumber: 2,
                                 compteId: dto.compteId || this.INCOME_ACCOUNT_ID,
                                 debit: 0,
                                 credit: dto.amount,
+                                tenantId,
                             },
                         ],
                     },
@@ -241,9 +252,9 @@ export class FeeService {
         });
     }
 
-    async getStudentFees(studentId: number) {
+    async getStudentFees(tenantId: string, studentId: number) {
         return this.prisma.fee.findMany({
-            where: { studentId },
+            where: { studentId, tenantId },
             include: {
                 payments: true,
             },
@@ -253,9 +264,9 @@ export class FeeService {
         });
     }
 
-    async getPendingFees(studentId: number) {
+    async getPendingFees(tenantId: string, studentId: number) {
         const fees = await this.prisma.fee.findMany({
-            where: { studentId },
+            where: { studentId, tenantId },
             include: {
                 payments: true,
             },
@@ -272,9 +283,9 @@ export class FeeService {
         }).filter(fee => fee.remaining > 0);
     }
 
-    async getStudentFinancialStatus(studentId: number) {
+    async getStudentFinancialStatus(tenantId: string, studentId: number) {
         const fees = await this.prisma.fee.findMany({
-            where: { studentId },
+            where: { studentId, tenantId },
             include: {
                 payments: true,
             },
@@ -304,9 +315,9 @@ export class FeeService {
         return 'UPCOMING';
     }
 
-    async deleteFee(id: number) {
+    async deleteFee(tenantId: string, id: number) {
         return this.prisma.fee.delete({
-            where: { id },
+            where: { id, tenantId },
         });
     }
 }

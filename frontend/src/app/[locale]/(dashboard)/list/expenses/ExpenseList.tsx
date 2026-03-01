@@ -27,6 +27,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/providers/SocketProvider";
 import { useTranslations } from "next-intl";
+import { OfflineDB, SyncRecord } from "@/lib/db";
+import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
+import Cookies from "js-cookie";
 
 type Expense = {
   id: number;
@@ -49,31 +52,83 @@ const ExpenseList = () => {
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [expenseToPay, setExpenseToPay] = useState<Expense | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [syncQueue, setSyncQueue] = useState<SyncRecord[]>([]);
   const { refreshKey } = useSocket();
+  const tenantId = Cookies.get("tenantId") as string;
   
-  const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
+  const fetchData = useCallback(async (page?: number) => {
       setLoading(true);
+      const targetPage = page ?? currentPage;
       try {
-          const res = await api.get("/expense");
-          if (Array.isArray(res.data)) {
-              setData(res.data);
-          } else {
-               setData([]); 
-          }
+          const [res, queue] = await Promise.all([
+              api.get("/expense", {
+                  params: {
+                      page: targetPage,
+                      limit: ITEMS_PER_PAGE,
+                      search: debouncedSearchTerm || undefined,
+                  }
+              }),
+              OfflineDB.getSyncQueue(tenantId)
+          ]);
+          
+          setSyncQueue(queue);
+
+          let mergedData = res.data.expenses || [];
+
+          // Merge pending creations
+          const pendingCreations = queue.filter(q => 
+              q.entity === 'expense' && 
+              q.method === 'POST' &&
+              (debouncedSearchTerm ? q.data?.title?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) : true)
+          );
+
+          pendingCreations.forEach(q => {
+              if (!mergedData.some((e: any) => e.id === q.operationId)) {
+                  mergedData.unshift({
+                      id: q.operationId as any,
+                      title: q.data.title,
+                      amount: q.data.amount,
+                      category: q.data.category,
+                      expenseDate: q.data.expenseDate,
+                      isPaid: !!q.data.payment,
+                      compte: { name: 'Pending...', code: '---' }
+                  });
+              }
+          });
+
+          // Merge pending deletions
+          const pendingDeletions = queue.filter(q => q.entity === 'expense' && q.method === 'DELETE');
+          mergedData = mergedData.filter((e: any) => !pendingDeletions.some(q => q.url.includes(`/expense/${e.id}`)));
+
+          setData(mergedData);
+          setTotalCount(res.data.total + pendingCreations.length);
       } catch (error) {
           console.error("Failed to fetch expenses", error);
           toast.error(t("messages.error_fetch"));
       } finally {
           setLoading(false);
       }
-  }, []);
+  }, [debouncedSearchTerm, t, currentPage, tenantId]);
 
   useEffect(() => {
-      fetchData();
-  }, [fetchData, refreshKey]);
+      fetchData(currentPage);
+  }, [fetchData, currentPage, refreshKey]);
 
   const [optimisticExpenses, addOptimisticExpense] = useOptimistic(
     data,
@@ -87,17 +142,9 @@ const ExpenseList = () => {
     }
   );
 
-  // Filter logic
-  const filteredExpenses = optimisticExpenses.filter(item => 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Pagination logic
-  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-  const currentExpenses = filteredExpenses.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredExpenses.length / ITEMS_PER_PAGE);
+  // Remove filteredExpenses and slice logic
+  const currentExpenses = optimisticExpenses;
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   // Stats calculation
   const totalExpenses = optimisticExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
@@ -116,7 +163,7 @@ const ExpenseList = () => {
               </div>
               {t("title")}
               <span className="text-sm font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full dark:bg-blue-900/30 dark:text-blue-300">
-                   {optimisticExpenses.length} Total
+                   {totalCount} Total
               </span>
            </h1>
            <p className="text-gray-500 font-medium mt-2 max-w-lg">
@@ -127,7 +174,7 @@ const ExpenseList = () => {
         <div className="flex items-center gap-3 w-full md:w-auto">
             <Button 
                 variant="outline" 
-                onClick={fetchData}
+                onClick={() => fetchData()}
                 disabled={loading}
                 className="h-11 w-11 p-0 rounded-xl"
             >
@@ -242,7 +289,15 @@ const ExpenseList = () => {
                                 {new Date(expense.expenseDate).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                                <span className="text-gray-900 dark:text-white font-bold">{expense.title}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-900 dark:text-white font-bold">{expense.title}</span>
+                                    {syncQueue.some(q => 
+                                        (q.method === 'POST' && q.data?.title === expense.title) ||
+                                        (q.method === 'PUT' && q.url.includes(`/expense/${expense.id}`)) ||
+                                        (q.method === 'DELETE' && q.url.includes(`/expense/${expense.id}`)) ||
+                                        (q.url.includes(`/expense/${expense.id}/pay`))
+                                    ) && <SyncStatusBadge id={expense.id} isPending={true} />}
+                                </div>
                             </TableCell>
                             <TableCell>
                                 <span className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
