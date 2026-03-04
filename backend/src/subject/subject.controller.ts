@@ -1,4 +1,3 @@
-// src/subjects/subjects.controller.ts
 import {
   Controller,
   Get,
@@ -12,6 +11,7 @@ import {
   ParseIntPipe,
   Req,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { SubjectService } from './subject.service';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
@@ -20,12 +20,16 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 
+@ApiTags('Subjects')
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('subject')
 export class SubjectController {
   constructor(private readonly subjectsService: SubjectService) { }
 
   @Post('createSub')
+  @ApiOperation({ summary: 'Create a new subject' })
+  @ApiResponse({ status: 201, description: 'Subject successfully created' })
   create(@Req() req: any, @Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectsService.create(req.tenantId, createSubjectDto);
   }
@@ -38,6 +42,24 @@ export class SubjectController {
 
   //@Roles('TEACHER', 'ADMIN')
   @Get()
+  @ApiOperation({ summary: 'Get list of subjects with pagination and filters' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiQuery({ name: 'orderBy', required: false, example: 'dateCreate' })
+  @ApiQuery({ name: 'name', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns a paginated list of subjects',
+    schema: {
+      example: {
+        data: [],
+        total: 100,
+        page: 1,
+        limit: 10
+      }
+    }
+  })
   async findAll(
     @Req() req: any,
     @Query('page') page: number = 1,
@@ -50,6 +72,8 @@ export class SubjectController {
   }
   @Roles('TEACHER', 'ADMIN')
   @Get('count')
+  @ApiOperation({ summary: 'Get total subject count' })
+  @ApiResponse({ status: 200, description: 'Returns the count of subjects' })
   count(@Req() req: any) {
     //console.log('Authenticated user:', req.user);
     return this.subjectsService.StubjectCount(req.tenantId);

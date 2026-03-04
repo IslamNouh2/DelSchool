@@ -23,6 +23,14 @@ export class UpdateStudentDto {
     address?: string;
 
     @IsOptional()
+    @IsString()
+    email?: string;
+
+    @IsOptional()
+    @IsString()
+    phone?: string;
+
+    @IsOptional()
     @IsInt()
     parentId?: number;
 

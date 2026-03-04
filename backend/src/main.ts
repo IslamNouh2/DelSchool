@@ -20,16 +20,26 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost)));
 
   const config = new DocumentBuilder()
-    .setTitle('School Subjects API')
-    .setDescription('APIs for managing hierarchical subjects')
+    .setTitle('DelSchool API')
+    .setDescription('Complete API documentation for DelSchool management system')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', // This name here is important for @ApiBearerAuth()
+    )
     .build();
 
   app.setGlobalPrefix('api');
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   // Security Middlewares
   app.use(helmet());

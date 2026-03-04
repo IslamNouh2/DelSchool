@@ -8,16 +8,20 @@ import {
     IsInt,
     Min,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateEmployerDto {
+    @ApiProperty({ example: 'Jane', description: 'First name' })
     @IsNotEmpty()
     @IsString()
     firstName: string;
 
+    @ApiProperty({ example: 'Smith', description: 'Last name' })
     @IsNotEmpty()
     @IsString()
     lastName: string;
 
+    @ApiProperty({ example: '1985-10-20', description: 'Date of birth' })
     @IsNotEmpty()
     @IsDateString()
     dateOfBirth: string;
@@ -26,6 +30,7 @@ export class CreateEmployerDto {
     @IsString()
     lieuOfBirth?: string;
 
+    @ApiProperty({ example: 'Female', description: 'Gender' })
     @IsNotEmpty()
     @IsString()
     gender: string;
@@ -42,6 +47,7 @@ export class CreateEmployerDto {
     @IsString()
     motherName?: string;
 
+    @ApiProperty({ example: 'EMP123', description: 'Unique employer code' })
     @IsNotEmpty()
     @IsString()
     code: string;
@@ -91,6 +97,7 @@ export class CreateEmployerDto {
     @IsBoolean()
     okBlock?: boolean;
 
+    @ApiProperty({ example: 'TEACHER', description: 'Type of employer (TEACHER, STAFF)' })
     @IsNotEmpty()
     @IsString()
     type: string;
@@ -98,6 +105,10 @@ export class CreateEmployerDto {
     @IsNotEmpty()
     @IsString()
     phone: string;
+
+    @IsOptional()
+    @IsString()
+    email?: string;
 
     @IsOptional()
     @IsString()

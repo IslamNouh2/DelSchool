@@ -138,7 +138,8 @@ export default function StudentListPage() {
                 },
             });
             
-            let students = response.data.students;
+            const students = Array.isArray(response.data.students) ? response.data.students : [];
+            const total = typeof response.data.total === 'number' ? response.data.total : 0;
             
             // Merge pending offline student creations
             const pendingMutations = await OfflineDB.getSyncQueue(tenantId);
@@ -151,7 +152,7 @@ export default function StudentListPage() {
                 }));
 
             setData([...pendingStudents, ...students]);
-            setTotalCount(response.data.total + pendingStudents.length);
+            setTotalCount(total + pendingStudents.length);
         } catch (error: any) {
             console.error("Error fetching students:", error);
             
@@ -223,7 +224,7 @@ export default function StudentListPage() {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [currentPage, debouncedFilterValue, fetchData, refreshKey]);
+    }, [currentPage, fetchData, refreshKey]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 

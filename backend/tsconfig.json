@@ -12,10 +12,11 @@
     "declaration": true,
     "removeComments": true,
     "baseUrl": "./",
+    "types": ["node", "jest", "multer"],
     "paths": {
       "prisma/*": ["src/prisma/*"]
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  "exclude": ["node_modules", "test", "dist"]
 }

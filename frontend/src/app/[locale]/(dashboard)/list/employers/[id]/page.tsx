@@ -6,7 +6,7 @@ import {
     ClipboardCheck, DollarSign, User, Users, Heart, Download, Upload,
     TrendingUp, MessageSquare, Bell, Activity, BookOpen, Clock, Target,
     Briefcase, GraduationCap, Shield, Star, Wallet, CreditCard, ChevronRight,
-    ExternalLink, Menu, Globe
+    ExternalLink, Menu, Globe, Brain, Sparkles, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import {
     LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -24,6 +24,7 @@ const tabs = [
     { id: 'attendance', label: 'profile.tabs.attendance', icon: ClipboardCheck },
     { id: 'classes', label: 'profile.tabs.classes', icon: BookOpen },
     { id: 'timetable', label: 'profile.tabs.timetable', icon: Calendar },
+    { id: 'evaluation', label: 'AI Evaluation', icon: Brain },
 ];
 
 interface Employer {
@@ -33,6 +34,7 @@ interface Employer {
     code: string;
     type: string;
     photoFileName: string | null;
+    photoUrl?: string; // Added photoUrl
     gender: string;
     address: string;
     dateOfBirth: string;
@@ -62,6 +64,15 @@ interface Employer {
     };
 }
 
+interface TeacherEvaluation {
+    id: number;
+    score: number;
+    improvementProbability: number;
+    weakAreas: string[];
+    trainingPlan: string[];
+    createdAt: string;
+}
+
 interface TimetableEntry {
     day: string;
     subject: { subjectName: string };
@@ -89,6 +100,9 @@ export default function EmployerProfile() {
     const [payrollHistory, setPayrollHistory] = useState<any[]>([]);
     const [assignedClass, setAssignedClass] = useState<any>(null);
     const [assignedSubjects, setAssignedSubjects] = useState<any[]>([]);
+    const [timetableData, setTimetableData] = useState<TimetableEntry[]>([]);
+    const [evaluations, setEvaluations] = useState<TeacherEvaluation[]>([]);
+    const [isEvaluating, setIsEvaluating] = useState(false);
     
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formType, setFormType] = useState<"create" | "update">("create");
@@ -103,13 +117,17 @@ export default function EmployerProfile() {
                 statsRes,
                 payrollRes,
                 classRes,
-                subjectsRes
+                subjectsRes,
+                timetableRes,
+                evaluationRes
             ] = await Promise.all([
                 api.get(`employer/${id}`),
                 api.get(`attendance/employer/${id}/stats`),
                 api.get(`payroll/employer/${id}`),
                 api.get(`employer/teacher-class/${id}`),
-                api.get(`teacher-subject/${id}`)
+                api.get(`teacher-subject/${id}`),
+                api.get(`timetable/teacher/${id}`),
+                api.get(`ai/teacher-performance/${id}`)
             ]);
 
             setEmployer(employerRes.data);
@@ -117,6 +135,8 @@ export default function EmployerProfile() {
             setPayrollHistory(payrollRes.data);
             setAssignedClass(classRes.data);
             setAssignedSubjects(subjectsRes.data);
+            setTimetableData(timetableRes.data);
+            setEvaluations(evaluationRes.data);
         } catch (error) {
             console.error("Error fetching employer data:", error);
         } finally {
@@ -143,6 +163,38 @@ export default function EmployerProfile() {
         fetchData();
         setIsDialogOpen(false);
     }, [fetchData]);
+
+    const handleEvaluate = async () => {
+        setIsEvaluating(true);
+        try {
+            const response = await api.post(`ai/teacher-performance/${id}`);
+            setEvaluations(prev => [response.data, ...prev]);
+            setActiveTab('evaluation');
+        } catch (error) {
+            console.error("Error evaluating teacher:", error);
+        } finally {
+            setIsEvaluating(false);
+        }
+    };
+
+    const timeSlots = Array.from(
+        new Map(timetableData.map(t => [t.timeSlot.id, t.timeSlot])).values()
+    ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    const timetableMap = timetableData.reduce((acc, entry) => {
+        acc[`${entry.day}-${entry.timeSlot.id}`] = entry;
+        return acc;
+    }, {} as Record<string, TimetableEntry>);
+
+    const subjectColorMap = new Map<string, typeof SUBJECT_COLORS[number]>();
+
+    function getRandomSubjectColor(subjectName: string) {
+        if (!subjectColorMap.has(subjectName)) {
+            const randomIndex = Math.floor(Math.random() * SUBJECT_COLORS.length);
+            subjectColorMap.set(subjectName, SUBJECT_COLORS[randomIndex]);
+        }
+        return subjectColorMap.get(subjectName)!;
+    }
 
     if (loading) {
         return (
@@ -171,7 +223,7 @@ export default function EmployerProfile() {
                         <div className="relative">
                             <div className="relative w-40 h-40 rounded-full border-[5px] border-slate-800 bg-slate-900 overflow-hidden">
                                 <img 
-                                    src={employer?.photoFileName ? `http://localhost:47005/employer/photo/${employer.photoFileName}` : "/avatar.png"} 
+                                    src={employer?.photoUrl ? `http://localhost:47005${employer.photoUrl}` : "/avatar.png"} 
                                     alt="Profile" 
                                     className="w-full h-full object-cover"
                                 />
@@ -216,6 +268,16 @@ export default function EmployerProfile() {
                                         <Edit className="w-4 h-4" />
                                         <span>Edit Profile</span>
                                     </button>
+                                    {isTeacher && (
+                                        <button 
+                                            onClick={handleEvaluate}
+                                            disabled={isEvaluating}
+                                            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/50 text-white rounded-xl transition-all shadow-lg shadow-indigo-600/20 font-bold text-sm"
+                                        >
+                                            <Brain className={`w-4 h-4 ${isEvaluating ? 'animate-pulse' : ''}`} />
+                                            <span>{isEvaluating ? 'Analyzing...' : 'AI Analyze'}</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -314,6 +376,7 @@ export default function EmployerProfile() {
                                         {[
                                             { label: "Date of Birth", value: employer?.dateOfBirth ? new Date(employer.dateOfBirth).toLocaleDateString() : 'N/A', icon: Calendar },
                                             { label: "Phone Number", value: employer?.phone || 'N/A', icon: Phone },
+                                            { label: "Email", value: employer?.email || 'N/A', icon: Mail },
                                             { label: "Nationality", value: employer?.nationality || 'N/A', icon: Globe },
                                             { label: "Address", value: employer?.address || 'N/A', icon: MapPin },
                                         ].map((item) => (
@@ -642,16 +705,233 @@ export default function EmployerProfile() {
                             key="timetable" 
                             initial={{ opacity: 0, y: 10 }} 
                             animate={{ opacity: 1, y: 0 }} 
-                            className="p-20 text-center bg-[#111827] border border-slate-800 rounded-[3rem]"
+                            className="bg-[#111827] border border-slate-800 rounded-[2rem] overflow-hidden"
                         >
-                            <Calendar className="w-16 h-16 text-slate-700 mx-auto mb-6" />
-                            <h3 className="text-xl font-black text-white">Class Schedule</h3>
-                            <p className="text-slate-500 mt-2 font-medium">Detailed weekly timetable coming soon.</p>
-                            <div className="mt-8">
-                                <span className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                                    Coming in Beta 2.0
-                                </span>
+                            <div className="p-8 border-b border-slate-800 flex items-center justify-between">
+                                <h3 className="text-xl font-bold text-white">Weekly Schedule</h3>
+                                <button className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-xl transition-all font-bold text-xs border border-slate-700/50">
+                                    <Download className="w-3.5 h-3.5" />
+                                    Download PDF
+                                </button>
                             </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th className="p-6 bg-slate-900 border-b border-r border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest min-w-[120px]">Time</th>
+                                            {DAYS.map(day => (
+                                                <th key={day} className="p-6 bg-slate-900 border-b border-r border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest last:border-r-0">{day}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {timeSlots.map((slot, i) => (
+                                            <tr key={slot.id} className={i % 2 === 0 ? 'bg-transparent' : 'bg-slate-800/20'}>
+                                                <td className="p-4 border-r border-slate-800 text-xs font-bold text-white text-center">
+                                                    <div className="flex flex-col items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                                        <span>{slot.label}</span>
+                                                    </div>
+                                                </td>
+                                                {DAYS.map(day => {
+                                                    const entry = timetableMap[`${day}-${slot.id}`];
+                                                    if (!entry) return <td key={day} className="p-4 border-r border-slate-800 last:border-r-0 text-center text-slate-700 text-xs">—</td>;
+                                                    
+                                                    if (entry.subject.subjectName.toLowerCase() === "break") {
+                                                        return <td key={day} className="p-4 border-r border-slate-800 last:border-r-0"><div className="w-full h-full bg-slate-800/50 rounded-xl flex items-center justify-center text-[10px] font-bold text-slate-500 py-3 uppercase tracking-wider italic">☕ Break</div></td>;
+                                                    }
+
+                                                    const colors = getRandomSubjectColor(entry.subject.subjectName);
+                                                    const bgColor = colors.bg.includes('blue') ? 'bg-blue-500/10' : colors.bg.includes('green') ? 'bg-green-500/10' : 'bg-purple-500/10';
+                                                    const textColor = colors.text.includes('blue') ? 'text-blue-400' : colors.text.includes('green') ? 'text-green-400' : 'text-purple-400';
+                                                    const borderCol = colors.bg.includes('blue') ? 'border-blue-500/20' : colors.bg.includes('green') ? 'border-green-500/20' : 'border-purple-500/20';
+
+                                                    return (
+                                                        <td key={day} className="p-3 border-r border-slate-800 last:border-r-0">
+                                                            <div className={`p-4 rounded-2xl shadow-lg border ${borderCol} ${bgColor} transition-all hover:scale-[1.02] cursor-default`}>
+                                                                <p className={`font-black text-[10px] uppercase tracking-widest mb-2 ${textColor}`}>{entry.subject.subjectName}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={`w-1.5 h-1.5 rounded-full ${bgColor.replace('/10', '/40')}`}></div>
+                                                                    <p className="text-white text-[11px] font-bold">{entry.class?.className}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                        {timeSlots.length === 0 && (
+                                            <tr>
+                                                <td colSpan={7} className="p-20 text-center text-slate-500 font-medium">No schedule entries found for this teacher.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'evaluation' && (
+                        <motion.div 
+                            key="evaluation" 
+                            initial={{ opacity: 0, scale: 0.95 }} 
+                            animate={{ opacity: 1, scale: 1 }} 
+                            className="space-y-8"
+                        >
+                            {evaluations.length > 0 ? (
+                                <>
+                                    {/* Latest Evaluation Highlights */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        <div className="lg:col-span-1 p-8 bg-[#111827] border border-slate-800 rounded-[2.5rem] flex flex-col items-center justify-center text-center space-y-4">
+                                            <div className="relative w-32 h-32 flex items-center justify-center">
+                                                <svg className="w-full h-full transform -rotate-90">
+                                                    <circle
+                                                        cx="64" cy="64" r="58"
+                                                        stroke="currentColor" strokeWidth="8"
+                                                        fill="transparent" className="text-slate-800"
+                                                    />
+                                                    <circle
+                                                        cx="64" cy="64" r="58"
+                                                        stroke="currentColor" strokeWidth="8"
+                                                        fill="transparent" className="text-indigo-500"
+                                                        strokeDasharray={364.4}
+                                                        strokeDashoffset={364.4 - (364.4 * evaluations[0].score) / 100}
+                                                        strokeLinecap="round"
+                                                    />
+                                                </svg>
+                                                <span className="absolute text-3xl font-black text-white">{Math.round(evaluations[0].score)}%</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xl font-bold text-white">Performance Score</h4>
+                                                <p className="text-slate-500 text-sm">Based on recent metrics</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="lg:col-span-2 p-8 bg-gradient-to-br from-[#111827] to-[#1e1b4b] border border-slate-800 rounded-[2.5rem] relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-8 opacity-10">
+                                                <Sparkles className="w-32 h-32 text-indigo-400" />
+                                            </div>
+                                            <div className="relative z-10 space-y-6">
+                                                <h3 className="text-2xl font-black text-white flex items-center gap-3">
+                                                    AI Assessment
+                                                    <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-[10px] text-indigo-400 uppercase tracking-widest font-black">
+                                                        Latest Snapshot
+                                                    </span>
+                                                </h3>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    <div className="space-y-4">
+                                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                            <AlertCircle className="w-3.5 h-3.5 text-orange-400" />
+                                                            Priority Weak Areas
+                                                        </h4>
+                                                        <ul className="space-y-3">
+                                                            {evaluations[0].weakAreas.map((area, i) => (
+                                                                <li key={i} className="flex items-start gap-3 p-3 bg-red-400/5 border border-red-400/10 rounded-xl text-sm text-slate-300">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                                                                    {area}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                            <Target className="w-3.5 h-3.5 text-green-400" />
+                                                            Recommended Training
+                                                        </h4>
+                                                        <ul className="space-y-3">
+                                                            {evaluations[0].trainingPlan.map((step, i) => (
+                                                                <li key={i} className="flex items-start gap-3 p-3 bg-green-400/5 border border-green-400/10 rounded-xl text-sm text-slate-300">
+                                                                    <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                                                                    {step}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="pt-6 border-t border-slate-800/50 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-slate-500">Improvement Probability:</span>
+                                                        <span className="text-xs font-black text-indigo-400">{Math.round(evaluations[0].improvementProbability * 100)}%</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                                        Generated on {new Date(evaluations[0].createdAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Evaluation History Table */}
+                                    <div className="bg-[#111827] border border-slate-800 rounded-[2.5rem] overflow-hidden">
+                                        <div className="p-8 border-b border-slate-800">
+                                            <h3 className="text-xl font-bold text-white">Evaluation History</h3>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b border-slate-800/50">
+                                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date</th>
+                                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Score</th>
+                                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Weak Areas</th>
+                                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Training Plan</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800/50">
+                                                    {evaluations.map((ev) => (
+                                                        <tr key={ev.id} className="hover:bg-slate-800/30 transition-colors">
+                                                            <td className="px-8 py-5 font-bold text-white text-sm">
+                                                                {new Date(ev.createdAt).toLocaleDateString()}
+                                                            </td>
+                                                            <td className="px-8 py-5 text-center">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-black ${
+                                                                    ev.score >= 80 ? 'bg-green-500/10 text-green-400' : 
+                                                                    ev.score >= 60 ? 'bg-orange-500/10 text-orange-400' : 
+                                                                    'bg-red-500/10 text-red-400'
+                                                                }`}>
+                                                                    {Math.round(ev.score)}%
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-8 py-5">
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {ev.weakAreas.slice(0, 2).map((a, i) => (
+                                                                        <span key={i} className="px-2 py-0.5 bg-slate-800/50 text-[10px] text-slate-400 rounded-md border border-slate-700/50">{a}</span>
+                                                                    ))}
+                                                                    {ev.weakAreas.length > 2 && <span className="text-[10px] text-slate-500">+{ev.weakAreas.length - 2} more</span>}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-8 py-5 text-slate-400 text-xs truncate max-w-[200px]">
+                                                                {ev.trainingPlan[0]}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="p-32 text-center bg-[#111827] border border-slate-800 rounded-[3rem] space-y-6">
+                                    <div className="w-24 h-24 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto">
+                                        <Brain className="w-12 h-12 text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-white">No Evaluation Data Yet</h3>
+                                        <p className="text-slate-500 mt-2 font-medium max-w-md mx-auto">
+                                            Run the first AI performance analysis to see deep insights into teaching metrics, weak areas, and personalized growth plans.
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={handleEvaluate}
+                                        disabled={isEvaluating}
+                                        className="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/50 text-white rounded-2xl transition-all shadow-xl shadow-indigo-600/20 font-black tracking-wide"
+                                    >
+                                        {isEvaluating ? 'Processing Real-time Metrics...' : 'Run First AI Analysis'}
+                                    </button>
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>

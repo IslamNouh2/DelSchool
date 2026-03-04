@@ -44,6 +44,8 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
     const [isPending, startTransition] = useTransition();
 
     const [loading, setLoading] = useState(false);
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+    const [optimizationInfo, setOptimizationInfo] = useState<{score?: number, date?: string} | null>(null);
     const { refreshKey } = useSocket();
 
     const [optimisticTimetable, addOptimisticEntry] = useOptimistic<
@@ -257,6 +259,7 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
                         employerId,
                         timeSlotId,
                         day,
+                        mode: 'MANUAL', // Any manual edit resets mode
                     });
                 } else {
                     await api.post("/timetable", {
@@ -266,6 +269,7 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
                         timeSlotId,
                         day,
                         academicYear,
+                        mode: 'MANUAL',
                     });
                 }
 
@@ -279,6 +283,30 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
         });
 
         setShowEntryDialog(false);
+    };
+
+    const handleGenerateAI = async () => {
+        if (!confirm("Are you sure you want to generate an AI-optimized timetable? This will create new entries.")) return;
+        
+        setIsGeneratingAI(true);
+        try {
+            const res = await api.post("/timetable/generate-ai", {
+                academicYear: formData.academicYear
+            });
+            toast.success("AI Timetable generated successfully!", {
+                description: `Optimization Score: ${(res.data.score * 100).toFixed(1)}%`
+            });
+            setOptimizationInfo({
+                score: res.data.score,
+                date: new Date().toISOString()
+            });
+            await fetchTimetable();
+        } catch (error) {
+            console.error("AI Generation Error:", error);
+            toast.error("Failed to generate AI timetable");
+        } finally {
+            setIsGeneratingAI(false);
+        }
     };
 
 
@@ -413,6 +441,15 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
                         
                         {!readOnly && (
                             <>
+                                <Button 
+                                    onClick={handleGenerateAI}
+                                    disabled={isGeneratingAI}
+                                    className="h-[52px] px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-xl shadow-purple-500/20 hover:shadow-purple-500/40 transition-all rounded-[20px] font-bold gap-2 border-none"
+                                >
+                                    {isGeneratingAI ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                                    AI Optimize
+                                </Button>
+
                                 <Button 
                                     onClick={() => setShowSlotManager(true)}
                                     variant="outline"

@@ -384,6 +384,9 @@ export class ExamRepository {
                 tenantId,
                 studentClass: {
                     studentId: studentId,
+                },
+                exam: {
+                    publish: true,
                 }
             },
             include: {

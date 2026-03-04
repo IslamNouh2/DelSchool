@@ -16,4 +16,17 @@ export class UpdateTimetableDto {
     @IsOptional()
     @IsInt()
     employerId?: number;
+
+    @IsOptional()
+    @IsString()
+    academicYear?: string;
+
+    @IsOptional()
+    mode?: 'MANUAL' | 'AI_GENERATED';
+
+    @IsOptional()
+    aiOptimizationScore?: number;
+
+    @IsOptional()
+    aiGeneratedAt?: Date;
 }

@@ -205,4 +205,115 @@ export class TimetableService {
         this.socketGateway.emitRefresh();
         return result;
     }
+
+    async generateAI(tenantId: string, academicYear: string) {
+        // 1. Collect all necessary data for optimization
+        const [teachers, classesData, subjects, slots, teacherSubjects, teacherClasses] = await Promise.all([
+            this.prisma.employer.findMany({ where: { tenantId, type: 'teacher' } }),
+            this.prisma.classes.findMany({ 
+                where: { tenantId },
+                include: { 
+                    local: {
+                        include: {
+                            subject_local: true
+                        }
+                    }
+                }
+            }),
+            this.prisma.subject.findMany({ where: { tenantId } }),
+            this.prisma.timeSlot.findMany({ where: { tenantId } }),
+            this.prisma.teacherSubject.findMany({ where: { tenantId } }),
+            this.prisma.teaherClass.findMany({ where: { tenantId } }),
+        ]);
+
+        // 1b. Build subject requirements based on Local.size
+        const subjectRequirements = [];
+        classesData.forEach(cls => {
+            if (cls.local) {
+                const requiredHours = cls.local.size || 0;
+                cls.local.subject_local.forEach(sl => {
+                    subjectRequirements.push({
+                        classId: cls.classId,
+                        subjectId: sl.subjectId,
+                        requiredHours: requiredHours
+                    });
+                });
+            }
+        });
+
+        // 2. Prepare payload for AI microservice
+        const payload = {
+            teachers: teachers.map(t => ({ id: t.employerId, name: `${t.firstName} ${t.lastName}` })),
+            classes: classesData.map(c => ({ id: c.classId, name: c.ClassName })),
+            subjects: subjects.map(s => ({ id: s.subjectId, name: s.subjectName })),
+            slots: slots.map(s => ({ id: s.id, start: s.startTime, end: s.endTime })),
+            teacherAssignments: teachers.map(t => ({
+                teacherId: t.employerId,
+                subjectIds: teacherSubjects.filter(ts => ts.employerId === t.employerId).map(ts => ts.subjectId),
+                classIds: teacherClasses.filter(tc => tc.employerId === t.employerId).map(tc => tc.classId)
+            })),
+            subjectRequirements,
+            academicYear,
+        };
+
+        // 3. Call AI microservice (Python FastAPI)
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/timetable/optimize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new BadRequestException('AI Optimization failed');
+            }
+
+            const result = await response.json();
+
+            // 4. Save optimized timetable slots
+            return this.prisma.$transaction(async (tx) => {
+                // Delete existing AI generated slots for this year/tenant? 
+                // Or let the user choose. For now, we'll mark them as AI_GENERATED.
+                
+                const createdSlots = [];
+                for (const slot of result.timetable) {
+                    const created = await tx.timetable.create({
+                        data: {
+                            day: slot.day,
+                            classId: slot.classId,
+                            subjectId: slot.subjectId,
+                            timeSlotId: slot.timeSlotId,
+                            employerId: slot.employerId,
+                            academicYear,
+                            tenantId,
+                            mode: 'AI_GENERATED',
+                            aiOptimizationScore: result.optimizationScore,
+                            aiGeneratedAt: new Date(),
+                        }
+                    });
+                    createdSlots.push(created);
+                }
+
+                this.socketGateway.emitRefresh();
+                return {
+                    slots: createdSlots,
+                    score: result.optimizationScore,
+                    conflicts: result.conflictCount,
+                };
+            });
+        } catch (error) {
+            console.error('AI Generation Error:', error);
+            throw new BadRequestException('Could not connect to AI service');
+        }
+    }
+
+    async getOptimizationScore(tenantId: string, id: number) {
+        const timetable = await this.prisma.timetable.findFirst({
+            where: { id, tenantId },
+            select: { aiOptimizationScore: true, mode: true, aiGeneratedAt: true }
+        });
+
+        if (!timetable) throw new NotFoundException('Timetable not found');
+        return timetable;
+    }
 }

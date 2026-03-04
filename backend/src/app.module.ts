@@ -30,6 +30,7 @@ import { SyncModule } from './sync/sync.module';
 import { CoreModule } from './core/core.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
+import { AiModule } from './ai/ai.module';
 
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -74,6 +75,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     EventModule,
     SyncModule,
     CoreModule,
+    AiModule,
   ],
   
 })

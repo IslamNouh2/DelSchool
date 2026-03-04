@@ -118,6 +118,7 @@ export default function EmployerDialog({
         salaryBasis: "DAILY",
         checkInTime: "08:00",
         checkOutTime: "16:00",
+        email: "",
         photo: null as File | null,
     })
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -260,6 +261,7 @@ export default function EmployerDialog({
                 salaryBasis: data.salaryBasis || "DAILY",
                 checkInTime: data.checkInTime || "08:00",
                 checkOutTime: data.checkOutTime || "16:00",
+                email: data.email || "",
                 photo: null,
             };
             setForm(initialForm);
@@ -296,6 +298,7 @@ export default function EmployerDialog({
                 salaryBasis: "DAILY",
                 checkInTime: "08:00",
                 checkOutTime: "16:00",
+                email: "",
                 photo: null,
             })
             setBirthDate(undefined)
@@ -363,6 +366,7 @@ export default function EmployerDialog({
             if (form.checkInTime) formData.append("checkInTime", form.checkInTime)
             if (form.checkOutTime) formData.append("checkOutTime", form.checkOutTime)
             formData.append("okBlock", JSON.stringify(form.okBlock))
+            formData.append("email", form.email)
 
             if (form.photo) {
                 formData.append("photo", form.photo)
@@ -511,6 +515,9 @@ export default function EmployerDialog({
                             </FormItem>
                             <FormItem label={t("form.labels.phone")}>
                                 <Input name="phone" value={form.phone} onChange={handleChange} placeholder={t("form.placeholders.phone")} className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
+                            </FormItem>
+                            <FormItem label={t("form.labels.email") || "Email"}>
+                                <Input type="email" name="email" value={form.email} onChange={handleChange} placeholder={t("form.placeholders.email") || "Email"} className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
                             </FormItem>
                         </div>
                     </div>

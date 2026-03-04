@@ -7,6 +7,7 @@ import { UpdateStudentDto } from './dto/UpdateStudentDto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class StudentService {
@@ -71,6 +72,7 @@ export class StudentService {
             motherJob, fatherJob, code, health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality, observation,
             numNumerisation, dateInscription, okBlock, localId, classId, academicYear,
+            email, phone,
         } = dto;
         let finalParentId = parentId;
         let photoFileName: string | null = null;
@@ -109,8 +111,21 @@ export class StudentService {
                     dateInscription: new Date(dateInscription),
                     okBlock: okBlock === true,
                     photoFileName,
+                    email, phone,
                     tenantId, // Multi-tenancy
                 },
+            });
+
+            // Auto-create User for login
+            const hashedPassword = await bcrypt.hash(code, 12);
+            await this.prisma.user.create({
+                data: {
+                    email: email || `${code}@delschool.com`,
+                    username: code,
+                    password: hashedPassword,
+                    roleId: 3, // STUDENT
+                    tenantId,
+                }
             });
             
             const targetClassId = Number(classId || localId);
@@ -231,7 +246,7 @@ export class StudentService {
             motherJob, fatherJob, code, health, dateCreate, dateModif,
             lieuOfBirth, bloodType, etatCivil, cid, nationality,
             observation, numNumerisation, dateInscription, okBlock,
-            localId, classId, academicYear
+            localId, classId, academicYear, email, phone
         } = dto;
 
         let finalParentId = parentId;
@@ -287,6 +302,7 @@ export class StudentService {
                 nationality, observation, numNumerisation,
                 dateInscription: dateInscription ? new Date(dateInscription) : undefined,
                 photoFileName, okBlock,
+                email, phone,
             },
         });
 
@@ -594,6 +610,8 @@ export class StudentService {
                 dateModif: true,
                 okBlock: true,
                 photoFileName: true,
+                email: true,
+                phone: true,
                 parent: {
                     select: {
                         parentId: true,

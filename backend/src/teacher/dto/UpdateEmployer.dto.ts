@@ -23,6 +23,7 @@ export class UpdateEmployerDto {
     @IsOptional() @IsString() lieuOfBirth?: string;
     @IsOptional() @IsString() bloodType?: string;
     @IsOptional() @IsString() phone?: string;
+    @IsOptional() @IsString() email?: string;
     @IsOptional() @IsString() etatCivil?: string;
     @IsOptional() @IsString() cid?: string;
     @IsOptional() @IsString() nationality?: string;

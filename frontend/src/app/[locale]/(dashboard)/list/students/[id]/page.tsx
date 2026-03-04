@@ -16,6 +16,7 @@ import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import StudentForm from '@/components/forms/StudentForm';
 import { useSocket } from '@/providers/SocketProvider';
+import AiRiskCard from '@/components/AiRiskCard';
 
 const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
@@ -126,7 +127,7 @@ export default function StudentProfileNew() {
                 api.get(`student/${id}`),
                 api.get(`exam/student/${id}`),
                 api.get(`attendance/student/${id}/history`),
-                api.get(`payments/student/${id}`),
+                api.get(`payments/student/${id}/history`),
                 api.get(`timetable/student/${id}`)
             ]);
 console.log(studentRes.data);
@@ -464,6 +465,9 @@ console.log(studentRes.data);
                     {/* RIGHT SIDEBAR COLUMN (Span 1) */}
                     <div className="space-y-6">
                         
+                        {/* AI Risk Analysis Card */}
+                        <AiRiskCard studentId={Number(id)} />
+
                         {/* Grades List Only (Assignments Removed) */}
                         <div className="bg-white dark:bg-slate-900 rounded-[20px] p-6 shadow-sm border border-gray-100 dark:border-slate-800">
                              <div className="flex items-center justify-between mb-6">

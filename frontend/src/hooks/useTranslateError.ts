@@ -1,9 +1,10 @@
 import { useTranslations } from 'next-intl';
+import { useCallback } from 'react';
 
 export function useTranslateError() {
   const t = useTranslations('errors');
 
-  const translateError = (error: any) => {
+  const translateError = useCallback((error: any) => {
     const message = error?.response?.data?.message || error?.message || 'unknown_error';
     
     // If the message is a translation key (e.g., 'errors.local_capacity_exceeded')
@@ -17,7 +18,7 @@ export function useTranslateError() {
       // Fallback to the original message if translation key not found
       return message;
     }
-  };
+  }, [t]);
 
   return { translateError };
 }

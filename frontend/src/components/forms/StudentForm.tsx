@@ -75,6 +75,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
         localId: "",
         classId: "",
         academicYear: '', 
+        email: "",
+        phone: "",
     });
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -116,6 +118,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
                 localId: data.localId ? String(data.localId) : "",
                 classId: data.classId ? String(data.classId) : "",
                 academicYear: '', 
+                email: data.email || "",
+                phone: data.phone || "",
             };
             setForm(initialForm);
 
@@ -204,6 +208,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
         formData.append("localId", String(form.localId));
         if (form.classId) formData.append("classId", String(form.classId));
         formData.append("academicYear", form.academicYear || "");
+        formData.append("email", form.email);
+        formData.append("phone", form.phone);
 
         if (form.photo) formData.append("photo", form.photo);
 
@@ -234,6 +240,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
                     motherJob: form.mereEmploi,
                     localId: Number(form.localId),
                     classId: form.classId ? Number(form.classId) : undefined,
+                    email: form.email,
+                    phone: form.phone,
                 };
 
                 const { OfflineDB } = await import("@/lib/db");
@@ -446,6 +454,14 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
                         <Section title={t("form.sections.contact")} icon={<MapPin className="w-5 h-5 text-green-500" />}>
                             <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormItem label={t("form.labels.phone") || "Phone Number"}>
+                                        <Input name="phone" value={form.phone} onChange={handleChange} placeholder={t("form.placeholders.phone") || "Phone Number"} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                                    </FormItem>
+                                    <FormItem label={t("form.labels.email") || "Email Address"}>
+                                        <Input type="email" name="email" value={form.email} onChange={handleChange} placeholder={t("form.placeholders.email") || "Email Address"} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                                    </FormItem>
+                                </div>
                                 <FormItem label={t("form.labels.full_address")}>
                                     <Textarea name="adresse" value={form.adresse} onChange={handleChange} placeholder={t("form.placeholders.full_address")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
                                 </FormItem>

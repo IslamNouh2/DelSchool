@@ -18,6 +18,7 @@ import {
   UseGuards,
   Req
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response, Request } from 'express';
 import { StudentService } from './student.service';
@@ -27,8 +28,9 @@ import * as path from 'path';
 import { LocalService } from 'src/local/local.service';
 import { FeeService } from 'src/fee/fee.service';
 
+@ApiTags('Students')
+@ApiBearerAuth('JWT-auth')
 @Controller('student')
-
 export class StudentController {
   constructor(
     private readonly studentService: StudentService,
@@ -46,16 +48,23 @@ export class StudentController {
   }
 
   @Get('count')
+  @ApiOperation({ summary: 'Get total student count' })
+  @ApiResponse({ status: 200, description: 'Returns the count of students' })
   async getCountStudent(@Req() req: any) {
     return this.studentService.GetCountStudent(req.tenantId);
   }
 
   @Get('counts-by-gender')
+  @ApiOperation({ summary: 'Get student counts by gender' })
+  @ApiResponse({ status: 200, description: 'Returns counts by gender' })
   async getCountsByGender(@Req() req: any) {
     return this.studentService.GetCountStudent(req.tenantId);
   }
 
   @Post('create')
+  @ApiOperation({ summary: 'Create a new student' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Student successfully created' })
   @UseInterceptors(FileInterceptor('photo', {
     limits: {
       fileSize: 5 * 1024 * 1024, // 5MB
@@ -106,6 +115,24 @@ export class StudentController {
   }
 
   @Get('list')
+  @ApiOperation({ summary: 'Get list of students with pagination and filters' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiQuery({ name: 'classId', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns a paginated list of students',
+    schema: {
+      example: {
+        data: [],
+        total: 120,
+        page: 1,
+        limit: 10
+      }
+    }
+  })
   async getStudents(
     @Req() req: any,
     @Query('page') page: number = 1,

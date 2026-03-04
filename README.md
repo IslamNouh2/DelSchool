@@ -21,6 +21,7 @@ This project is organized as a monorepo containing two main parts:
 - **Timetables**: Dynamic scheduling for classes, subjects, and teachers.
 - **Exams & Grading**: Flexible grading system with multi-subject support.
 - **Attendance**: Real-time attendance tracking for both students and employees.
+- **AI Timetable**: Hybrid support for manual and AI-optimized scheduling using Google OR-Tools.
 
 ### 💰 Financial Management
 - **Fee Management**: Automated billing, payment tracking, and student accounts.
@@ -50,6 +51,10 @@ This project is organized as a monorepo containing two main parts:
 - **Real-time**: Socket.io
 - **Security**: Passport.js (JWT), Bcrypt, Helmet
 - **Validation**: Class-validator, Class-transformer
+
+### AI Microservices
+- **Framework**: FastAPI (Python 3.10+)
+- **Libraries**: Google OR-Tools (Constraint Solver), Scikit-Learn (Performance Evaluation), Pandas, Pydantic
 
 ---
 

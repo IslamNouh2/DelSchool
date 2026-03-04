@@ -126,6 +126,8 @@ model Student {
   dateInscription   DateTime
   okBlock           Boolean             @default(false)
   photoFileName     String?
+  email             String?
+  phone             String?
   
   // Sync & Multi-tenancy
   tenantId          String
@@ -139,6 +141,7 @@ model Student {
   compte            Compte?
   studentClasses    StudentClass[]
   parent            Parent              @relation(fields: [parentId], references: [parentId], onDelete: Cascade)
+  riskProfile       StudentRiskProfile?
 
   @@map("students")
   @@index([firstName, lastName])
@@ -352,6 +355,7 @@ model Employer {
   type               String
   photoFileName      String?
   phone              String?
+  email              String?
   weeklyWorkload     Int                  @default(20)
   salary             Decimal              @default(0) @db.Decimal(10, 2)
   salaryBasis        String               @default("DAILY") // DAILY or HOURLY
@@ -369,6 +373,7 @@ model Employer {
   TeacherCalsses     TeaherClass?
   Timetables         Timetable[]
   compte             Compte?
+  teacherEvaluations TeacherEvaluation[]
 
   @@map("employers")
   @@index([tenantId])
@@ -436,6 +441,10 @@ model Timetable {
   tenantId     String
   version      Int       @default(1)
   operationId  String?   @unique
+
+  mode                TimetableMode @default(MANUAL)
+  aiOptimizationScore Float?
+  aiGeneratedAt       DateTime?
 
   Class        classes   @relation(fields: [classId], references: [classId])
   teacher      Employer? @relation(fields: [employerId], references: [employerId])
@@ -838,4 +847,52 @@ model Event {
 
   @@map("events")
   @@index([tenantId])
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model StudentRiskProfile {
+  id                 Int       @id @default(autoincrement())
+  studentId          Int       @unique
+  attendance         Float     @default(0)
+  averageGrade       Float     @default(0)
+  behaviorScore      Float     @default(0)
+  homeworkCompletion Float     @default(0)
+  riskLevel          RiskLevel @default(LOW)
+  recommendation     String?
+  lastCalculatedAt   DateTime  @default(now())
+
+  tenantId           String
+  version            Int       @default(1)
+  operationId        String?   @unique
+
+  student            Student   @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model TeacherEvaluation {
+  id                     Int      @id @default(autoincrement())
+  teacherId              Int
+  score                  Float
+  improvementProbability Float
+  weakAreas              String[]
+  trainingPlan           String[]
+  createdAt              DateTime @default(now())
+  
+  teacher                Employer @relation(fields: [teacherId], references: [employerId])
+  
+  tenantId               String
+
+  @@index([teacherId])
+  @@index([tenantId])
+}
+
+enum TimetableMode {
+  MANUAL
+  AI_GENERATED
 }

@@ -7,27 +7,43 @@ import {
     IsInt,
     IsBoolean,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateStudentDto {
+    @ApiProperty({ example: 'John', description: 'First name of the student' })
     @IsNotEmpty()
     @IsString()
     firstName: string;
 
+    @ApiProperty({ example: 'Doe', description: 'Last name of the student' })
     @IsNotEmpty()
     @IsString()
     lastName: string;
 
+    @ApiProperty({ example: '2010-05-15', description: 'Date of birth (ISO string)' })
     @IsNotEmpty()
     @IsDateString()
     dateOfBirth: string; // Accept ISO string from form
 
+    @ApiProperty({ example: 'Male', description: 'Gender of the student' })
     @IsNotEmpty()
     @IsString()
     gender: string;
 
+    @ApiProperty({ example: '123 Main St, City', description: 'Address of the student' })
     @IsNotEmpty()
     @IsString()
     address: string;
+
+    @ApiPropertyOptional({ example: 'john.doe@example.com', description: 'Email address' })
+    @IsOptional()
+    @IsString()
+    email?: string;
+
+    @ApiPropertyOptional({ example: '+123456789', description: 'Phone number' })
+    @IsOptional()
+    @IsString()
+    phone?: string;
 
     @IsOptional()
     @Type(() => Number)
@@ -58,6 +74,7 @@ export class CreateStudentDto {
     @IsString()
     fatherJob: string;
 
+    @ApiProperty({ example: 'STU12345', description: 'Unique student code' })
     @IsNotEmpty()  // Add this decorator
     @IsString()
     code: string;
@@ -102,6 +119,7 @@ export class CreateStudentDto {
     @IsString()
     numNumerisation?: string;
 
+    @ApiProperty({ example: '2023-09-01', description: 'Date of inscription' })
     @IsNotEmpty()
     @IsDateString()
     dateInscription: string;
@@ -111,11 +129,13 @@ export class CreateStudentDto {
     @IsBoolean()
     okBlock?: boolean;
 
+    @ApiProperty({ example: 1, description: 'Local ID' })
     @IsNotEmpty()
     @IsInt()
     @Type(() => Number)
     localId: number;
 
+    @ApiPropertyOptional({ example: 1, description: 'Class ID' })
     @IsOptional()
     @IsInt()
     @Type(() => Number)

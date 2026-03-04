@@ -19,4 +19,14 @@ export class CreateTimetableDto {
 
     @IsString()
     academicYear: string;
+
+    @IsOptional()
+    @IsEnum(['MANUAL', 'AI_GENERATED'])
+    mode?: 'MANUAL' | 'AI_GENERATED';
+
+    @IsOptional()
+    aiOptimizationScore?: number;
+
+    @IsOptional()
+    aiGeneratedAt?: Date;
 }

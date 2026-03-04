@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CreateEmployerDto } from "./dto/CreateEmployer.dto";
 import { UpdateEmployerDto } from "./dto/UpdateEmployer.dto";
 import { Prisma } from "@prisma/client";
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 
@@ -105,7 +106,7 @@ export class EmployerService {
             fatherName,  motherName, health, dateCreate, dateModif,
             bloodType, etatCivil, cid, nationality, observation, numNumerisation,
             dateInscription, okBlock, type, phone, weeklyWorkload, salary,
-            salaryBasis, checkInTime, checkOutTime
+            salaryBasis, checkInTime, checkOutTime, email
         } = dto;
 
         let photoFileName: string | null = null;
@@ -175,12 +176,32 @@ export class EmployerService {
                     okBlock: okBlock === false,
                     photoFileName,
                     type,
+                    email,
                     weeklyWorkload: weeklyWorkload || 20,
                     salaryBasis: salaryBasis || "DAILY",
                     checkInTime: checkInTime || "08:00",
                     checkOutTime: checkOutTime || "16:00",
                     tenantId, // Enforce tenant
                 },
+            });
+
+            // Auto-create User for login
+            const roleMap: Record<string, number> = {
+                teacher: 2, // TEACHER
+                admin: 1,   // ADMIN
+                employer: 4, // MANAGER (staff)
+            };
+            const roleId = roleMap[type.toLowerCase()] || 4;
+            const hashedPassword = await bcrypt.hash(newCode, 12);
+            
+            await this.prisma.user.create({
+                data: {
+                    email: email || `${newCode}@delschool.com`,
+                    username: newCode,
+                    password: hashedPassword,
+                    roleId: roleId,
+                    tenantId,
+                }
             });
 
             this.socketGateway.emitRefresh();
@@ -256,6 +277,7 @@ export class EmployerService {
                     checkInTime: dto.checkInTime,
                     checkOutTime: dto.checkOutTime,
                     photoFileName: photoFileName,
+                    email: dto.email,
                 },
             });
             console.log('DTO received on backend:', dto.okBlock, typeof dto.okBlock);
@@ -438,6 +460,8 @@ export class EmployerService {
                 checkInTime: true,
                 checkOutTime: true,
                 photoFileName: true,
+                phone: true,
+                email: true,
                 compte: {
                     select: {
                         id: true,

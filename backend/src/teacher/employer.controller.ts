@@ -17,6 +17,7 @@ import {
     BadRequestException,
     DefaultValuePipe
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { EmployerService } from "./employer.service";
@@ -29,6 +30,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Req, UseGuards } from '@nestjs/common';
 
+@ApiTags('Teachers')
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('employer')
 export class EmployerController {
@@ -38,6 +41,12 @@ export class EmployerController {
     ) { }
 
     @Get('search-by-name')
+    @ApiOperation({ summary: 'Search employers by name and type' })
+    @ApiQuery({ name: 'page', required: false, example: 1 })
+    @ApiQuery({ name: 'limit', required: false, example: 10 })
+    @ApiQuery({ name: 'name', required: false })
+    @ApiQuery({ name: 'type', required: false })
+    @ApiResponse({ status: 200, description: 'Returns search results' })
     async searchEmployers(
         @Req() req: any,
         @Query("page") page: number = 1,
@@ -50,6 +59,23 @@ export class EmployerController {
 
 
     @Get('list')
+    @ApiOperation({ summary: 'Get list of employers with pagination' })
+    @ApiQuery({ name: 'page', required: false, example: 1 })
+    @ApiQuery({ name: 'limit', required: false, example: 10 })
+    @ApiQuery({ name: 'type', required: false })
+    @ApiQuery({ name: 'search', required: false })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Returns a paginated list of employers',
+        schema: {
+            example: {
+                data: [],
+                total: 50,
+                page: 1,
+                limit: 10
+            }
+        }
+    })
     async getEmployer(
         @Req() req: any,
         @Query('page') page: number = 1,
@@ -170,11 +196,15 @@ export class EmployerController {
     }
 
     @Get('count/teacher')
+    @ApiOperation({ summary: 'Get total teacher count' })
+    @ApiResponse({ status: 200, description: 'Returns the count of teachers' })
     async getCountTeacher(@Req() req: any) {
         return this.employerService.GetCountTeacher(req.tenantId);
     }
 
     @Get('count/staff')
+    @ApiOperation({ summary: 'Get total staff count' })
+    @ApiResponse({ status: 200, description: 'Returns the count of staff' })
     async getCountStaff(@Req() req: any) {
         return this.employerService.GetCountStaff(req.tenantId);
     }
