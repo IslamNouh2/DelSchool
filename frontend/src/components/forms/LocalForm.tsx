@@ -29,6 +29,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
         Code: "",
         NumClass: "",
         size: "",
+        weeklyHours: "6",
     });
 
     const [localId, setLocalId] = useState<number | null>(null);
@@ -43,6 +44,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
                 Code: data.code || "",
                 NumClass: data.NumClass?.toString() || "",
                 size: data.size?.toString() || "",
+                weeklyHours: data.weeklyHours?.toString() || "6",
             });
             setLocalId(data.localId);
         }
@@ -76,6 +78,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
             code: Code,
             NumClass: numClassInt,
             size: parseInt(form.size) || 0,
+            weeklyHours: parseInt(form.weeklyHours) || 6,
         };
 
         try {
@@ -158,6 +161,21 @@ const LocalForm: React.FC<LocalFormProps> = ({
                                         setForm({ ...form, size: e.target.value })
                                     }
                                     placeholder="e.g. 60"
+                                    required
+                                />
+                            </div>
+
+                            <div className="w-full md:w-1/3">
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">حجم الساعي (ساعة/أسبوع)</h1>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={40}
+                                    value={form.weeklyHours}
+                                    onChange={(e) =>
+                                        setForm({ ...form, weeklyHours: e.target.value })
+                                    }
+                                    placeholder="e.g. 6"
                                     required
                                 />
                             </div>

@@ -176,6 +176,7 @@ model Local {
   dateModif     DateTime?
   NumClass      Int?
   size          Int             @default(0)
+  weeklyHours   Int             @default(6)  // حجم الساعي الأسبوعي
 
   tenantId      String
   version       Int             @default(1)
@@ -895,4 +896,28 @@ model TeacherEvaluation {
 enum TimetableMode {
   MANUAL
   AI_GENERATED
+}
+
+model SystemSettings {
+  id            Int      @id @default(1)
+  weekStartDay  WeekDay  @default(SUNDAY)
+  firstHour     String   @default("08:00")
+  lastHour      String   @default("16:00")
+  slotDuration  Int      @default(60)
+
+  tenantId      String
+  version       Int      @default(1)
+  operationId   String?  @unique
+
+  @@index([tenantId])
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
 }

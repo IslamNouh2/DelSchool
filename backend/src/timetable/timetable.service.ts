@@ -3,15 +3,18 @@ import { CreateTimetableDto } from "./dto/create-timetable.dto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { UpdateTimetableDto } from "./dto/update-timetable.dto";
 import { SocketGateway } from "../socket/socket.gateway";
+import { TimetableOptimizerService } from "../timetable-optimizer/timetable-optimizer.service";
 
 @Injectable()
 export class TimetableService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly socketGateway: SocketGateway
+        private readonly socketGateway: SocketGateway,
+        private readonly aiOptimizer: TimetableOptimizerService
     ) { }
 
     async create(tenantId: string, dto: CreateTimetableDto) {
+// ... (rest of the create logic remains the same)
         return this.prisma.$transaction(async (tx) => {
             // ✅ 1. Prevent duplicate timetables
             const exists = await tx.timetable.findFirst({
@@ -30,7 +33,53 @@ export class TimetableService {
                 );
             }
 
-            // ✅ 2. Auto-assign teacher if not provided
+            // ✅ 2. Validate Weekly Hours
+            const subject = await tx.subject.findUnique({
+                where: { subjectId: dto.subjectId }
+            });
+
+            if (!subject) {
+                throw new NotFoundException("Subject not found");
+            }
+
+            // Understand if the subject is a Break/Lunch
+            const sName = subject.subjectName.toLowerCase();
+            const isBreak = sName.includes("break") || sName.includes("lunch") || sName.includes("pause") || sName.includes("استراحة");
+
+            if (!isBreak) {
+                // Fetch the Local (class) weekly limit
+                const classData = await tx.classes.findUnique({
+                    where: { classId: dto.classId },
+                    include: { local: true }
+                });
+
+                if (classData && classData.local) {
+                    const localWeeklyHours = classData.local.weeklyHours;
+
+                    // Count all existing lessons in the timetable for that class
+                    const existingTimetable = await tx.timetable.findMany({
+                        where: {
+                            classId: dto.classId,
+                            academicYear: dto.academicYear,
+                            tenantId
+                        },
+                        include: { subject: true }
+                    });
+
+                    // Exclude subjects where it's a break
+                    const nonBreakLessonsCount = existingTimetable.filter(t => {
+                        const n = t.subject?.subjectName?.toLowerCase() || '';
+                        return !(n.includes("break") || n.includes("lunch") || n.includes("pause") || n.includes("استراحة"));
+                    }).length;
+
+                    // Compare with Local.weeklyHours
+                    if (nonBreakLessonsCount >= localWeeklyHours) {
+                        throw new BadRequestException("Class weekly hours limit reached");
+                    }
+                }
+            }
+
+            // ✅ 3. Auto-assign teacher if not provided
             let assignedTeacherId: number | null = dto.employerId || null;
 
             if (!assignedTeacherId) {
@@ -46,10 +95,9 @@ export class TimetableService {
                 if (teacherSubject) {
                     assignedTeacherId = teacherSubject.employerId;
                 }
-                // If no teacher found, assignedTeacherId remains null, which is valid
             }
 
-            // ✅ 3. Create timetable
+            // ✅ 4. Create timetable
             const result = await tx.timetable.create({
                 data: {
                     ...dto,
@@ -207,104 +255,7 @@ export class TimetableService {
     }
 
     async generateAI(tenantId: string, academicYear: string) {
-        // 1. Collect all necessary data for optimization
-        const [teachers, classesData, subjects, slots, teacherSubjects, teacherClasses] = await Promise.all([
-            this.prisma.employer.findMany({ where: { tenantId, type: 'teacher' } }),
-            this.prisma.classes.findMany({ 
-                where: { tenantId },
-                include: { 
-                    local: {
-                        include: {
-                            subject_local: true
-                        }
-                    }
-                }
-            }),
-            this.prisma.subject.findMany({ where: { tenantId } }),
-            this.prisma.timeSlot.findMany({ where: { tenantId } }),
-            this.prisma.teacherSubject.findMany({ where: { tenantId } }),
-            this.prisma.teaherClass.findMany({ where: { tenantId } }),
-        ]);
-
-        // 1b. Build subject requirements based on Local.size
-        const subjectRequirements = [];
-        classesData.forEach(cls => {
-            if (cls.local) {
-                const requiredHours = cls.local.size || 0;
-                cls.local.subject_local.forEach(sl => {
-                    subjectRequirements.push({
-                        classId: cls.classId,
-                        subjectId: sl.subjectId,
-                        requiredHours: requiredHours
-                    });
-                });
-            }
-        });
-
-        // 2. Prepare payload for AI microservice
-        const payload = {
-            teachers: teachers.map(t => ({ id: t.employerId, name: `${t.firstName} ${t.lastName}` })),
-            classes: classesData.map(c => ({ id: c.classId, name: c.ClassName })),
-            subjects: subjects.map(s => ({ id: s.subjectId, name: s.subjectName })),
-            slots: slots.map(s => ({ id: s.id, start: s.startTime, end: s.endTime })),
-            teacherAssignments: teachers.map(t => ({
-                teacherId: t.employerId,
-                subjectIds: teacherSubjects.filter(ts => ts.employerId === t.employerId).map(ts => ts.subjectId),
-                classIds: teacherClasses.filter(tc => tc.employerId === t.employerId).map(tc => tc.classId)
-            })),
-            subjectRequirements,
-            academicYear,
-        };
-
-        // 3. Call AI microservice (Python FastAPI)
-        try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/timetable/optimize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                throw new BadRequestException('AI Optimization failed');
-            }
-
-            const result = await response.json();
-
-            // 4. Save optimized timetable slots
-            return this.prisma.$transaction(async (tx) => {
-                // Delete existing AI generated slots for this year/tenant? 
-                // Or let the user choose. For now, we'll mark them as AI_GENERATED.
-                
-                const createdSlots = [];
-                for (const slot of result.timetable) {
-                    const created = await tx.timetable.create({
-                        data: {
-                            day: slot.day,
-                            classId: slot.classId,
-                            subjectId: slot.subjectId,
-                            timeSlotId: slot.timeSlotId,
-                            employerId: slot.employerId,
-                            academicYear,
-                            tenantId,
-                            mode: 'AI_GENERATED',
-                            aiOptimizationScore: result.optimizationScore,
-                            aiGeneratedAt: new Date(),
-                        }
-                    });
-                    createdSlots.push(created);
-                }
-
-                this.socketGateway.emitRefresh();
-                return {
-                    slots: createdSlots,
-                    score: result.optimizationScore,
-                    conflicts: result.conflictCount,
-                };
-            });
-        } catch (error) {
-            console.error('AI Generation Error:', error);
-            throw new BadRequestException('Could not connect to AI service');
-        }
+        return this.aiOptimizer.generateAI(tenantId, academicYear);
     }
 
     async getOptimizationScore(tenantId: string, id: number) {

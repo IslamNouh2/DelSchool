@@ -1,10 +1,13 @@
-// src/timetable/timetable.module.ts
 import { Module } from '@nestjs/common';
 import { TimetableController } from './timetable.controller';
 import { TimetableService } from './timetable.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaModule } from '../prisma/prisma.module';
+import { SocketModule } from '../socket/socket.module';
+import { TimetableOptimizerModule } from '../timetable-optimizer/timetable-optimizer.module';
+
 @Module({
+  imports: [PrismaModule, SocketModule, TimetableOptimizerModule],
   controllers: [TimetableController],
-  providers: [TimetableService, PrismaService],
+  providers: [TimetableService],
 })
 export class TimetableModule { }

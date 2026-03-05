@@ -706,12 +706,14 @@
       "available": "Available Slot"
     },
     "days": {
+      "Sunday": "Sunday",
       "Monday": "Monday",
       "Tuesday": "Tuesday",
       "Wednesday": "Wednesday",
       "Thursday": "Thursday",
       "Friday": "Friday",
       "Saturday": "Saturday"
+      
     },
     "messages": {
       "load_error": "Error loading base data",

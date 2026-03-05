@@ -25,7 +25,14 @@ interface TimeSlot {
     endTime: string;
 }
 
-const days_keys = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const days_keys = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",];
 
 interface TimetableProps {
     teacherId?: number;
@@ -276,8 +283,13 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
                 toast.success(t("messages.save_success"));
 
                 await fetchTimetable(); // sync real data
-            } catch (error) {
-                toast.error(t("messages.save_error"));
+            } catch (error: any) {
+                // Check if it's the specific limit reached error
+                if (error?.response?.data?.message) {
+                    toast.error(error.response.data.message);
+                } else {
+                    toast.error(t("messages.save_error"));
+                }
                 await fetchTimetable(); // rollback by refetch
             }
         });
@@ -497,7 +509,7 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
                                 id="timetable-grid"
                             >
                                 <div className="min-w-[1200px]">
-                                    <div className="grid grid-cols-7 gap-6">
+                                    <div className="grid grid-cols-8 gap-6">
                                         {/* Time Axis Header */}
                                         <div className="flex items-center justify-center p-4 bg-gray-50 dark:bg-white/5 rounded-[24px]">
                                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{t("time_header")}</span>

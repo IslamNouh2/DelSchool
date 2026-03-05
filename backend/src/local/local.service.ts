@@ -64,6 +64,7 @@ export class LocalService {
                 name,
                 code,
                 size: dto.size || 0,
+                weeklyHours: dto.weeklyHours ?? 6,
                 tenantId,
             },
         });
@@ -88,6 +89,7 @@ export class LocalService {
                 name,
                 code,
                 size: dto.size !== undefined ? dto.size : undefined,
+                weeklyHours: dto.weeklyHours !== undefined ? dto.weeklyHours : undefined,
             },
         });
 

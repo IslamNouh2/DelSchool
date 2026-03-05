@@ -540,26 +540,76 @@ export class EmployerService {
     }
 
     async assignClassToTeacher(tenantId: string, employerId: number, classId: number) {
-        // Check if assignment exists
+        // 1. Assign the class
+        let teacherClassRes;
         const existing = await this.prisma.teaherClass.findFirst({
             where: { employerId, tenantId },
         });
 
         if (existing) {
-            return this.prisma.teaherClass.update({
+            teacherClassRes = await this.prisma.teaherClass.update({
                 where: { employerId },
                 data: { classId, isCurrent: true },
             });
+        } else {
+            teacherClassRes = await this.prisma.teaherClass.create({
+                data: {
+                    employerId,
+                    classId,
+                    isCurrent: true,
+                    tenantId,
+                },
+            });
         }
 
-        return this.prisma.teaherClass.create({
-            data: {
-                employerId,
-                classId,
-                isCurrent: true,
-                tenantId, // Enforce tenant
-            },
+        // 2. SystemsF Dual Routing logic
+        // true: Subject-based (manual subjects), false: Class-based (auto all subjects)
+        let isSubjectBased = true;
+        const systemParam = await this.prisma.parameter.findUnique({
+            where: { paramName: 'systemsF' }
         });
+
+        if (systemParam) {
+            isSubjectBased = systemParam.okActive;
+        } else {
+            // Create default if missing
+            const createdParam = await this.prisma.parameter.create({
+                data: { paramName: 'systemsF', okActive: true, tenantId }
+            });
+            isSubjectBased = createdParam.okActive;
+        }
+
+        if (!isSubjectBased) {
+            // SYSTEM 2: Class-based. Teacher teaches all subjects in the class's Local.
+            const classData = await this.prisma.classes.findUnique({
+                where: { classId },
+                include: { local: { include: { subject_local: true } } }
+            });
+
+            if (classData?.local?.subject_local?.length > 0) {
+                const subjectIds = classData.local.subject_local.map(sl => sl.subjectId);
+                
+                // Clear existing subject assignments for this teacher first 
+                // to ensure they ONLY teach this new class's subjects.
+                await this.prisma.teacherSubject.deleteMany({
+                    where: { employerId, tenantId }
+                });
+
+                // Insert all new subjects
+                const newAssignments = subjectIds.map(subId => ({
+                    employerId,
+                    subjectId: subId,
+                    tenantId
+                }));
+                
+                await this.prisma.teacherSubject.createMany({
+                    data: newAssignments
+                });
+                console.log(`[DualSystem] Assigned ${newAssignments.length} subjects automatically to teacher ${employerId}`);
+            }
+        }
+
+        return teacherClassRes;
     }
 
     async getTeacherClass(tenantId: string, employerId: number) {

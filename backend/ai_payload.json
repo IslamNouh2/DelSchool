@@ -1,0 +1,71 @@
+{
+  "teachers": [
+    {
+      "id": 1,
+      "name": "Maitre Test",
+      "weeklyWorkload": 20
+    }
+  ],
+  "classes": [
+    {
+      "id": 1,
+      "name": "Grade 1A"
+    }
+  ],
+  "subjects": [
+    {
+      "id": -1,
+      "name": "subject"
+    },
+    {
+      "id": 1,
+      "name": "arabic"
+    },
+    {
+      "id": 2,
+      "name": "Break"
+    }
+  ],
+  "slots": [
+    {
+      "id": 1,
+      "start": "13:04",
+      "end": "14:04"
+    },
+    {
+      "id": 2,
+      "start": "14:04",
+      "end": "15:04"
+    },
+    {
+      "id": 3,
+      "start": "15:04",
+      "end": "16:04"
+    }
+  ],
+  "teacherAssignments": [
+    {
+      "teacherId": 1,
+      "subjectIds": [
+        2,
+        1
+      ],
+      "classIds": [
+        1
+      ]
+    }
+  ],
+  "classWeeklyHours": [
+    {
+      "classId": 1,
+      "maxSlotsPerWeek": 5
+    }
+  ],
+  "subjectRequirements": [
+    {
+      "classId": 1,
+      "subjectId": 1
+    }
+  ],
+  "academicYear": "2024-2025"
+}

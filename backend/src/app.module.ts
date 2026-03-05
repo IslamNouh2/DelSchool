@@ -34,6 +34,8 @@ import { AiModule } from './ai/ai.module';
 
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SystemSettingsModule } from './system-settings/system-settings.module';
+import { TimetableOptimizerModule } from './timetable-optimizer/timetable-optimizer.module';
 
 @Module({
   imports: [
@@ -76,6 +78,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     SyncModule,
     CoreModule,
     AiModule,
+    SystemSettingsModule,
+    TimetableOptimizerModule,
   ],
   
 })

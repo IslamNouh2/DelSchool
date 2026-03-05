@@ -32,4 +32,9 @@ export class TimeSlotController {
   remove(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.service.remove(tenantId, +id);
   }
+
+  @Post('generate-dynamic')
+  generateDynamic(@TenantId() tenantId: string) {
+    return this.service.generateDynamicSlots(tenantId);
+  }
 }

@@ -16,4 +16,8 @@ export class CreateLocalDto {
     @IsOptional()
     @IsInt()
     size: number;
+
+    @IsOptional()
+    @IsInt()
+    weeklyHours: number;
 }

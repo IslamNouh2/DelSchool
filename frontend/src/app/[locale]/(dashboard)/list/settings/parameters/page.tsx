@@ -33,18 +33,23 @@ const fetchParams = async (): Promise<ParameterData> => {
 
 // Use a state-managed promise if we want SSR to work with Suspense in client components
 // But simpler for now: just fetch on client mount if SSR is causing flickers
+import SystemSettingsForm from "@/components/forms/SystemSettingsForm";
+
 export default function ParametersPage() {
     const [paramsPromise] = useState(() => typeof window !== "undefined" ? fetchParams() : new Promise<ParameterData>(() => {}));
 
     return (
-        <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="p-8 max-w-5xl mx-auto space-y-12 animate-in fade-in duration-500 pb-24">
             <div className="flex flex-col gap-1 px-4">
-                <h1 className="text-4xl font-black tracking-tighter uppercase text-emerald-900 italic">Configuration Financière</h1>
-                <p className="text-muted-foreground font-medium text-sm">Définissez le modèle économique et les modes d'abonnement.</p>
+                <h1 className="text-4xl font-black tracking-tighter uppercase text-emerald-900 italic">Paramètres du Système</h1>
+                <p className="text-muted-foreground font-medium text-sm">Configurez les aspects financiers et organisationnels de votre établissement.</p>
             </div>
             
             <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="w-10 h-10 animate-spin text-emerald-600" /></div>}>
-                <ParametersForm promise={paramsPromise} />
+                <div className="space-y-12">
+                    <ParametersForm promise={paramsPromise} />
+                    <SystemSettingsForm />
+                </div>
             </Suspense>
         </div>
     );
