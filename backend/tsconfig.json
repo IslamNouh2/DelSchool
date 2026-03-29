@@ -3,7 +3,7 @@
     "module": "commonjs",
     "target": "ESNext",
     "outDir": "./dist",
-    "rootDir": "src",
+    "rootDir": "./",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "skipLibCheck": true,
@@ -17,6 +17,6 @@
       "prisma/*": ["src/prisma/*"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "prisma/**/*.ts"],
   "exclude": ["node_modules", "test", "dist"]
 }

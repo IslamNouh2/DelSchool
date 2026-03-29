@@ -1,12 +1,24 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import * as process from 'process';
+import { exec } from 'child_process';
+
 const prisma = new PrismaClient();
 
-async function main() {
+function runCommand(cmd: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    exec(cmd, { env: process.env }, (error, stdout, stderr) => {
+      if (stdout) console.log(stdout);
+      if (stderr) console.error(stderr);
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+}
+
+async function runSeed() {
   const password = await bcrypt.hash('123456', 10);
 
-  // 1. Create permissions
+  // 1. Permissions
   const permissions = [
     { name: 'user:read', description: 'Read users' },
     { name: 'user:create', description: 'Create users' },
@@ -14,7 +26,6 @@ async function main() {
     { name: 'user:delete', description: 'Delete users' },
     { name: 'role:manage', description: 'Manage roles and permissions' },
     { name: 'audit:read', description: 'Read audit logs' },
-    // New granular permissions
     { name: 'grade:read', description: 'Read student grades' },
     { name: 'grade:create', description: 'Create/Post grades' },
     { name: 'subject:read', description: 'Read subjects' },
@@ -32,15 +43,13 @@ async function main() {
       create: p,
     });
   }
+  console.log('✅ Permissions seeded');
 
-  // 2. Create roles
+  // 2. Roles
   const adminRole = await prisma.role.upsert({
     where: { name: 'ADMIN' },
     update: {},
-    create: {
-      name: 'ADMIN',
-      description: 'Full system access',
-    },
+    create: { name: 'ADMIN', description: 'Full system access' },
   });
 
   const teacherRole = await prisma.role.upsert({
@@ -62,35 +71,29 @@ async function main() {
       parentId: teacherRole.id,
     },
   });
+  console.log('✅ Roles seeded');
 
-  // 3. Assign all permissions to ADMIN role
+  // 3. Assign all permissions to ADMIN
   const allPermissions = await prisma.permission.findMany();
   for (const p of allPermissions) {
     await prisma.rolePermission.upsert({
       where: {
-        roleId_permissionId: {
-          roleId: adminRole.id,
-          permissionId: p.id,
-        },
+        roleId_permissionId: { roleId: adminRole.id, permissionId: p.id },
       },
       update: {},
-      create: {
-        roleId: adminRole.id,
-        permissionId: p.id,
-      },
+      create: { roleId: adminRole.id, permissionId: p.id },
     });
   }
+  console.log('✅ Role permissions seeded');
 
-  // 4. Create Users
+  // 4. Users
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gmail.com' },
-    update: {
-      roleId: adminRole.id,
-    },
+    update: { roleId: adminRole.id },
     create: {
       email: 'admin@gmail.com',
       username: 'admin',
-      password: password,
+      password,
       roleId: adminRole.id,
       tenantId: 'default-tenant',
     },
@@ -98,13 +101,11 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: 'teacher@gmail.com' },
-    update: {
-      roleId: teacherRole.id,
-    },
+    update: { roleId: teacherRole.id },
     create: {
       email: 'teacher@gmail.com',
       username: 'TEA001',
-      password: password,
+      password,
       roleId: teacherRole.id,
       tenantId: 'default-tenant',
     },
@@ -112,18 +113,18 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: 'student@gmail.com' },
-    update: {
-      roleId: studentRole.id,
-    },
+    update: { roleId: studentRole.id },
     create: {
       email: 'student@gmail.com',
       username: 'ST001',
-      password: password,
+      password,
       roleId: studentRole.id,
       tenantId: 'default-tenant',
     },
   });
+  console.log('✅ Users seeded');
 
+  // 5. Base data
   await prisma.subject.upsert({
     where: { subjectId: -1 },
     update: {},
@@ -153,56 +154,31 @@ async function main() {
     },
   });
 
-  await prisma.parameter.upsert({
-    where: { paramName: 'Ok_Sub_subject' },
-    update: {},
-    create: {
-      paramName: 'Ok_Sub_subject',
-      okActive: false,
-      tenantId: 'default-tenant',
-    },
-  });
-
-  await prisma.parameter.upsert({
-    where: { paramName: 'Transition_Mode' },
-    update: {},
-    create: {
-      paramName: 'Transition_Mode',
-      okActive: false,
-      tenantId: 'default-tenant',
-    },
-  });
-
-  await prisma.parameter.upsert({
-    where: { paramName: 'School_System_Paid' },
-    update: {},
-    create: {
-      paramName: 'School_System_Paid',
-      okActive: false,
-      tenantId: 'default-tenant',
-    },
-  });
-
-  await prisma.parameter.upsert({
-    where: { paramName: 'Subscription_Individual_Mode' },
-    update: {},
-    create: {
-      paramName: 'Subscription_Individual_Mode',
-      okActive: true,
-      tenantId: 'default-tenant',
-    },
-  });
-
   await prisma.parent.upsert({
     where: { parentId: 1 },
     update: {},
-    create: {
-      parentId: 1,
-      tenantId: 'default-tenant',
-    },
+    create: { parentId: 1, tenantId: 'default-tenant' },
   });
+  console.log('✅ Base data seeded');
 
-  // Sample Data for Testing
+  // 6. Parameters
+  const parameters = [
+    { paramName: 'Ok_Sub_subject', okActive: false },
+    { paramName: 'Transition_Mode', okActive: false },
+    { paramName: 'School_System_Paid', okActive: false },
+    { paramName: 'Subscription_Individual_Mode', okActive: true },
+  ];
+
+  for (const param of parameters) {
+    await prisma.parameter.upsert({
+      where: { paramName: param.paramName },
+      update: {},
+      create: { ...param, tenantId: 'default-tenant' },
+    });
+  }
+  console.log('✅ Parameters seeded');
+
+  // 7. School Years
   const currentYear = await prisma.schoolYear.upsert({
     where: { year: '2024-2025' },
     update: {},
@@ -226,7 +202,9 @@ async function main() {
       tenantId: 'default-tenant',
     },
   });
+  console.log('✅ School years seeded');
 
+  // 8. Local + Classes
   const local = await prisma.local.upsert({
     where: { code: 'MAIN_BLDG' },
     update: {},
@@ -250,8 +228,9 @@ async function main() {
       tenantId: 'default-tenant',
     },
   });
+  console.log('✅ Local & classes seeded');
 
-  // Create a sample teacher profile
+  // 9. Teacher profile
   const teacherProfile = await prisma.employer.upsert({
     where: { code: 'TEA001' },
     update: {},
@@ -268,7 +247,6 @@ async function main() {
     },
   });
 
-  // Assign teacher to class
   await prisma.teaherClass.upsert({
     where: { employerId: teacherProfile.employerId },
     update: {},
@@ -279,8 +257,9 @@ async function main() {
       tenantId: 'default-tenant',
     },
   });
+  console.log('✅ Teacher seeded');
 
-  // Create a sample student
+  // 10. Student
   const student = await prisma.student.upsert({
     where: { code: 'ST001' },
     update: {},
@@ -292,12 +271,11 @@ async function main() {
       address: '123 Rue de la Paix',
       code: 'ST001',
       dateInscription: new Date(),
-      parentId: 1, // Link to the created parent
+      parentId: 1,
       tenantId: 'default-tenant',
     },
   });
 
-  // Assign student to current class
   const studentClass = await prisma.studentClass.upsert({
     where: {
       studentId_schoolYearId: {
@@ -315,124 +293,88 @@ async function main() {
     },
   });
 
-  // Give some grads average >= 10
+  const exam = await prisma.exam.create({
+    data: {
+      examName: 'Midterm',
+      dateStart: new Date(),
+      dateEnd: new Date(),
+      publish: true,
+      tenantId: 'default-tenant',
+    },
+  });
+
   await prisma.grads.create({
     data: {
       grads: 15,
-      examId: (
-        await prisma.exam.create({
-          data: {
-            examName: 'Midterm',
-            dateStart: new Date(),
-            dateEnd: new Date(),
-            publish: true,
-            tenantId: 'default-tenant',
-          },
-        })
-      ).id,
+      examId: exam.id,
       studentClassId: studentClass.id,
-      subjectId: -1, // Root subject
+      subjectId: -1,
       tenantId: 'default-tenant',
     },
   });
+  console.log('✅ Student seeded');
 
-  // Create Journals
-  await prisma.journal.upsert({
-    where: { code: 'GEN' },
-    update: {},
-    create: {
-      code: 'GEN',
-      name: 'Journal Général',
-      type: 'GENERAL',
-      createdBy: admin.id,
-      tenantId: 'default-tenant',
-    },
-  });
+  // 11. Journals
+  const journals = [
+    { code: 'GEN', name: 'Journal Général', type: 'GENERAL' as const },
+    { code: 'CASH', name: 'Journal de Caisse', type: 'CASH' as const },
+    { code: 'BANK', name: 'Journal de Banque', type: 'BANK' as const },
+  ];
 
-  await prisma.journal.upsert({
-    where: { code: 'CASH' },
-    update: {},
-    create: {
-      code: 'CASH',
-      name: 'Journal de Caisse',
-      type: 'CASH',
-      createdBy: admin.id,
-      tenantId: 'default-tenant',
-    },
-  });
+  for (const j of journals) {
+    await prisma.journal.upsert({
+      where: { code: j.code },
+      update: {},
+      create: { ...j, createdBy: admin.id, tenantId: 'default-tenant' },
+    });
+  }
+  console.log('✅ Journals seeded');
 
-  await prisma.journal.upsert({
-    where: { code: 'BANK' },
-    update: {},
-    create: {
-      code: 'BANK',
-      name: 'Journal de Banque',
-      type: 'BANK',
-      createdBy: admin.id,
-      tenantId: 'default-tenant',
-    },
-  });
+  // 12. Comptes
+  const comptes = [
+    { id: 4, name: 'CLIENTS - ÉLÈVES (CRÉANCES)', BG: 1, BD: 2 },
+    { id: 5, name: 'PRODUITS DES FRAIS SCOLAIRES', BG: 3, BD: 4 },
+    { id: 6, name: 'CAISSE CENTRALE', BG: 5, BD: 6 },
+  ];
 
-  // Create Base Accounts (Comptes)
-  // 411 - Student Receivables
-  await prisma.compte.upsert({
-    where: { id: 4 },
-    update: {},
-    create: {
-      id: 4,
-      name: 'CLIENTS - ÉLÈVES (CRÉANCES)',
-      parentId: -1,
-      BG: 1,
-      BD: 2,
-      level: 1,
-      category: 'GENERAL',
-      isPosted: true,
-      tenantId: 'default-tenant',
-    },
-  });
+  for (const c of comptes) {
+    await prisma.compte.upsert({
+      where: { id: c.id },
+      update: {},
+      create: {
+        ...c,
+        parentId: -1,
+        level: 1,
+        category: 'GENERAL',
+        isPosted: true,
+        tenantId: 'default-tenant',
+      },
+    });
+  }
+  console.log('✅ Comptes seeded');
+}
 
-  // 706 - Student Fee Income
-  await prisma.compte.upsert({
-    where: { id: 5 },
-    update: {},
-    create: {
-      id: 5,
-      name: 'PRODUITS DES FRAIS SCOLAIRES',
-      parentId: -1,
-      BG: 3,
-      BD: 4,
-      level: 1,
-      category: 'GENERAL',
-      isPosted: true,
-      tenantId: 'default-tenant',
-    },
-  });
+async function main() {
+  try {
+    console.log('🚀 Running migrations...');
+    await runCommand('npx prisma migrate deploy');
+    console.log('✅ Migrations completed');
 
-  // 531 - Cash
-  await prisma.compte.upsert({
-    where: { id: 6 },
-    update: {},
-    create: {
-      id: 6,
-      name: 'CAISSE CENTRALE',
-      parentId: -1,
-      BG: 5,
-      BD: 6,
-      level: 1,
-      category: 'GENERAL',
-      isPosted: true,
-      tenantId: 'default-tenant',
-    },
-  });
+    console.log('🌱 Seeding database...');
+    await runSeed();
 
-  console.log(
-    'Default journals, accounts, root subject, school years, sample locations, and student with grades inserted',
-  );
+    console.log('🎉 Deploy and seed completed successfully!');
+  } catch (err) {
+    console.error('❌ Error:', err);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((err) => {
+    console.error('❌ Error:', err);
     process.exit(1);
   })
   .finally(() => {

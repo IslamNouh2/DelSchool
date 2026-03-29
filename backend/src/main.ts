@@ -16,7 +16,6 @@ async function bootstrap() {
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
-  const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost)));
 
   const config = new DocumentBuilder()
@@ -45,17 +44,21 @@ async function bootstrap() {
 
   // Security Middlewares
   app.use(helmet());
-  app.use(compression());
+  const compressionMiddleware = compression();
+  app.use(compressionMiddleware);
   app.use(cookieParser());
 
   // Enable CORS with enterprise-grade configuration
   const allowedOrigins = [
-    'http://localhost:3000',
     'https://delschool-2.onrender.com',
+    process.env.FRONTEND_URL,
   ];
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -89,4 +92,6 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to start the application:', err);
+});
