@@ -16,37 +16,51 @@ import { winstonConfig } from './common/logger/winston.config';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://del-school-bvev.vercel.app',
-    'https://delschool-production.up.railway.app',
-  ];
-
   const app = await NestFactory.create(AppModule, {
-    cors: {
-      origin: allowedOrigins,
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Requested-With',
-        'Accept',
-        'X-Operation-Id',
-        'X-Tenant-Id',
-        'Cache-Control',
-        'Pragma',
-        'Expires',
-      ],
-      exposedHeaders: ['Set-Cookie', 'X-Operation-Id'],
-    },
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
+  // ================= NUCLEAR CORS FIX =================
+  // This middleware runs BEFORE NestJS routing and handles preflights manually.
   const server = app.getHttpAdapter().getInstance() as express.Application;
 
-  // ================= SECURITY =================
+  app.use(
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      const origin = req.headers.origin;
+
+      // Unconditionally echo the origin to prevent any filtering issues
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Operation-Id, X-Tenant-Id, Cache-Control, Pragma, Expires',
+      );
+      res.setHeader(
+        'Access-Control-Expose-Headers',
+        'Set-Cookie, X-Operation-Id',
+      );
+
+      if (req.method === 'OPTIONS') {
+        // Return 200 instead of 204 to ensure proxies don't strip headers
+        res.status(200).end();
+        return;
+      }
+      next();
+    },
+  );
 
   // 🔒 Hide Express fingerprint
   server.disable('x-powered-by');
@@ -55,7 +69,7 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
-      contentSecurityPolicy: false, // avoid breaking Next.js
+      contentSecurityPolicy: false,
       hsts: {
         maxAge: 31536000,
         includeSubDomains: true,
