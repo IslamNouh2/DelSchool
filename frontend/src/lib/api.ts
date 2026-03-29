@@ -1,8 +1,13 @@
 import axios from 'axios';
 import { OfflineDB } from './db';
 
+const rawBaseURL = process.env.NEXT_PUBLIC_API_URL || '';
+const baseURL = rawBaseURL.trim().endsWith('/api') 
+    ? rawBaseURL 
+    : `${rawBaseURL.replace(/\/$/, '')}/api`;
+
 export const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
+    baseURL: baseURL || '/api',
     withCredentials: true,
 });
 

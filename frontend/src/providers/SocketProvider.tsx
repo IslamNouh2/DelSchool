@@ -20,10 +20,13 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:47005';
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:47005';
+    // Socket.io should connect to the root (not /api)
+    const socketUrl = rawUrl.replace(/\/api$/, '').replace(/\/$/, '');
+    
     const newSocket = io(socketUrl, {
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
     });
 
     newSocket.on('connect', () => {
