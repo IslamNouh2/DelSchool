@@ -99,7 +99,7 @@ export class AuthService {
     response.cookie(name, token, {
       httpOnly: true,
       secure: isProduction, // Set to true if using HTTPS
-      sameSite: isProduction ? 'strict' : 'lax',
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
       maxAge,
       // Enterprise: domain should be dynamic if multi-subdomain SaaS

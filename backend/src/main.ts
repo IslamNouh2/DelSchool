@@ -50,9 +50,11 @@ async function bootstrap() {
 
   // Enable CORS with enterprise-grade configuration
   const allowedOrigins = [
+    'http://localhost:3000',
     'https://delschool-2.onrender.com',
+    'https://del-school-bvev.vercel.app',
     process.env.FRONTEND_URL,
-  ];
+  ].filter(Boolean);
 
   app.enableCors({
     origin: (
