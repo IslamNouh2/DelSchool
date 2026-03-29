@@ -6,12 +6,21 @@ const prisma = new PrismaClient();
 
 function runCommand(cmd: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    exec(cmd, { env: process.env }, (error, stdout, stderr) => {
-      if (stdout) console.log(stdout);
-      if (stderr) console.error(stderr);
-      if (error) return reject(error);
-      resolve();
-    });
+    exec(
+      cmd,
+      {
+        env: {
+          ...process.env,
+          DATABASE_URL: process.env.DIRECT_URL || process.env.DATABASE_URL,
+        },
+      },
+      (error, stdout, stderr) => {
+        if (stdout) console.log(stdout);
+        if (stderr) console.error(stderr);
+        if (error) return reject(error);
+        resolve();
+      },
+    );
   });
 }
 

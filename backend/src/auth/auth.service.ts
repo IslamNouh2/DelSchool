@@ -10,6 +10,25 @@ import * as bcrypt from 'bcryptjs';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+
+export interface UserResult {
+  id: number;
+  email: string;
+  username: string;
+  roleId: number | null;
+  tenantId: string | null;
+  status: string;
+  failedLoginAttempts: number;
+  lockUntil: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuthenticatedUser extends UserResult {
+  role: string;
+  permissions: string[];
+}
 
 @Injectable()
 export class AuthService {
@@ -55,7 +74,7 @@ export class AuthService {
     return { role: roleName, permissions: allPermissions };
   }
 
-  private async generateTokens(payload: JwtPayload) {
+  private generateTokens(payload: JwtPayload) {
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN', '15m'),
@@ -120,7 +139,7 @@ export class AuthService {
       permissions,
       tenantId: user.tenantId,
     };
-    const { accessToken, refreshToken } = await this.generateTokens(payload);
+    const { accessToken, refreshToken } = this.generateTokens(payload);
 
     await this.storeRefreshToken(user.id, refreshToken);
 
@@ -138,7 +157,10 @@ export class AuthService {
     };
   }
 
-  async validateUser(username: string, password: string): Promise<any> {
+  async validateUser(
+    username: string,
+    password: string,
+  ): Promise<UserResult | null> {
     const user = await this.prisma.user.findUnique({ where: { username } });
 
     if (!user) return null;
@@ -160,30 +182,33 @@ export class AuthService {
         where: { id: user.id },
         data: { failedLoginAttempts: 0, lockUntil: null, status: 'ACTIVE' },
       });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _, ...result } = user;
-      return result;
+      return result as UserResult;
     }
 
     // Handle failed login
     const failedAttempts = user.failedLoginAttempts + 1;
-    const data: any = { failedLoginAttempts: failedAttempts };
+    const updateData: Prisma.UserUpdateInput = {
+      failedLoginAttempts: failedAttempts,
+    };
 
     if (failedAttempts >= 5) {
-      data.status = 'LOCKED';
+      updateData.status = 'LOCKED';
       const lockUntil = new Date();
       lockUntil.setMinutes(lockUntil.getMinutes() + 15);
-      data.lockUntil = lockUntil;
+      updateData.lockUntil = lockUntil;
     }
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data,
+      data: updateData,
     });
 
     return null;
   }
 
-  async login(user: any, response: Response) {
+  async login(user: AuthenticatedUser, response: Response) {
     const { role, permissions } = await this.getUserPermissions(user.id);
     const payload: JwtPayload = {
       sub: user.id,
@@ -193,7 +218,7 @@ export class AuthService {
       permissions,
       tenantId: user.tenantId,
     };
-    const { accessToken, refreshToken } = await this.generateTokens(payload);
+    const { accessToken, refreshToken } = this.generateTokens(payload);
 
     await this.storeRefreshToken(user.id, refreshToken);
 
@@ -219,7 +244,7 @@ export class AuthService {
 
   async refresh(oldRefreshToken: string, response: Response) {
     try {
-      const payload = this.jwtService.verify(oldRefreshToken, {
+      const payload = this.jwtService.verify<JwtPayload>(oldRefreshToken, {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
@@ -246,8 +271,7 @@ export class AuthService {
         permissions,
         tenantId: payload.tenantId,
       };
-      const { accessToken, refreshToken } =
-        await this.generateTokens(newPayload);
+      const { accessToken, refreshToken } = this.generateTokens(newPayload);
 
       await this.storeRefreshToken(payload.sub, refreshToken);
 
@@ -260,7 +284,7 @@ export class AuthService {
       );
 
       return { message: 'Tokens refreshed' };
-    } catch (e) {
+    } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
