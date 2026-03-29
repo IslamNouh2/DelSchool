@@ -5,8 +5,8 @@ import { SubjectController } from './subject.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule], 
+  imports: [PrismaModule],
   controllers: [SubjectController],
   providers: [SubjectService],
 })
-export class SubjectModule { }
+export class SubjectModule {}

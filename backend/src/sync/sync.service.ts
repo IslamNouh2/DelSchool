@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BulkSyncDto, SyncOperationType } from './dto/sync-payload.dto';
 
@@ -36,14 +41,21 @@ export class SyncService {
     for (const op of dto.operations) {
       try {
         const result = await this.executeOperation(tenantId, userId, op);
-        results.push({ operationId: op.operationId, status: 'success', data: result });
+        results.push({
+          operationId: op.operationId,
+          status: 'success',
+          data: result,
+        });
       } catch (error) {
-        results.push({ 
-          operationId: op.operationId, 
-          status: 'error', 
+        results.push({
+          operationId: op.operationId,
+          status: 'error',
           message: error.message,
           conflict: error instanceof ConflictException,
-          serverData: error instanceof ConflictException ? error.getResponse() : undefined
+          serverData:
+            error instanceof ConflictException
+              ? error.getResponse()
+              : undefined,
         });
       }
     }
@@ -82,15 +94,20 @@ export class SyncService {
 
       case SyncOperationType.UPDATE:
         const recordId = op.data[idField];
-        if (!recordId) throw new BadRequestException(`Missing ID field ${idField} in data`);
+        if (!recordId)
+          throw new BadRequestException(`Missing ID field ${idField} in data`);
 
         const current = await model.findUnique({
           where: { [idField]: recordId },
         });
 
-        if (!current) throw new BadRequestException(`Record ${recordId} not found for entity ${op.entity}`);
-        if (current.tenantId !== tenantId) throw new UnauthorizedException('Tenant mismatch');
-        
+        if (!current)
+          throw new BadRequestException(
+            `Record ${recordId} not found for entity ${op.entity}`,
+          );
+        if (current.tenantId !== tenantId)
+          throw new UnauthorizedException('Tenant mismatch');
+
         // Conflict detection (Server-authoritative)
         if (op.version && current.version !== op.version) {
           throw new ConflictException({

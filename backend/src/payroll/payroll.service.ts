@@ -4,7 +4,12 @@ import { CompteService } from '../compte/compte.service';
 import { CreatePayrollDto } from './dto/create-payroll.dto';
 import { UpdatePayrollDto } from './dto/update-payroll.dto';
 import { GeneratePayrollDto } from './dto/generate-payroll.dto';
-import { AttendanceStatus, PayrollStatus, Prisma, Payroll } from '@prisma/client';
+import {
+  AttendanceStatus,
+  PayrollStatus,
+  Prisma,
+  Payroll,
+} from '@prisma/client';
 import { HRCalculationService } from './hr-calculation.service';
 import { PayrollApprovalService } from './payroll-approval.service';
 
@@ -44,22 +49,22 @@ export class PayrollService {
       where,
       include: {
         employer: {
-            select: {
-                employerId: true,
-                firstName: true,
-                lastName: true,
-                code: true,
-                photoFileName: true,
-                salary: true,
-            }
+          select: {
+            employerId: true,
+            firstName: true,
+            lastName: true,
+            code: true,
+            photoFileName: true,
+            salary: true,
+          },
         },
         compte: {
-            select: {
-                id: true,
-                name: true,
-                code: true
-            }
-        }
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -82,9 +87,9 @@ export class PayrollService {
           select: {
             id: true,
             name: true,
-            code: true
-          }
-        }
+            code: true,
+          },
+        },
       },
       orderBy: { period_end: 'desc' },
     });
@@ -104,166 +109,194 @@ export class PayrollService {
     return this.approvalService.submitPayroll(tenantId, id, userId);
   }
 
-  async payPayroll(tenantId: string, id: number, paymentMethod: string = 'CASH', compteId?: number, expenseAccountIdOverride?: number) {
+  async payPayroll(
+    tenantId: string,
+    id: number,
+    paymentMethod: string = 'CASH',
+    compteId?: number,
+    expenseAccountIdOverride?: number,
+  ) {
+    // Validate Treasury Account
+    if (compteId) {
+      const account = await this.prisma.compte.findFirst({
+        where: { id: compteId, tenantId }, // Enforce tenant
+        select: { category: true, name: true },
+      });
 
-        // Validate Treasury Account
-        if (compteId) {
-            const account = await this.prisma.compte.findFirst({
-                where: { id: compteId, tenantId }, // Enforce tenant
-                select: { category: true, name: true }
-            });
+      if (!account) {
+        throw new Error('Treasury account not found');
+      }
 
-            if (!account) {
-                 throw new Error('Treasury account not found');
-            }
+      if (!['CAISSE', 'BANQUE'].includes(account.category)) {
+        throw new Error(
+          `Invalid treasury account: ${account.name} is not a Caisse or Banque.`,
+        );
+      }
+    }
 
-            if (!['CAISSE', 'BANQUE'].includes(account.category)) {
-                throw new Error(`Invalid treasury account: ${account.name} is not a Caisse or Banque.`);
-            }
+    return this.prisma.$transaction(async (tx) => {
+      const payroll = await tx.payroll.findFirst({
+        where: { id, tenantId }, // Enforce tenant
+        include: { employer: true },
+      });
+
+      if (!payroll) throw new BadRequestException('Payroll record not found');
+      if (payroll.status === PayrollStatus.PAID)
+        throw new BadRequestException('Payroll already paid');
+      if (payroll.status !== PayrollStatus.APPROVED) {
+        throw new BadRequestException('Only APPROVED payroll can be paid');
+      }
+
+      // 1. Determine Expense Account (Destination)
+      let expenseAccountId = payroll.compteId || 0;
+
+      if (expenseAccountId === 0) {
+        if (expenseAccountIdOverride) {
+          expenseAccountId = expenseAccountIdOverride;
+        } else {
+          const employerAccount =
+            await this.compteService.getOrCreateEmployerAccount(
+              tenantId, // Pass tenantId
+              payroll.employerId,
+              `${payroll.employer.firstName} ${payroll.employer.lastName}`,
+            );
+          expenseAccountId = employerAccount.id;
         }
+      }
 
-        return this.prisma.$transaction(async (tx) => {
-            const payroll = await tx.payroll.findFirst({
-                where: { id, tenantId }, // Enforce tenant
-                include: { employer: true }
-            });
+      if (expenseAccountId === 0) {
+        throw new BadRequestException(
+          'Could not determine Expense Account for this payroll.',
+        );
+      }
 
-            if (!payroll) throw new BadRequestException('Payroll record not found');
-            if (payroll.status === PayrollStatus.PAID) throw new BadRequestException('Payroll already paid');
-            if (payroll.status !== PayrollStatus.APPROVED) {
-              throw new BadRequestException('Only APPROVED payroll can be paid');
-            }
+      // 2. We already created an Expense during Approval.
+      // We should find it or update it.
+      // In the original code it created a NEW expense.
+      // Ideally, Approval creates the Expense (Accrual), and Pay marks it as paid and creates the movement.
 
-            // 1. Determine Expense Account (Destination)
-            let expenseAccountId = payroll.compteId || 0;
+      const existingExpense = await tx.expense.findFirst({
+        where: {
+          title: {
+            contains: `Payroll for period ${payroll.period_start.toISOString().split('T')[0]}`,
+          },
+          compteId: expenseAccountId,
+          amount: payroll.netSalary,
+          tenantId, // Enforce tenant
+        },
+      });
 
-            if (expenseAccountId === 0) {
-                if (expenseAccountIdOverride) {
-                    expenseAccountId = expenseAccountIdOverride;
-                } else {
-                    const employerAccount = await this.compteService.getOrCreateEmployerAccount(
-                        tenantId, // Pass tenantId
-                        payroll.employerId, 
-                        `${payroll.employer.firstName} ${payroll.employer.lastName}`
-                    );
-                    expenseAccountId = employerAccount.id;
-                }
-            }
-            
-            if (expenseAccountId === 0) {
-                 throw new BadRequestException('Could not determine Expense Account for this payroll.');
-            }
+      const expenseId = existingExpense?.id;
 
-            // 2. We already created an Expense during Approval. 
-            // We should find it or update it. 
-            // In the original code it created a NEW expense. 
-            // Ideally, Approval creates the Expense (Accrual), and Pay marks it as paid and creates the movement.
-            
-            const existingExpense = await tx.expense.findFirst({
-              where: {
-                title: { contains: `Payroll for period ${payroll.period_start.toISOString().split('T')[0]}` },
-                compteId: expenseAccountId,
-                amount: payroll.netSalary,
-                tenantId, // Enforce tenant
-              }
-            });
+      // 3. Create Payment Record
+      const payment = await tx.payment.create({
+        data: {
+          amount: Number(payroll.netSalary),
+          method: paymentMethod as any,
+          date: new Date(),
+          status: 'COMPLETED',
+          employerId: payroll.employerId,
+          expenseId: expenseId,
+          compteSourceId: compteId, // Source (Treasury)
+          compteDestId: expenseAccountId, // Destination (Expense)
+          description: `Salary Payment #${payroll.id}`,
+          tenantId, // Enforce tenant
+        } as any,
+      });
 
-            const expenseId = existingExpense?.id;
+      // 4. Create Journal Entry (Accounting)
+      if (compteId) {
+        const journalId = paymentMethod === 'CASH' ? 2 : 3;
 
-            // 3. Create Payment Record
-            const payment = await tx.payment.create({
-                data: {
-                    amount: Number(payroll.netSalary),
-                    method: paymentMethod as any,
-                    date: new Date(),
-                    status: 'COMPLETED',
-                    employerId: payroll.employerId,
-                    expenseId: expenseId,
-                    compteSourceId: compteId, // Source (Treasury)
-                    compteDestId: expenseAccountId, // Destination (Expense)
-                    description: `Salary Payment #${payroll.id}`,
-                    tenantId, // Enforce tenant
-                } as any
-            });
-
-            // 4. Create Journal Entry (Accounting)
-            if (compteId) {
-                const journalId = paymentMethod === 'CASH' ? 2 : 3;
-
-                await tx.journalEntry.create({
-                    data: {
-                        journalId,
-                        entryNumber: `PAY-${payment.id}-${Date.now()}`,
-                        referenceType: 'PAYROLL_PAYMENT',
-                        referenceId: payment.id,
-                        date: new Date(),
-                        description: `Paiement Salaire: ${payroll.employer.firstName} ${payroll.employer.lastName}`,
-                        totalDebit: Number(payroll.netSalary),
-                        totalCredit: Number(payroll.netSalary),
-                        status: 'POSTED',
-                        createdBy: 1,
-                        tenantId, // Enforce tenant
-                        lines: {
-                            create: [
-                                {
-                                    lineNumber: 1,
-                                    compteId: expenseAccountId,
-                                    debit: Number(payroll.netSalary),
-                                    credit: 0,
-                                    description: `Salaire ${payroll.employer.firstName} ${payroll.employer.lastName}`,
-                                    tenantId, // Enforce tenant
-                                },
-                                {
-                                    lineNumber: 2,
-                                    compteId: compteId,
-                                    debit: 0,
-                                    credit: Number(payroll.netSalary),
-                                    description: `Paiement Salaire: ${payroll.employer.firstName} ${payroll.employer.lastName}`,
-                                    tenantId, // Enforce tenant
-                                }
-                            ]
-                        }
-                    }
-                });
-            }
-
-            // 5. Update Payroll Record
-            const updatedPayroll = await tx.payroll.update({
-                where: { id }, // id is unique globally but we already checked tenantId above
-                data: { 
-                    status: PayrollStatus.PAID,
+        await tx.journalEntry.create({
+          data: {
+            journalId,
+            entryNumber: `PAY-${payment.id}-${Date.now()}`,
+            referenceType: 'PAYROLL_PAYMENT',
+            referenceId: payment.id,
+            date: new Date(),
+            description: `Paiement Salaire: ${payroll.employer.firstName} ${payroll.employer.lastName}`,
+            totalDebit: Number(payroll.netSalary),
+            totalCredit: Number(payroll.netSalary),
+            status: 'POSTED',
+            createdBy: 1,
+            tenantId, // Enforce tenant
+            lines: {
+              create: [
+                {
+                  lineNumber: 1,
+                  compteId: expenseAccountId,
+                  debit: Number(payroll.netSalary),
+                  credit: 0,
+                  description: `Salaire ${payroll.employer.firstName} ${payroll.employer.lastName}`,
+                  tenantId, // Enforce tenant
                 },
-                include: {
-                    employer: true,
-                    compte: true
-                }
-            });
-
-            return { payment, payroll: updatedPayroll };
+                {
+                  lineNumber: 2,
+                  compteId: compteId,
+                  debit: 0,
+                  credit: Number(payroll.netSalary),
+                  description: `Paiement Salaire: ${payroll.employer.firstName} ${payroll.employer.lastName}`,
+                  tenantId, // Enforce tenant
+                },
+              ],
+            },
+          },
         });
+      }
+
+      // 5. Update Payroll Record
+      const updatedPayroll = await tx.payroll.update({
+        where: { id }, // id is unique globally but we already checked tenantId above
+        data: {
+          status: PayrollStatus.PAID,
+        },
+        include: {
+          employer: true,
+          compte: true,
+        },
+      });
+
+      return { payment, payroll: updatedPayroll };
+    });
   }
 
-  async update(tenantId: string, id: number, updatePayrollDto: UpdatePayrollDto) {
+  async update(
+    tenantId: string,
+    id: number,
+    updatePayrollDto: UpdatePayrollDto,
+  ) {
     const { period_start, period_end, ...rest } = updatePayrollDto;
     const data: Prisma.PayrollUpdateInput = { ...rest };
-    
+
     if (period_start) data.period_start = new Date(period_start);
     if (period_end) data.period_end = new Date(period_end);
 
     // Recalculate net salary if components change
     if (
-        updatePayrollDto.baseSalary !== undefined || 
-        updatePayrollDto.allowances !== undefined || 
-        updatePayrollDto.deductions !== undefined
+      updatePayrollDto.baseSalary !== undefined ||
+      updatePayrollDto.allowances !== undefined ||
+      updatePayrollDto.deductions !== undefined
     ) {
-        const payroll = await this.prisma.payroll.findFirst({ where: { id, tenantId } }); // Enforce tenant
-        if (!payroll) throw new BadRequestException('Payroll not found');
+      const payroll = await this.prisma.payroll.findFirst({
+        where: { id, tenantId },
+      }); // Enforce tenant
+      if (!payroll) throw new BadRequestException('Payroll not found');
 
-        const base = updatePayrollDto.baseSalary !== undefined ? updatePayrollDto.baseSalary : Number(payroll.baseSalary);
-        const allowances = updatePayrollDto.allowances !== undefined ? updatePayrollDto.allowances : Number(payroll.allowances);
-        const deductions = updatePayrollDto.deductions !== undefined ? updatePayrollDto.deductions : Number(payroll.deductions);
-        
-        data.netSalary = base + allowances - deductions;
+      const base =
+        updatePayrollDto.baseSalary !== undefined
+          ? updatePayrollDto.baseSalary
+          : Number(payroll.baseSalary);
+      const allowances =
+        updatePayrollDto.allowances !== undefined
+          ? updatePayrollDto.allowances
+          : Number(payroll.allowances);
+      const deductions =
+        updatePayrollDto.deductions !== undefined
+          ? updatePayrollDto.deductions
+          : Number(payroll.deductions);
+
+      data.netSalary = base + allowances - deductions;
     }
 
     return this.prisma.payroll.update({
@@ -274,7 +307,9 @@ export class PayrollService {
 
   async remove(tenantId: string, id: number) {
     // Check tenant first
-    const check = await this.prisma.payroll.findFirst({ where: { id, tenantId } });
+    const check = await this.prisma.payroll.findFirst({
+      where: { id, tenantId },
+    });
     if (!check) throw new BadRequestException('Payroll not found');
 
     return this.prisma.payroll.delete({
@@ -290,67 +325,67 @@ export class PayrollService {
     // 1. Get employers (all or specific)
     const where: Prisma.EmployerWhereInput = { okBlock: false, tenantId }; // Enforce tenant
     if (dto.employerId) {
-        where.employerId = Number(dto.employerId);
+      where.employerId = Number(dto.employerId);
     }
 
     const employers = await this.prisma.employer.findMany({
-        where, // Only active employers
+      where, // Only active employers
     });
 
     const generatedPayrolls: Payroll[] = [];
 
     for (const emp of employers) {
-        // Check if payroll already exists for this period
-        const existing = await this.prisma.payroll.findFirst({
-            where: {
-                employerId: emp.employerId,
-                period_start: start,
-                period_end: end,
-                tenantId, // Enforce tenant
-            }
-        });
+      // Check if payroll already exists for this period
+      const existing = await this.prisma.payroll.findFirst({
+        where: {
+          employerId: emp.employerId,
+          period_start: start,
+          period_end: end,
+          tenantId, // Enforce tenant
+        },
+      });
 
-        if (existing) {
-            continue; // Skip if exists
-        }
+      if (existing) {
+        continue; // Skip if exists
+      }
 
-        // 2. Fetch attendance
-        const attendance = await this.prisma.employerAttendance.findMany({
-            where: {
-                employerId: emp.employerId,
-                date: {
-                    gte: start,
-                    lte: end,
-                },
-                tenantId, // Enforce tenant
-            },
-        });
+      // 2. Fetch attendance
+      const attendance = await this.prisma.employerAttendance.findMany({
+        where: {
+          employerId: emp.employerId,
+          date: {
+            gte: start,
+            lte: end,
+          },
+          tenantId, // Enforce tenant
+        },
+      });
 
-        // Use HRCalculationService for logic
-        const calc = await this.hrCalculation.calculateSalary(
-            emp.salary,
-            attendance,
-            dto.allowances || 0,
-            emp.salaryBasis // Pass the new salaryBasis field
-        );
+      // Use HRCalculationService for logic
+      const calc = await this.hrCalculation.calculateSalary(
+        emp.salary,
+        attendance,
+        dto.allowances || 0,
+        emp.salaryBasis, // Pass the new salaryBasis field
+      );
 
-        const payroll = await this.prisma.payroll.create({
-            data: {
-                employerId: emp.employerId,
-                period_start: start,
-                period_end: end,
-                baseSalary: calc.baseSalary,
-                allowances: calc.allowances,
-                deductions: calc.totalDeduction,
-                netSalary: calc.netSalary,
-                status: PayrollStatus.DRAFT,
-                attendanceSummary: calc.attendanceSummary as any,
-                compteId: dto.compteId ? Number(dto.compteId) : undefined,
-                createdAt: dto.date ? new Date(dto.date) : new Date(),
-                tenantId, // Enforce tenant
-            }
-        });
-        generatedPayrolls.push(payroll);
+      const payroll = await this.prisma.payroll.create({
+        data: {
+          employerId: emp.employerId,
+          period_start: start,
+          period_end: end,
+          baseSalary: calc.baseSalary,
+          allowances: calc.allowances,
+          deductions: calc.totalDeduction,
+          netSalary: calc.netSalary,
+          status: PayrollStatus.DRAFT,
+          attendanceSummary: calc.attendanceSummary as any,
+          compteId: dto.compteId ? Number(dto.compteId) : undefined,
+          createdAt: dto.date ? new Date(dto.date) : new Date(),
+          tenantId, // Enforce tenant
+        },
+      });
+      generatedPayrolls.push(payroll);
     }
 
     return { count: generatedPayrolls.length, generatedPayrolls };

@@ -1,8 +1,24 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { CreateTimetableDto } from "./dto/create-timetable.dto";
-import { TimetableService } from "./timetable.service";
-import { UpdateTimetableDto } from "./dto/update-timetable.dto";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { CreateTimetableDto } from './dto/create-timetable.dto';
+import { TimetableService } from './timetable.service';
+import { UpdateTimetableDto } from './dto/update-timetable.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Req, UseGuards } from '@nestjs/common';
@@ -13,15 +29,17 @@ import { TenantId } from '../auth/decorators/tenant-id.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('timetable')
 export class TimetableController {
-  constructor(private readonly service: TimetableService) { }
+  constructor(private readonly service: TimetableService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new timetable entry' })
-  @ApiResponse({ status: 201, description: 'Timetable entry successfully created' })
+  @ApiResponse({
+    status: 201,
+    description: 'Timetable entry successfully created',
+  })
   async create(@TenantId() tenantId: string, @Body() dto: CreateTimetableDto) {
     return this.service.create(tenantId, dto);
   }
-
 
   @Get()
   @ApiOperation({ summary: 'Get all timetable entries' })
@@ -59,11 +77,21 @@ export class TimetableController {
     @Query('timeSlotId', ParseIntPipe) timeSlotId: number,
     @Query('academicYear') academicYear: string,
   ) {
-    return this.service.checkDuplicate(tenantId, day, classId, timeSlotId, academicYear);
+    return this.service.checkDuplicate(
+      tenantId,
+      day,
+      classId,
+      timeSlotId,
+      academicYear,
+    );
   }
 
   @Put(':id')
-  update(@TenantId() tenantId: string, @Param('id') id: number, @Body() dto: UpdateTimetableDto) {
+  update(
+    @TenantId() tenantId: string,
+    @Param('id') id: number,
+    @Body() dto: UpdateTimetableDto,
+  ) {
     return this.service.update(tenantId, +id, dto);
   }
 
@@ -74,7 +102,10 @@ export class TimetableController {
 
   @Post('generate-ai')
   @ApiOperation({ summary: 'Generate optimized timetable using AI' })
-  @ApiResponse({ status: 201, description: 'AI Timetable successfully generated' })
+  @ApiResponse({
+    status: 201,
+    description: 'AI Timetable successfully generated',
+  })
   async generateAI(
     @TenantId() tenantId: string,
     @Body('academicYear') academicYear: string,

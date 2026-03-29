@@ -4,6 +4,6 @@ import { TransitionService } from './transition.service';
 
 @Module({
   controllers: [TransitionController],
-  providers: [TransitionService]
+  providers: [TransitionService],
 })
 export class TransitionModule {}

@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import api from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Search, Download, Eye, Edit, Trash2, ArrowDownWideNarrow, Columns3, GraduationCap } from "lucide-react";
+import { Plus, Filter, Search, Download, Eye, Edit, Trash2, ArrowDownWideNarrow, Columns3, GraduationCap, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import StudentForm from "@/components/forms/StudentForm";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -318,6 +318,13 @@ export default function StudentListPage() {
                         className="p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors group"
                     >
                         <Eye className="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                    </Link>
+                    <Link
+                        href={`/report-card/${student.studentId}/latest`}
+                        className="p-2 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-colors group"
+                        title="كشف النقاط"
+                    >
+                        <FileText className="w-4 h-4 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400" />
                     </Link>
                     <button
                         onClick={() => handleUpdate(student.studentId)}

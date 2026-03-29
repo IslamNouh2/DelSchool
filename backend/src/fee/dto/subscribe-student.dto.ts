@@ -1,13 +1,13 @@
 import { IsArray, IsNumber, IsDateString } from 'class-validator';
 
 export class SubscribeStudentDto {
-    @IsNumber()
-    studentId: number;
+  @IsNumber()
+  studentId: number;
 
-    @IsArray()
-    @IsNumber({}, { each: true })
-    templateIds: number[];
+  @IsArray()
+  @IsNumber({}, { each: true })
+  templateIds: number[];
 
-    @IsDateString()
-    dueDate: string;
+  @IsDateString()
+  dueDate: string;
 }

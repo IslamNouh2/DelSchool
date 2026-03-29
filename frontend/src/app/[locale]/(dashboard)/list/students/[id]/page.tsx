@@ -11,7 +11,8 @@ import {
     PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter, Link } from "@/i18n/routing";
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import StudentForm from '@/components/forms/StudentForm';
@@ -259,9 +260,19 @@ console.log(studentRes.data);
                                             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{student?.firstName} {student?.lastName}</h1>
                                             <p className="text-gray-400 text-sm">Student</p>
                                         </div>
-                                        <button onClick={() => handleUpdate(student?.studentId || 0)} className="p-2 rounded-full bg-pink-50 dark:bg-pink-900/20 text-pink-500 hover:bg-pink-100 transition-colors">
-                                            <Edit className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <Button 
+                                                onClick={() => navigate.push(`/report-card/${student?.studentId}/latest`)} 
+                                                variant="outline"
+                                                className="rounded-full border-purple-100 text-purple-600 hover:bg-purple-50 gap-2 h-9 px-4 font-bold"
+                                            >
+                                                <FileText className="w-4 h-4" />
+                                                كشف النقاط
+                                            </Button>
+                                            <button onClick={() => handleUpdate(student?.studentId || 0)} className="p-2 rounded-full bg-pink-50 dark:bg-pink-900/20 text-pink-500 hover:bg-pink-100 transition-colors">
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-1">

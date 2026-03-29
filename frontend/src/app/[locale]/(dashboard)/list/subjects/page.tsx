@@ -30,6 +30,19 @@ export default function SubjectListPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
+    const [showSubSubject, setShowSubSubject] = useState(true);
+
+    useEffect(() => {
+        const fetchParam = async () => {
+            try {
+                const res = await api.get("/parameter/ok-sub-subject/status");
+                setShowSubSubject(res.data === true);
+            } catch (err) {
+                console.error("Failed to fetch parameter:", err);
+            }
+        };
+        fetchParam();
+    }, []);
 
     useEffect(() => {
         const loadUser = async () => {
@@ -78,6 +91,7 @@ export default function SubjectListPage() {
                     subjectId: (q as any).id || Date.now(), // Use record ID if available, otherwise fallback
                     subjectName: q.data.subjectName,
                     totalGrads: q.data.totalGrads,
+                    coff: q.data.coff,
                     parentId: q.data.parentId,
                     okBlock: q.data.okBlock,
                     parentName: "...", // Unknown until sync
@@ -241,6 +255,7 @@ export default function SubjectListPage() {
                             onEdit={handleEdit}
                             onDelete={handleDelete}
                             onAddSubSubject={handleAddSubSubject}
+                            showAddSubSubject={showSubSubject}
                         />
                     ))}
                 </div>

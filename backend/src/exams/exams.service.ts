@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ExamRepository } from './exam.repository';
 import { SocketGateway } from 'src/socket/socket.gateway';
 
@@ -8,124 +12,141 @@ import { UpdateExamDto } from './DTO/update-exam.dto';
 import { UpsertGradesDto } from './DTO/upsert-grades.dto';
 @Injectable()
 export class ExamService {
-    constructor(
-        private readonly examRepository: ExamRepository,
-        private socketGateway: SocketGateway
-    ) { }
+  constructor(
+    private readonly examRepository: ExamRepository,
+    private socketGateway: SocketGateway,
+  ) {}
 
+  async create(tenantId: string, createExamDto: CreateExamDto): Promise<Exam> {
+    // Validate dates
+    const startDate = new Date(createExamDto.dateStart);
+    const endDate = new Date(createExamDto.dateEnd);
 
-    async create(tenantId: string, createExamDto: CreateExamDto): Promise<Exam> {
-        // Validate dates
-        const startDate = new Date(createExamDto.dateStart);
-        const endDate = new Date(createExamDto.dateEnd);
-
-        if (endDate <= startDate) {
-            throw new BadRequestException('End date must be after start date');
-        }
-
-        const exam = await this.examRepository.create(tenantId, createExamDto);
-        this.socketGateway.emitRefresh();
-        return exam;
+    if (endDate <= startDate) {
+      throw new BadRequestException('End date must be after start date');
     }
 
-    async findAll(
-        tenantId: string,
-        page: number = 1,
-        limit: number = 10,
-        search?: string,
-    ): Promise<{ exams: Exam[]; total: number; page: number; totalPages: number }> {
-        const skip = (page - 1) * limit;
-        const { exams, total } = await this.examRepository.findAll({
-            tenantId,
-            skip,
-            take: limit,
-            search,
-        });
+    const exam = await this.examRepository.create(tenantId, createExamDto);
+    this.socketGateway.emitRefresh();
+    return exam;
+  }
 
-        return {
-            exams,
-            total,
-            page,
-            totalPages: Math.ceil(total / limit),
-        };
+  async findAll(
+    tenantId: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ): Promise<{
+    exams: Exam[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
+    const { exams, total } = await this.examRepository.findAll({
+      tenantId,
+      skip,
+      take: limit,
+      search,
+    });
+
+    return {
+      exams,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(tenantId: string, id: number): Promise<Exam> {
+    const exam = await this.examRepository.findOne(tenantId, id);
+    if (!exam) {
+      throw new NotFoundException(`Exam with ID ${id} not found`);
+    }
+    return exam;
+  }
+
+  async getExams(tenantId: string) {
+    return this.examRepository.getExams(tenantId);
+  }
+
+  async getSubjectOfClass(tenantId: string, classId: number, examId: number) {
+    return this.examRepository.getSubjectOfClass(tenantId, classId, examId);
+  }
+
+  async saveGrades(tenantId: string, dto: UpsertGradesDto) {
+    return this.examRepository.upsertGrades(
+      tenantId,
+      dto.classId,
+      dto.examId,
+      dto.grades,
+    );
+  }
+
+  async update(
+    tenantId: string,
+    id: number,
+    updateExamDto: UpdateExamDto,
+  ): Promise<Exam> {
+    // Check if exam exists
+    await this.findOne(tenantId, id);
+
+    // Validate dates if both are provided
+    if (updateExamDto.dateStart && updateExamDto.dateEnd) {
+      const startDate = new Date(updateExamDto.dateStart);
+      const endDate = new Date(updateExamDto.dateEnd);
+
+      if (endDate <= startDate) {
+        throw new BadRequestException('End date must be after start date');
+      }
     }
 
-    async findOne(tenantId: string, id: number): Promise<Exam> {
-        const exam = await this.examRepository.findOne(tenantId, id);
-        if (!exam) {
-            throw new NotFoundException(`Exam with ID ${id} not found`);
-        }
-        return exam;
-    }
+    const exam = await this.examRepository.update(tenantId, id, updateExamDto);
+    this.socketGateway.emitRefresh();
+    return exam;
+  }
 
-    async getExams(tenantId: string) {
-        return this.examRepository.getExams(tenantId);
-    }
+  async remove(tenantId: string, id: number): Promise<{ message: string }> {
+    await this.findOne(tenantId, id);
+    await this.examRepository.remove(tenantId, id);
+    this.socketGateway.emitRefresh();
+    return { message: `Exam with ID ${id} has been deleted` };
+  }
 
-    async getSubjectOfClass(tenantId: string, classId: number, examId: number) {
-        return this.examRepository.getSubjectOfClass(tenantId, classId, examId);
-    }
+  async togglePublish(
+    tenantId: string,
+    id: number,
+    publish: boolean,
+  ): Promise<Exam> {
+    await this.findOne(tenantId, id);
+    return this.examRepository.togglePublish(tenantId, id, publish);
+  }
 
-    async saveGrades(tenantId: string, dto: UpsertGradesDto) {
-        return this.examRepository.upsertGrades(tenantId, dto.classId, dto.examId, dto.grades);
-    }
+  async getDashboardStats(tenantId: string) {
+    return this.examRepository.getDashboardStats(tenantId);
+  }
 
-    async update(tenantId: string, id: number, updateExamDto: UpdateExamDto): Promise<Exam> {
-        // Check if exam exists
-        await this.findOne(tenantId, id);
+  async getSubjectPerformance(tenantId: string) {
+    return this.examRepository.getSubjectPerformance(tenantId);
+  }
 
-        // Validate dates if both are provided
-        if (updateExamDto.dateStart && updateExamDto.dateEnd) {
-            const startDate = new Date(updateExamDto.dateStart);
-            const endDate = new Date(updateExamDto.dateEnd);
+  async getGradeDistribution(tenantId: string) {
+    return this.examRepository.getGradeDistribution(tenantId);
+  }
 
-            if (endDate <= startDate) {
-                throw new BadRequestException('End date must be after start date');
-            }
-        }
+  async getClassPerformance(tenantId: string) {
+    return this.examRepository.getClassPerformance(tenantId);
+  }
 
-        const exam = await this.examRepository.update(tenantId, id, updateExamDto);
-        this.socketGateway.emitRefresh();
-        return exam;
-    }
+  async getStudentGrades(tenantId: string, studentId: number) {
+    return this.examRepository.getStudentGrades(tenantId, studentId);
+  }
 
-    async remove(tenantId: string, id: number): Promise<{ message: string }> {
-        await this.findOne(tenantId, id);
-        await this.examRepository.remove(tenantId, id);
-        this.socketGateway.emitRefresh();
-        return { message: `Exam with ID ${id} has been deleted` };
-    }
+  async getTopStudents(tenantId: string, classId?: number) {
+    return this.examRepository.getTopStudents(tenantId, classId);
+  }
 
-    async togglePublish(tenantId: string, id: number, publish: boolean): Promise<Exam> {
-        await this.findOne(tenantId, id);
-        return this.examRepository.togglePublish(tenantId, id, publish);
-    }
-
-    async getDashboardStats(tenantId: string) {
-        return this.examRepository.getDashboardStats(tenantId);
-    }
-
-    async getSubjectPerformance(tenantId: string) {
-        return this.examRepository.getSubjectPerformance(tenantId);
-    }
-
-    async getGradeDistribution(tenantId: string) {
-        return this.examRepository.getGradeDistribution(tenantId);
-    }
-
-    async getClassPerformance(tenantId: string) {
-        return this.examRepository.getClassPerformance(tenantId);
-    }
-
-    async getStudentGrades(tenantId: string, studentId: number) {
-        return this.examRepository.getStudentGrades(tenantId, studentId);
-    }
-
-    async getTopStudents(tenantId: string, classId?: number) {
-        return this.examRepository.getTopStudents(tenantId, classId);
-    }
-
-    async getUpcomingExams(tenantId: string, classId?: number) {
-        return this.examRepository.getUpcomingExams(tenantId, classId);
-    }
+  async getUpcomingExams(tenantId: string, classId?: number) {
+    return this.examRepository.getUpcomingExams(tenantId, classId);
+  }
 }

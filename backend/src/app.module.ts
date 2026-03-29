@@ -31,6 +31,7 @@ import { CoreModule } from './core/core.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
 import { AiModule } from './ai/ai.module';
+import { ReportCardModule } from './report-card/report-card.module';
 
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -44,10 +45,12 @@ import { TimetableOptimizerModule } from './timetable-optimizer/timetable-optimi
       envFilePath: '.env',
     }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{
+    ThrottlerModule.forRoot([
+      {
         ttl: 60000,
         limit: 10,
-    }]),
+      },
+    ]),
     PrismaModule,
     AuthModule,
     RolesModule,
@@ -80,8 +83,8 @@ import { TimetableOptimizerModule } from './timetable-optimizer/timetable-optimi
     AiModule,
     SystemSettingsModule,
     TimetableOptimizerModule,
+    ReportCardModule,
   ],
-  
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

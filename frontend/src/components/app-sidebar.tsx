@@ -1,7 +1,6 @@
 "use client"
 
-import * as React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import {
   AudioWaveform,
   BadgeDollarSign,
@@ -13,7 +12,6 @@ import {
   Frame,
   GalleryVerticalEnd,
   Map,
-  PieChart,
   Settings,
   Settings2,
   SquareTerminal,
@@ -23,7 +21,6 @@ import {
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
@@ -36,6 +33,8 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/components/contexts/AuthContext"
+import { useTranslations } from "next-intl"
 
 // Static display data
 const staticData = {
@@ -70,27 +69,42 @@ const staticData = {
   // ],
 }
 
-import { useAuth } from "@/components/contexts/AuthContext"
-import { useTranslations } from "next-intl"
+
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, loading, hasPermission, hasRole } = useAuth()
   const t = useTranslations("menu")
 
-  const navItems = React.useMemo(() => {
-    if (loading || !user) {
-      return [
-        { title: t("dashboard"), url: "/dashboard", icon: SquareTerminal, isActive: true },
-      ]
-    }
+  const navItems = useMemo(() => {
+    // if (loading || !user) {
+    //   return [
+    //     { title: t("dashboard"), url: "/", icon: SquareTerminal, isActive: true },
+    //   ]
+    // }
 
     const isAdmin = hasRole('ADMIN');
+    const isTeacher = hasRole('TEACHER');
+    const isStudent = hasRole('STUDENT');
+
+    // Generic dashboard URL mapping
+    const dashboardUrl = isAdmin
+      ? "/admin"
+      : isTeacher
+        ? "/teachers"
+        : isStudent
+          ? "/student"
+          : "/";
 
     const items: any[] = [
-      { title: t("dashboard"), url: "/dashboard", icon: SquareTerminal, isActive: true },
+      { title: t("dashboard"), url: dashboardUrl, icon: SquareTerminal, isActive: true },
     ];
 
-    // Users and Roles
+    // Students only items
+    if (isStudent && user?.profileId) {
+      items.push({ title: t("report_card"), url: `/report-card/${user.profileId}`, icon: FileBadge });
+    }
+
+    // Users and Roles (Admin/Manager)
     if (isAdmin || hasPermission('user:read')) {
       items.push({ title: t("employers"), url: "/list/employers", icon: User2 });
     }
@@ -99,19 +113,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         items.push({ title: t("students"), url: "/list/students", icon: BookOpen });
     }
 
-    // Classes / Subjects / Levels
-    if (isAdmin || hasPermission('subject:read')) {
+    // Academic items (Admin/Teacher)
+    if (isAdmin || isTeacher || hasPermission('subject:read')) {
         items.push({ title: t("subjects"), url: "/list/subjects", icon: BookOpen });
     }
-    if (isAdmin || hasPermission('subject:read')) {
+    if (isAdmin || isTeacher || hasPermission('subject:read')) {
         items.push({ title: t("classes"), url: "/list/classes", icon: Frame });
     }
-    if (isAdmin || hasPermission('subject:read')) {
+    if (isAdmin || isTeacher || hasPermission('subject:read')) {
         items.push({ title: t("levels"), url: "/list/local", icon: Map });
     }
 
-    // Attendance
-    if (isAdmin || hasPermission('attendance:read')) {
+    // Attendance (Admin/Teacher)
+    if (isAdmin || isTeacher || hasPermission('attendance:read')) {
         items.push({
             title: t("attendance.title"),
             url: "#",
@@ -123,15 +137,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         });
     }
 
-    // Exam / Grades
-    if (isAdmin || hasPermission('exam:read') || hasPermission('grade:read')) {
+    // Exam / Grades (Admin/Teacher/Student)
+    if (isAdmin || isTeacher || isStudent || hasPermission('exam:read') || hasPermission('grade:read')) {
         items.push({ title: t("exam"), url: "/list/exam", icon: FileBadge });
     }
 
+    // General items (Every authenticated user usually)
     items.push({ title: t("timetable"), url: "/list/timetable", icon: GalleryVerticalEnd });
     items.push({ title: t("events"), url: "/list/events", icon: Calendar });
 
-    // Finance (Admin/Manager only usually, but let's check permission)
+    // Finance (Admin/Finance only)
     if (isAdmin || hasPermission('finance:read')) {
         items.push({
             title: t("finance.title"),
@@ -165,7 +180,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
 
     return items;
-  }, [user, loading, t])
+  }, [user, loading, t, hasPermission, hasRole])
 
   return (
     <Sidebar collapsible="icon" {...props}>

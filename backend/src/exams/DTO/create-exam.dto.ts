@@ -1,20 +1,25 @@
-import { IsString, IsNotEmpty, IsDateString, IsBoolean, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsDateString,
+  IsBoolean,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateExamDto {
-    @IsString()
-    @IsNotEmpty()
-    examName: string;
+  @IsString()
+  @IsNotEmpty()
+  examName: string;
 
-    @IsDateString()
-    @IsNotEmpty()
-    dateStart: string;
+  @IsDateString()
+  @IsNotEmpty()
+  dateStart: string;
 
-    @IsDateString()
-    @IsNotEmpty()
-    dateEnd: string;
+  @IsDateString()
+  @IsNotEmpty()
+  dateEnd: string;
 
-    @IsBoolean()
-    @IsOptional()
-    publish?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  publish?: boolean;
 }
-

@@ -1,13 +1,21 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { TimeSlotService } from './time-slot.service';
 import { UpdateTimeSlotDto } from './dto/UpdateTimeSlotDto';
 import { CreateTimeSlotDto } from './dto/CreateTimeSlotDto';
 import { TenantId } from '../auth/decorators/tenant-id.decorator';
 
 @Controller('time-slots')
-
 export class TimeSlotController {
-  constructor(private readonly service: TimeSlotService) { }
+  constructor(private readonly service: TimeSlotService) {}
 
   @Post()
   create(@TenantId() tenantId: string, @Body() dto: CreateTimeSlotDto) {
@@ -22,8 +30,8 @@ export class TimeSlotController {
   @Put(':id')
   update(
     @TenantId() tenantId: string,
-    @Param('id') id: string, 
-    @Body() dto: UpdateTimeSlotDto
+    @Param('id') id: string,
+    @Body() dto: UpdateTimeSlotDto,
   ) {
     return this.service.update(tenantId, +id, dto);
   }

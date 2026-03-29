@@ -1,28 +1,34 @@
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { AttendanceStatus } from '@prisma/client';
 
 export class CreateEmployerAttendanceDto {
-    @IsInt()
-    employerId: number;
+  @IsInt()
+  employerId: number;
 
-    @IsDateString()
-    date: string;
+  @IsDateString()
+  date: string;
 
-    @IsOptional()
-    @IsDateString()
-    checkInTime?: string;
+  @IsOptional()
+  @IsDateString()
+  checkInTime?: string;
 
-    @IsOptional()
-    @IsDateString()
-    checkOutTime?: string;
+  @IsOptional()
+  @IsDateString()
+  checkOutTime?: string;
 
-    @IsOptional()
-    @IsString()
-    remarks?: string;
+  @IsOptional()
+  @IsString()
+  remarks?: string;
 
-    @IsEnum(AttendanceStatus)
-    status: AttendanceStatus;
+  @IsEnum(AttendanceStatus)
+  status: AttendanceStatus;
 
-    @IsString()
-    academicYear: string;
+  @IsString()
+  academicYear: string;
 }

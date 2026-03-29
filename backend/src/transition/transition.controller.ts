@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { TransitionService } from './transition.service';
 import { TenantId } from '../auth/decorators/tenant-id.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -11,7 +19,7 @@ export class TransitionController {
   @Get('passing-students')
   getPassingStudents(
     @TenantId() tenantId: string,
-    @Query('classId', ParseIntPipe) classId: number
+    @Query('classId', ParseIntPipe) classId: number,
   ) {
     return this.transitionService.getPassingStudents(tenantId, classId);
   }
@@ -19,10 +27,15 @@ export class TransitionController {
   @Post('process')
   transitionStudents(
     @TenantId() tenantId: string,
-    @Body() dto: {
-      nextYear: string,
-      transitions: { studentId: number, studentClassId: number, nextClassId: number }[]
-    }
+    @Body()
+    dto: {
+      nextYear: string;
+      transitions: {
+        studentId: number;
+        studentClassId: number;
+        nextClassId: number;
+      }[];
+    },
   ) {
     return this.transitionService.transitionStudents(tenantId, dto);
   }

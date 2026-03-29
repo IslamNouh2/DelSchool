@@ -4,11 +4,9 @@ import { FeeService } from './fee.service';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [
-    AuthModule, 
-  ],
+  imports: [AuthModule],
   controllers: [FeeController],
   providers: [FeeService],
-  exports: [FeeService]
+  exports: [FeeService],
 })
 export class FeeModule {}

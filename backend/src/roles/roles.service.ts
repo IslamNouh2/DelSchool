@@ -32,11 +32,18 @@ export class RolesService {
     return role;
   }
 
-  async create(data: { name: string; description?: string; parentId?: number }) {
+  async create(data: {
+    name: string;
+    description?: string;
+    parentId?: number;
+  }) {
     return this.prisma.role.create({ data });
   }
 
-  async update(id: number, data: { name?: string; description?: string; parentId?: number }) {
+  async update(
+    id: number,
+    data: { name?: string; description?: string; parentId?: number },
+  ) {
     return this.prisma.role.update({
       where: { id },
       data,

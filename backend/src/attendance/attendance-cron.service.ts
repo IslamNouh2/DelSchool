@@ -51,7 +51,9 @@ export class AttendanceCronService {
             tenantId: emp.tenantId, // Scoped from employer
           },
         });
-        this.logger.log(`Marked Employer ${emp.employerId} as ABSENT for ${today.toDateString()}`);
+        this.logger.log(
+          `Marked Employer ${emp.employerId} as ABSENT for ${today.toDateString()}`,
+        );
       }
     }
 

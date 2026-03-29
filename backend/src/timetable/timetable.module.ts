@@ -10,4 +10,4 @@ import { TimetableOptimizerModule } from '../timetable-optimizer/timetable-optim
   controllers: [TimetableController],
   providers: [TimetableService],
 })
-export class TimetableModule { }
+export class TimetableModule {}

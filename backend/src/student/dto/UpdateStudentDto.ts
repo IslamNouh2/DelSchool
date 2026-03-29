@@ -1,130 +1,137 @@
 import { Type } from 'class-transformer';
-import { IsOptional, IsString, IsDateString, IsInt, IsNotEmpty, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsInt,
+  IsNotEmpty,
+  IsBoolean,
+} from 'class-validator';
 
 export class UpdateStudentDto {
-    @IsOptional()
-    @IsString()
-    firstName?: string;
+  @IsOptional()
+  @IsString()
+  firstName?: string;
 
-    @IsOptional()
-    @IsString()
-    lastName?: string;
+  @IsOptional()
+  @IsString()
+  lastName?: string;
 
-    @IsOptional()
-    @IsDateString()
-    dateOfBirth?: string;
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
 
-    @IsOptional()
-    @IsString()
-    gender?: string;
+  @IsOptional()
+  @IsString()
+  gender?: string;
 
-    @IsOptional()
-    @IsString()
-    address?: string;
+  @IsOptional()
+  @IsString()
+  address?: string;
 
-    @IsOptional()
-    @IsString()
-    email?: string;
+  @IsOptional()
+  @IsString()
+  email?: string;
 
-    @IsOptional()
-    @IsString()
-    phone?: string;
+  @IsOptional()
+  @IsString()
+  phone?: string;
 
-    @IsOptional()
-    @IsInt()
-    parentId?: number;
+  @IsOptional()
+  @IsInt()
+  parentId?: number;
 
-    @IsOptional()
-    @IsString()
-    fatherName?: string;
+  @IsOptional()
+  @IsString()
+  fatherName?: string;
 
-    @IsOptional()
-    @IsString()
-    fatherNumber?: string;
+  @IsOptional()
+  @IsString()
+  fatherNumber?: string;
 
-    @IsOptional()
-    @IsString()
-    motherName?: string;
+  @IsOptional()
+  @IsString()
+  motherName?: string;
 
-    @IsOptional()
-    @IsString()
-    motherNumber?: string;
+  @IsOptional()
+  @IsString()
+  motherNumber?: string;
 
-    @IsOptional()
-    @IsString()
-    fatherJob?: string;
+  @IsOptional()
+  @IsString()
+  fatherJob?: string;
 
-    @IsOptional()
-    @IsString()
-    motherJob?: string;
+  @IsOptional()
+  @IsString()
+  motherJob?: string;
 
-    @IsOptional()
-    @IsString()
-    code?: string;
+  @IsOptional()
+  @IsString()
+  code?: string;
 
-    @IsOptional()
-    @IsString()
-    health?: string;
+  @IsOptional()
+  @IsString()
+  health?: string;
 
-    @IsOptional()
-    @IsDateString()
-    dateCreate?: string;
+  @IsOptional()
+  @IsDateString()
+  dateCreate?: string;
 
-    @IsOptional()
-    @IsDateString()
-    dateModif?: string;
+  @IsOptional()
+  @IsDateString()
+  dateModif?: string;
 
-    @IsOptional()
-    @IsString()
-    lieuOfBirth?: string;
+  @IsOptional()
+  @IsString()
+  lieuOfBirth?: string;
 
-    @IsOptional()
-    @IsString()
-    bloodType?: string;
+  @IsOptional()
+  @IsString()
+  bloodType?: string;
 
-    @IsOptional()
-    @IsString()
-    etatCivil?: string;
+  @IsOptional()
+  @IsString()
+  etatCivil?: string;
 
-    @IsOptional()
-    @IsString()
-    cid?: string;
+  @IsOptional()
+  @IsString()
+  cid?: string;
 
-    @IsOptional()
-    @IsString()
-    nationality?: string;
+  @IsOptional()
+  @IsString()
+  nationality?: string;
 
-    @IsOptional()
-    @IsString()
-    observation?: string;
+  @IsOptional()
+  @IsString()
+  observation?: string;
 
-    @IsOptional()
-    @IsString()
-    numNumerisation?: string;
+  @IsOptional()
+  @IsString()
+  numNumerisation?: string;
 
-    @IsOptional()
-    @IsDateString()
-    dateInscription?: string;
+  @IsOptional()
+  @IsDateString()
+  dateInscription?: string;
 
-    @IsOptional()
-    photo?: Buffer;
+  @IsOptional()
+  photo?: Buffer;
 
-    @IsOptional()
-    @Type(() => Boolean)
-    @IsBoolean()
-    okBlock?: boolean;
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  okBlock?: boolean;
 
-    @IsNotEmpty()
-    @IsInt()
-    @Type(() => Number)
-    localId: number;
+  @IsNotEmpty()
+  @IsInt()
+  @Type(() => Number)
+  localId: number;
 
-    @IsOptional()
-    @IsInt()
-    @Type(() => Number)
-    classId?: number;
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  classId?: number;
 
-    @IsOptional()
-    @IsString()
-    academicYear?: string;
+  @IsOptional()
+  @IsString()
+  academicYear?: string;
 }

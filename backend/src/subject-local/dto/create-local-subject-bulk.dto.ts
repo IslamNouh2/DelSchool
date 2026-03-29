@@ -2,9 +2,9 @@
 import { IsInt, IsArray } from 'class-validator';
 
 export class CreateLocalSubjectBulkDto {
-    @IsInt()
-    localId: number;
+  @IsInt()
+  localId: number;
 
-    @IsArray()
-    subjectIds: number[];
+  @IsArray()
+  subjectIds: number[];
 }

@@ -10,7 +10,9 @@ export class PermissionsService {
   }
 
   async findOne(id: number) {
-    const permission = await this.prisma.permission.findUnique({ where: { id } });
+    const permission = await this.prisma.permission.findUnique({
+      where: { id },
+    });
     if (!permission) throw new NotFoundException('Permission not found');
     return permission;
   }

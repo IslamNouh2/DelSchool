@@ -27,21 +27,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
       path: httpAdapter.getRequestUrl(ctx.getRequest()),
-      message: (exception as any).message || (typeof exception === 'string' ? exception : 'Internal server error'),
+      message:
+        (exception as any).message ||
+        (typeof exception === 'string' ? exception : 'Internal server error'),
     };
 
     // Log the error
     const errorLog = {
-        status: httpStatus,
-        path: responseBody.path,
-        message: responseBody.message,
-        stack: (exception as any).stack,
-        exception: exception
+      status: httpStatus,
+      path: responseBody.path,
+      message: responseBody.message,
+      stack: (exception as any).stack,
+      exception: exception,
     };
 
     this.logger.error(
-      `Http Status: ${httpStatus} Error: ${JSON.stringify(errorLog, (key, value) => 
-          key === 'stack' ? (value ? value.split('\n') : undefined) : value
+      `Http Status: ${httpStatus} Error: ${JSON.stringify(
+        errorLog,
+        (key, value) =>
+          key === 'stack' ? (value ? value.split('\n') : undefined) : value,
       )}`,
     );
 

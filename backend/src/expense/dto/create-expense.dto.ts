@@ -1,12 +1,19 @@
-import { IsString, IsNumber, IsOptional, IsBoolean, IsDateString, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  IsDateString,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PaymentDto {
-    @IsNumber()
-    treasuryId: number;
+  @IsNumber()
+  treasuryId: number;
 
-    @IsString()
-    method: string;
+  @IsString()
+  method: string;
 }
 
 export class CreateExpenseDto {

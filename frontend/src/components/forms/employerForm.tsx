@@ -161,8 +161,8 @@ export default function EmployerDialog({
                     toast.error("Failed to load assigned subjects");
                 });
         }
-    }, [showSubjectDialog]);
-
+    }, [showSubjectDialog,t]);
+    
     useEffect(() => {
         const checkClassTeacherParam = async () => {
             try {

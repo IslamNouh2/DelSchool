@@ -38,31 +38,24 @@ export default function LoginPage() {
 
     const handleLogin = async () => {
         try {
-            const res = await api.post(
-                '/auth/login',
-                {
-                    username: form.emailOrUsername,
-                    password: form.password,
-                }
-            );
+            const res = await api.post('/auth/login', {
+                username: form.emailOrUsername,
+                password: form.password,
+            });
 
             const { user } = res.data;
 
-            if (user?.role?.toLowerCase() !== form.role.toLowerCase()) {
-                setError('Role mismatch: You selected a different role than your account role');
-                return;
-            }
+            // ✅ REMOVE ROLE CHECK
+
             localStorage.setItem("user_role", user.role.toLowerCase());
+
             router.push(`/${user.role.toLowerCase()}`);
-            console.log(user);
+
         } catch (err: any) {
-            console.error(err);
             if (err.response?.status === 401) {
                 setError('Invalid credentials');
-            } else if (err.response?.data?.message) {
-                setError(err.response.data.message);
             } else {
-                setError('Login failed. Please try again.');
+                setError('Login failed');
             }
         }
     };
@@ -74,103 +67,83 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="h-screen flex items-center justify-center bg-background">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-bold text-center">Se connecter</CardTitle>
-                    <CardDescription className="text-center">
-                        Entrez vos identifiants pour accéder à votre compte
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {/* Role Selection */}
-                    <div>
-                        <Label className="text-sm font-medium mb-3 block">
-                            Select Your Role
-                        </Label>
-                        <div className="flex justify-center gap-4">
-                            {[
-                                { role: "admin", icon: "👨‍💼", color: "from-purple-500 to-purple-600" },
-                                { role: "teacher", icon: "👩‍🏫", color: "from-blue-500 to-blue-600" },
-                                { role: "student", icon: "👨‍🎓", color: "from-green-500 to-green-600" }
-                            ].map(({ role, icon, color }) => (
-                                <div
-                                    key={role}
-                                    onClick={() => setForm({ ...form, role })}
-                                    className={`relative h-20 w-20 rounded-xl border-2 flex flex-col justify-center items-center cursor-pointer transition-all duration-200 hover:scale-105 ${form.role === role
-                                        ? `border-primary bg-gradient-to-br ${color} text-white shadow-lg`
-                                        : "border-border hover:border-primary/50 bg-muted"
-                                        }`}
-                                >
-                                    <span className="text-2xl mb-1">{icon}</span>
-                                    <span
-                                        className={`text-xs font-medium ${form.role === role ? "text-white" : "text-muted-foreground"
-                                            }`}
-                                    >
-                                        {role.toUpperCase()}
-                                    </span>
-                                    {form.role === role && (
-                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                                            <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+        <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#0b1220] text-white">
+
+            {/* LEFT SIDE */}
+            <div className="hidden lg:flex relative items-center justify-center p-10 bg-gradient-to-br from-blue-900 to-blue-700">
+                <div className="absolute inset-0 opacity-30 bg-[url('/school.jpg')] bg-cover bg-center" />
+
+                <div className="relative z-10 max-w-md">
+                    <p className="text-sm tracking-widest text-blue-200 mb-4">
+                        INSTITUTIONAL EXCELLENCE
+                    </p>
+
+                    <h1 className="text-4xl font-bold leading-tight mb-4">
+                        Elevating the Future of Learning.
+                    </h1>
+
+                    <p className="text-blue-100 text-sm">
+                        A celestial insight into academic management, designed for the next generation of educators.
+                    </p>
+                </div>
+            </div>
+
+            {/* RIGHT SIDE */}
+            <div className="flex items-center justify-center p-6">
+                <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-xl">
+
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold">Welcome Back 👋</h2>
+                        <p className="text-sm text-gray-400">School Management System</p>
                     </div>
 
-                    <div>
-                        <Label htmlFor="emailOrUsername">Email or Username</Label>
+                    {/* EMAIL */}
+                    <div className="mb-4">
+                        <Label>Email address</Label>
                         <Input
-                            id="emailOrUsername"
                             name="emailOrUsername"
                             value={form.emailOrUsername}
                             onChange={handleChange}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Enter email or username"
-                            required
+                            onKeyDown={handleKeyPress}
+                            placeholder="name@academy.edu"
+                            className="bg-[#0f172a] border-none mt-2"
                         />
                     </div>
 
-                    <div>
-                        <Label htmlFor="password">Password</Label>
+                    {/* PASSWORD */}
+                    <div className="mb-4">
+                        <Label>Password</Label>
                         <Input
-                            id="password"
-                            name="password"
                             type="password"
+                            name="password"
                             value={form.password}
                             onChange={handleChange}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Enter password"
-                            required
+                            onKeyDown={handleKeyPress}
+                            placeholder="••••••••"
+                            className="bg-[#0f172a] border-none mt-2"
                         />
                     </div>
 
+                    {/* ERROR */}
                     {error && (
-                        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
-                            <p className="text-destructive text-sm">{error}</p>
-                        </div>
+                        <p className="text-red-400 text-sm mb-3">{error}</p>
                     )}
 
+                    {/* BUTTON */}
                     <Button
-                        className="w-full"
                         onClick={handleLogin}
-                        disabled={!form.emailOrUsername || !form.password || !form.role}
+                        className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90"
                     >
-                        Login
+                        Sign in to Dashboard →
                     </Button>
 
-                    <div className="text-center text-xs text-muted-foreground mt-4">
+                    {/* EXTRA */}
+                    <div className="text-center text-xs text-gray-400 mt-6">
                         <p>admin@gmail.com / 123456</p>
                     </div>
-                </CardContent>
-            </Card>
+
+                </div>
+            </div>
         </div>
     );
 }

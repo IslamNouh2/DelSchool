@@ -12,11 +12,12 @@ export async function middleware(request: NextRequest) {
     // 2. Check if the current route is protected (regardless of locale prefix)
     const pathname = request.nextUrl.pathname;
     
-    // Check for protected patterns: /dashboard, /list, or /[locale]/dashboard, /[locale]/list
+    // Check for protected patterns: /dashboard, /list, /report-card or /[locale]/dashboard, /[locale]/list, /[locale]/report-card
     const isDashboardRoute = pathname.match(/^\/(?:[a-z]{2}\/)?dashboard(?:\/.*)?$/);
     const isListRoute = pathname.match(/^\/(?:[a-z]{2}\/)?list(?:\/.*)?$/);
+    const isReportCardRoute = pathname.match(/^\/(?:[a-z]{2}\/)?report-card(?:\/.*)?$/);
 
-    if (isDashboardRoute || isListRoute) {
+    if (isDashboardRoute || isListRoute || isReportCardRoute) {
         const accessToken = request.cookies.get('accessToken')?.value;
         const refreshToken = request.cookies.get('refreshToken')?.value;
 
@@ -52,5 +53,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     // Matcher for both i18n and protected routes
-    matcher: ['/', '/(ar|en|fr)/:path*', '/dashboard/:path*', '/list/:path*', '/admin/:path*'],
+    matcher: ['/', '/(ar|en|fr)/:path*', '/dashboard/:path*', '/list/:path*', '/admin/:path*', '/report-card/:path*'],
 };

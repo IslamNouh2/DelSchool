@@ -23,6 +23,7 @@ export interface Subject {
     subjectId: number;
     subjectName: string;
     totalGrads: number;
+    coff: number;
     parentId: number;
     okBlock?: boolean;
     parentName: string;
@@ -37,6 +38,7 @@ interface SubjectCardProps {
     onAddSubSubject?: (parentId: number) => void;
     role: string;
     index: number;
+    showAddSubSubject?: boolean;
 }
 
 // Helper to get color based on index or id to match the colorful design
@@ -51,7 +53,15 @@ const getSubjectColor = (index: number) => {
     return colors[index % colors.length];
 };
 
-export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject, role, index }: SubjectCardProps) {
+export default function SubjectCard({ 
+    subject, 
+    onEdit, 
+    onDelete, 
+    onAddSubSubject, 
+    role, 
+    index,
+    showAddSubSubject = true
+}: SubjectCardProps) {
     const t = useTranslations("subjects.card");
     const [isExpanded, setIsExpanded] = useState(false);
     const theme = getSubjectColor(index);
@@ -82,28 +92,34 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                         )}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                        {hasChildren ? (
+                        {showAddSubSubject && (hasChildren ? (
+                            <>
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
                             <span>{t("sub_subjects", { count: subject.children?.length ?? 0 })}</span>
+                            </>
                         ) : (
                             <span>{t("no_sub_subjects")}</span>
-                        )}
+                        ))}
+                        <span>{t("coff", { count: subject.coff ?? 0 })}</span>
                         <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
                         <span>{t("points", { count: subject.totalGrads ?? 0 })}</span>
                     </div>
                 </div>
 
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <PermissionGuard permissions={['subject:create']}>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                onClick={() => onAddSubSubject?.(subject.subjectId)}
-                                title={t("add_sub_subject")}
-                            >
-                                <Plus className="w-4 h-4" />
-                            </Button>
-                        </PermissionGuard>
+                        {showAddSubSubject && (
+                            <PermissionGuard permissions={['subject:create']}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                    onClick={() => onAddSubSubject?.(subject.subjectId)}
+                                    title={t("add_sub_subject")}
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </Button>
+                            </PermissionGuard>
+                        )}
 
                         <PermissionGuard permissions={['subject:update']}>
                             <Button
@@ -171,6 +187,7 @@ export default function SubjectCard({ subject, onEdit, onDelete, onAddSubSubject
                                     onEdit={onEdit}
                                     onDelete={onDelete}
                                     onAddSubSubject={onAddSubSubject}
+                                    showAddSubSubject={showAddSubSubject}
                                 />
                             ))}
                         </div>

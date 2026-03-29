@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ExpenseService } from './expense.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
@@ -20,11 +31,16 @@ export class ExpenseController {
     @Req() req: any,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Query('search') search?: string
+    @Query('search') search?: string,
   ) {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return this.expenseService.findAll(req.tenantId, pageNumber, limitNumber, search);
+    return this.expenseService.findAll(
+      req.tenantId,
+      pageNumber,
+      limitNumber,
+      search,
+    );
   }
 
   @Get(':id')
@@ -33,7 +49,11 @@ export class ExpenseController {
   }
 
   @Patch(':id')
-  update(@Req() req: any, @Param('id') id: string, @Body() updateExpenseDto: UpdateExpenseDto) {
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() updateExpenseDto: UpdateExpenseDto,
+  ) {
     return this.expenseService.update(req.tenantId, +id, updateExpenseDto);
   }
 
@@ -43,7 +63,11 @@ export class ExpenseController {
   }
 
   @Post(':id/pay')
-  pay(@Req() req: any, @Param('id') id: string, @Body() body: { treasuryId: number; method: string }) {
+  pay(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { treasuryId: number; method: string },
+  ) {
     return this.expenseService.pay(req.tenantId, +id, body);
   }
 }

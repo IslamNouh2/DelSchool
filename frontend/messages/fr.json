@@ -244,7 +244,8 @@
       "title": "Admin",
       "users": "Utilisateurs",
       "roles": "Rôles"
-    }
+    },
+    "report_card": "Bulletin"
   },
   "actions": {
     "add": "Ajouter",

@@ -162,37 +162,36 @@ export default function EventForm({
                             </FormItem>
                         </div>
                     </Section>
+                    {/* Footer Actions */}
+                    <div className="py-4 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0b0d17]/50 flex justify-end gap-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange?.(false)}
+                            disabled={loading}
+                            className="rounded-xl px-6 py-2.5 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-[#1a1c2e] hover:shadow-sm dark:text-gray-300 transition-all"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="rounded-xl px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
+                        >
+                            {loading ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Saving...
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Save className="w-4 h-4" />
+                                    {type === "create" ? "Create Event" : "Update Event"}
+                                </div>
+                            )}
+                        </Button>
+                    </div>
                 </form>
-
-                {/* Footer Actions */}
-                <div className="px-8 py-6 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0b0d17]/50 flex justify-end gap-4">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange?.(false)}
-                        disabled={loading}
-                        className="rounded-xl px-6 py-2.5 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-[#1a1c2e] hover:shadow-sm dark:text-gray-300 transition-all"
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="rounded-xl px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none"
-                    >
-                        {loading ? (
-                            <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Saving...
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <Save className="w-4 h-4" />
-                                {type === "create" ? "Create Event" : "Update Event"}
-                            </div>
-                        )}
-                    </Button>
-                </div>
             </motion.div>
         </div>
     );

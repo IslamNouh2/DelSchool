@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Request, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  Request,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { CompteService } from './compte.service';
 import { CreateCompteDto } from './dto/create-compte.dto';
 import { UpdateCompteDto } from './dto/update-compte.dto';
@@ -23,7 +35,13 @@ export class CompteController {
     @Query('search') search?: string,
     @Query('status') status?: string,
   ) {
-    return this.compteService.findAll(req.tenantId, page ? +page : 1, limit ? +limit : 10, search, status);
+    return this.compteService.findAll(
+      req.tenantId,
+      page ? +page : 1,
+      limit ? +limit : 10,
+      search,
+      status,
+    );
   }
 
   @Get(':id')
@@ -33,37 +51,67 @@ export class CompteController {
 
   @Get(':id/transactions')
   getTransactions(
-      @Req() req: any,
-      @Param('id') id: string,
-      @Query('startDate') startDate?: string,
-      @Query('endDate') endDate?: string,
-      @Query('page') page: string = '1',
-      @Query('limit') limit: string = '20',
-      @Query('search') search?: string
+    @Req() req: any,
+    @Param('id') id: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
+    @Query('search') search?: string,
   ) {
-    return this.compteService.getTransactions(req.tenantId, +id, startDate, endDate, +page, +limit, search);
+    return this.compteService.getTransactions(
+      req.tenantId,
+      +id,
+      startDate,
+      endDate,
+      +page,
+      +limit,
+      search,
+    );
   }
 
   @Post(':id/transaction')
-  createTransaction(@Req() req: any, @Param('id') id: string, @Body() dto: any) {
-    return this.compteService.createTransaction(req.tenantId, +id, dto, req.user?.id);
+  createTransaction(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    return this.compteService.createTransaction(
+      req.tenantId,
+      +id,
+      dto,
+      req.user?.id,
+    );
   }
 
   @Post('transaction/:entryId') // Using Post/Put? Let's use Put for update
   // But wait, the route was /compte/transaction/:entryId
   // NestJS controller prefix is 'compte'
-  @Patch('transaction/:entryId') 
-  updateTransaction(@Req() req: any, @Param('entryId') entryId: string, @Body() dto: any) {
-      return this.compteService.updateTransaction(req.tenantId, +entryId, dto, req.user?.id);
+  @Patch('transaction/:entryId')
+  updateTransaction(
+    @Req() req: any,
+    @Param('entryId') entryId: string,
+    @Body() dto: any,
+  ) {
+    return this.compteService.updateTransaction(
+      req.tenantId,
+      +entryId,
+      dto,
+      req.user?.id,
+    );
   }
 
   @Delete('transaction/:entryId')
   deleteTransaction(@Req() req: any, @Param('entryId') entryId: string) {
-      return this.compteService.deleteTransaction(req.tenantId, +entryId);
+    return this.compteService.deleteTransaction(req.tenantId, +entryId);
   }
 
   @Patch(':id')
-  update(@Req() req: any, @Param('id') id: string, @Body() updateCompteDto: UpdateCompteDto) {
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() updateCompteDto: UpdateCompteDto,
+  ) {
     return this.compteService.update(req.tenantId, +id, updateCompteDto);
   }
 

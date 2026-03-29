@@ -11,10 +11,7 @@ import * as cookie from 'cookie';
 
 @WebSocketGateway({
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'https://delschool-2.onrender.com',
-    ],
+    origin: ['http://localhost:3000', 'https://delschool-2.onrender.com'],
     credentials: true,
   },
 })

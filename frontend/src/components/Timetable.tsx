@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Fragment, useTransition, useOptimistic } from "react";
 import { motion } from "motion/react";
-import { Calendar as CalendarIcon, Plus, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Loader2, Settings2, FileDown } from "lucide-react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import api from "@/lib/api";
@@ -418,19 +418,19 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
     return (
         <DndProvider backend={HTML5Backend}>
             <div className="space-y-8 flex flex-col h-full">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-4 uppercase">
-                            <div className="p-3 bg-[#0052cc] rounded-[18px] shadow-2xl shadow-blue-500/30 text-white transition-transform">
-                                <CalendarIcon size={20} />
-                            </div>
-                            {teacherId ? "Teaching Schedule" : t("title")}
-                        </h1>
-                        <p className="text-gray-500 dark:text-gray-400 font-bold mt-2 uppercase tracking-[0.2em] text-[10px]">
-                            {t("subtitle", { year: formData.academicYear })}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div>
+                            <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-4 uppercase">
+                                <div className="p-3 bg-[#0052cc] rounded-[18px] shadow-2xl shadow-blue-500/30 text-white transition-transform">
+                                    <CalendarIcon size={20} />
+                                </div>
+                                {teacherId ? "Teaching Schedule" : t("title")}
+                            </h1>
+                            <p className="text-gray-500 dark:text-gray-400 font-bold mt-2 uppercase tracking-[0.2em] text-[10px]">
+                                {t("subtitle", { year: formData.academicYear })}
+                            </p>
+                        </div>
                         {!teacherId && (
                             <div className="relative group">
                                 <select
@@ -450,33 +450,43 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
                                 </div>
                             </div>
                         )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                        
                         
                         {!readOnly && (
                             <>
                                 <Button 
                                     onClick={handleGenerateAI}
                                     disabled={isGeneratingAI}
-                                    className="h-[52px] px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-xl shadow-purple-500/20 hover:shadow-purple-500/40 transition-all rounded-[20px] font-bold gap-2 border-none"
+                                    className="h-[52px] px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-xl shadow-purple-500/20 hover:shadow-purple-500/40 transition-all rounded-[20px] font-bold gap-2 border-none group"
                                 >
                                     {isGeneratingAI ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-                                    AI Optimize
+                                    <span className="hidden group-hover:inline-block lg:inline-block transition-all duration-300 whitespace-nowrap">
+                                        AI Optimize
+                                    </span>
                                 </Button>
 
                                 <Button 
                                     onClick={() => setShowSlotManager(true)}
                                     variant="outline"
-                                    className="h-[52px] px-6 rounded-[20px] border-2 border-gray-100 dark:border-white/5 font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                                    className="h-[52px] px-6 rounded-[20px] border-2 border-gray-100 dark:border-white/5 font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-all group flex items-center gap-2"
                                 >
-                                    {t("manage_slots")}
+                                    <Settings2 className="w-5 h-5" />
+                                    <span className="hidden group-hover:inline-block lg:inline-block transition-all duration-300 whitespace-nowrap">
+                                        {t("manage_slots")}
+                                    </span>
                                 </Button>
 
                                 <Button 
                                     onClick={() => openAddDialog()}
-                                    className="h-[52px] px-6 bg-[#0052cc] hover:bg-[#0041a3] text-white shadow-xl shadow-blue-500/20 hover:shadow-blue-500/40 transition-all rounded-[20px] font-bold gap-2"
+                                    className="h-[52px] px-6 bg-[#0052cc] hover:bg-[#0041a3] text-white shadow-xl shadow-blue-500/20 hover:shadow-blue-500/40 transition-all rounded-[20px] font-bold gap-2 group"
                                     disabled={!teacherId && formData.classId === 0}
                                 >
                                     <Plus className="w-5 h-5" />
-                                    {t("add_period")}
+                                    <span className="hidden group-hover:inline-block lg:inline-block transition-all duration-300 whitespace-nowrap">
+                                        {t("add_period")}
+                                    </span>
                                 </Button>
                             </>
                         )}
@@ -484,10 +494,13 @@ export function TimetableCalendar({ teacherId, role = 'ADMIN', readOnly = false 
                         <Button
                             onClick={handleDownloadPDF}
                             variant="destructive"
-                            className="h-[52px] px-6 rounded-[20px] font-bold shadow-xl shadow-red-500/10 hover:shadow-red-500/20 transition-all"
+                            className="h-[52px] px-6 rounded-[20px] font-bold shadow-xl shadow-red-500/10 hover:shadow-red-500/20 transition-all group flex items-center gap-2"
                             disabled={!teacherId && formData.classId === 0}
                         >
-                            {t("export_pdf")}
+                            <FileDown className="w-5 h-5" />
+                            <span className="hidden group-hover:inline-block lg:inline-block transition-all duration-300 whitespace-nowrap">
+                                {t("export_pdf")}
+                            </span>
                         </Button>
                     </div>
                 </div>

@@ -1,29 +1,29 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class UpdateClassDto {
-    @IsOptional()
-    @IsString()
-    ClassName: string;
+  @IsOptional()
+  @IsString()
+  ClassName: string;
 
-    @IsString()
-    @IsOptional()
-    code: string;
+  @IsString()
+  @IsOptional()
+  code: string;
 
-    @IsOptional()
-    @IsString()
-    localName: string;
+  @IsOptional()
+  @IsString()
+  localName: string;
 
-    @IsInt()
-    @IsOptional()
-    NumStudent: number;
+  @IsInt()
+  @IsOptional()
+  NumStudent: number;
 
-    @IsOptional()
-    @IsString()
-    okBlock: string;
+  @IsOptional()
+  @IsString()
+  okBlock: string;
 
-    @IsOptional()
-    cloture: boolean;
+  @IsOptional()
+  cloture: boolean;
 
-    @IsOptional()
-    translations?: Record<string, string>;
+  @IsOptional()
+  translations?: Record<string, string>;
 }

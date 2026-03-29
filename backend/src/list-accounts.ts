@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -10,12 +9,12 @@ async function main() {
       code: true,
       name: true,
       type: true,
-    }
+    },
   });
   // Hardcode check
-  console.log("JOURNALS:");
+  console.log('JOURNALS:');
   for (const j of journals) {
-     console.log(`${j.id}:${j.code}:${j.type}`); 
+    console.log(`${j.id}:${j.code}:${j.type}`);
   }
 }
 

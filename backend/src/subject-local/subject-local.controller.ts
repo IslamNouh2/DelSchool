@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { SubjectLocalService } from './subject-local.service';
 import { CreateLocalSubjectBulkDto } from './dto/create-local-subject-bulk.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,10 +25,12 @@ export class SubjectLocalController {
     return this.subjectLocalService.bulkInsert(req.tenantId, dto);
   }
 
-
   @Get('/:localId')
   async getSubjectsByLocal(@Req() req: any, @Param('localId') localId: number) {
-    const subjects = await this.subjectLocalService.getSubjectsByLocal(req.tenantId, localId);
+    const subjects = await this.subjectLocalService.getSubjectsByLocal(
+      req.tenantId,
+      localId,
+    );
     return { subjects };
   }
 
@@ -26,8 +38,12 @@ export class SubjectLocalController {
   async removeSubjectFromLocal(
     @Req() req: any,
     @Param('localId', ParseIntPipe) localId: number,
-    @Param('subjectId', ParseIntPipe) subjectId: number
+    @Param('subjectId', ParseIntPipe) subjectId: number,
   ) {
-    return this.subjectLocalService.removeSubjectFromLocal(req.tenantId, localId, subjectId);
+    return this.subjectLocalService.removeSubjectFromLocal(
+      req.tenantId,
+      localId,
+      subjectId,
+    );
   }
 }

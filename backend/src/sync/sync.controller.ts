@@ -4,7 +4,7 @@ import { BulkSyncDto } from './dto/sync-payload.dto';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Controller('sync')
-@UseGuards( ThrottlerGuard)
+@UseGuards(ThrottlerGuard)
 export class SyncController {
   constructor(private readonly syncService: SyncService) {}
 

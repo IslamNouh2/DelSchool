@@ -4,9 +4,7 @@ import { SubjectLocalController } from './subject-local.controller';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [
-    AuthModule, 
-  ],
+  imports: [AuthModule],
   controllers: [SubjectLocalController],
   providers: [SubjectLocalService],
 })

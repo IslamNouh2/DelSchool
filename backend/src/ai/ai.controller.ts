@@ -10,7 +10,9 @@ export class AiController {
   ) {}
 
   @Post('risk/:studentId')
-  async calculateStudentRisk(@Param('studentId', ParseIntPipe) studentId: number) {
+  async calculateStudentRisk(
+    @Param('studentId', ParseIntPipe) studentId: number,
+  ) {
     return this.aiService.calculateStudentRisk(studentId);
   }
 
@@ -25,7 +27,9 @@ export class AiController {
   }
 
   @Get('teacher-performance/:teacherId')
-  async getTeacherEvaluations(@Param('teacherId', ParseIntPipe) teacherId: number) {
+  async getTeacherEvaluations(
+    @Param('teacherId', ParseIntPipe) teacherId: number,
+  ) {
     return this.teacherEvaluationService.getTeacherEvaluations(teacherId);
   }
 }

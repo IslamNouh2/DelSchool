@@ -11,7 +11,12 @@ import { PrismaService } from '../prisma/prisma.service';
 @Module({
   imports: [ParameterModule],
   controllers: [AttendanceController],
-  providers: [AttendanceService, PrismaService, AttendanceRepository, AttendanceCronService],
-  exports:[AttendanceService]
+  providers: [
+    AttendanceService,
+    PrismaService,
+    AttendanceRepository,
+    AttendanceCronService,
+  ],
+  exports: [AttendanceService],
 })
 export class AttendanceModule {}

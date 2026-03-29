@@ -22,7 +22,7 @@ import { TenantId } from '../auth/decorators/tenant-id.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('exam')
 export class ExamController {
-  constructor(private readonly examService: ExamService) { }
+  constructor(private readonly examService: ExamService) {}
 
   @Post()
   create(@TenantId() tenantId: string, @Body() createExamDto: CreateExamDto) {
@@ -64,11 +64,12 @@ export class ExamController {
   }
 
   @Get('student/:studentId')
-  async getStudentGrades(@TenantId() tenantId: string, @Param('studentId', ParseIntPipe) studentId: number) {
+  async getStudentGrades(
+    @TenantId() tenantId: string,
+    @Param('studentId', ParseIntPipe) studentId: number,
+  ) {
     return this.examService.getStudentGrades(tenantId, studentId);
   }
-
-  
 
   @Put(':id')
   update(
@@ -114,12 +115,24 @@ export class ExamController {
   }
 
   @Get('dashboard/top-students')
-  getTopStudents(@TenantId() tenantId: string, @Query('classId') classId?: string) {
-    return this.examService.getTopStudents(tenantId, classId ? parseInt(classId) : undefined);
+  getTopStudents(
+    @TenantId() tenantId: string,
+    @Query('classId') classId?: string,
+  ) {
+    return this.examService.getTopStudents(
+      tenantId,
+      classId ? parseInt(classId) : undefined,
+    );
   }
 
   @Get('dashboard/upcoming')
-  getUpcomingExams(@TenantId() tenantId: string, @Query('classId') classId?: string) {
-    return this.examService.getUpcomingExams(tenantId, classId ? parseInt(classId) : undefined);
+  getUpcomingExams(
+    @TenantId() tenantId: string,
+    @Query('classId') classId?: string,
+  ) {
+    return this.examService.getUpcomingExams(
+      tenantId,
+      classId ? parseInt(classId) : undefined,
+    );
   }
 }

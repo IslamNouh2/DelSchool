@@ -21,7 +21,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('DelSchool API')
-    .setDescription('Complete API documentation for DelSchool management system')
+    .setDescription(
+      'Complete API documentation for DelSchool management system',
+    )
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -62,18 +64,26 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Operation-Id', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'X-Operation-Id',
+      'Accept',
+    ],
     exposedHeaders: ['Set-Cookie'],
   });
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-    transformOptions: {
-      enableImplicitConversion: true,
-    },
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
 
   const port = process.env.PORT || 47005;
   await app.listen(port);

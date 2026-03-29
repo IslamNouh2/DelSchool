@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -74,7 +78,9 @@ export class AiService {
         recommendation: updatedProfile.recommendation,
       };
     } catch (error) {
-      throw new InternalServerErrorException(`Failed to connect to AI engine: ${error.message}. Ensure the ML service is running on http://127.0.0.1:8000`);
+      throw new InternalServerErrorException(
+        `Failed to connect to AI engine: ${error.message}. Ensure the ML service is running on http://127.0.0.1:8000`,
+      );
     }
   }
 
@@ -84,7 +90,9 @@ export class AiService {
     });
 
     if (!profile) {
-      throw new NotFoundException(`Risk profile for student ${studentId} not found. Run POST first to generate it.`);
+      throw new NotFoundException(
+        `Risk profile for student ${studentId} not found. Run POST first to generate it.`,
+      );
     }
 
     return {

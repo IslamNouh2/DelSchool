@@ -5,14 +5,12 @@ import { TenantGuard } from 'src/common/guards/tenant.guard';
 
 @Global()
 @Module({
-  imports: [
-        AuthModule,
-    ],
+  imports: [AuthModule],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: TenantGuard ,
+      useClass: TenantGuard,
     },
   ],
-})  
+})
 export class CoreModule {}

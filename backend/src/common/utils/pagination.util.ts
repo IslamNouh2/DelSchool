@@ -29,7 +29,9 @@ export async function paginate<T>(
       ...queryArgs,
       skip,
       take: limit,
-      orderBy: params.sortBy ? { [params.sortBy]: params.sortOrder || 'asc' } : queryArgs.orderBy,
+      orderBy: params.sortBy
+        ? { [params.sortBy]: params.sortOrder || 'asc' }
+        : queryArgs.orderBy,
     }),
     model.count({ where: queryArgs.where }),
   ]);

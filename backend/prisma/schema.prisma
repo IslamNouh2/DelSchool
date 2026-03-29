@@ -5,6 +5,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+
 }
 
 model User {
@@ -228,6 +230,7 @@ model subject {
   subjectId       Int              @id @default(autoincrement())
   subjectName     String
   totalGrads      Float
+  coff            Float            @default(1)
   parentId        Int
   BG              Int
   BD              Int
@@ -322,12 +325,28 @@ model SchoolYear {
   isCurrent      Boolean        @default(false)
 
   tenantId       String
-  version        Int            @default(1)
-  operationId    String?        @unique
+  version         Int              @default(1)
+  operationId     String?          @unique
 
   studentClasses StudentClass[]
+  semesters      Semester[]
 
   @@map("school_years")
+  @@index([tenantId])
+}
+
+model Semester {
+  id             Int          @id @default(autoincrement())
+  name           String       // e.g., "الفصل الأول"
+  startDate      DateTime
+  endDate        DateTime
+  academicYearId Int
+  schoolYear     SchoolYear   @relation(fields: [academicYearId], references: [id])
+  exams          Exam[]
+  tenantId       String
+  version        Int          @default(1)
+  operationId    String?      @unique
+
   @@index([tenantId])
 }
 
@@ -504,6 +523,8 @@ model Exam {
   dateCreate DateTime?
   dateModif  DateTime?
   publish    Boolean
+  semesterId Int?
+  semester   Semester? @relation(fields: [semesterId], references: [id])
 
   tenantId   String
   version    Int       @default(1)
@@ -899,13 +920,13 @@ enum TimetableMode {
 }
 
 model SystemSettings {
-  id            Int      @id @default(1)
+  id            Int      @id @default(autoincrement())
   weekStartDay  WeekDay  @default(SUNDAY)
   firstHour     String   @default("08:00")
   lastHour      String   @default("16:00")
   slotDuration  Int      @default(60)
 
-  tenantId      String
+  tenantId      String   @unique
   version       Int      @default(1)
   operationId   String?  @unique
 

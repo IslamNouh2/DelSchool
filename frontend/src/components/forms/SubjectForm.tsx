@@ -101,6 +101,7 @@ export default function SubjectDialog({
     const [form, setForm] = useState({
         subjectName: "",
         totalGrads: 0,
+        coff: 0,
         parentId: -1,
         okBlock: false,
     });
@@ -132,7 +133,7 @@ export default function SubjectDialog({
         const fetchSubSubjects = async () => {
             try {
                 //console.log("📘 Fetching sub subjects...");
-                // 👇 use the correct endpoint that your API actually supports
+                
                 const res = await api.get("/subject/sub-subjects", { withCredentials: true });
                 const flat = res.data || [];
                 const hierarchical = buildHierarchy(flat);
@@ -144,13 +145,14 @@ export default function SubjectDialog({
             }
         };
         fetchSubSubjects();
-    }, [showSubSubject]);
+    }, [showSubSubject,t]);
 
     useEffect(() => {
         if (type === "update" && data) {
             setForm({
                 subjectName: data.subjectName || "",
                 totalGrads: data.totalGrads || 0,
+                coff: data.coff || 0,
                 parentId: showSubSubject ? selectedSubSubjectId : -1,
                 okBlock: data.okBlock ?? false,
             });
@@ -168,6 +170,7 @@ export default function SubjectDialog({
         const payload = {
             subjectName: form.subjectName,
             totalGrads: parseInt(form.totalGrads as any, 10),
+            coff: parseInt(form.coff as any, 0),
             parentId: showSubSubject ? selectedSubSubjectId : -1,
             okBlock: form.okBlock, 
         };
@@ -200,6 +203,7 @@ export default function SubjectDialog({
                     sonnerToast.success(t("update_success") || "Subject updated successfully");
                 }
             }
+            console.log("✅ subjects:", payload);
             onOpenChange?.(false);
             onSuccess?.();
         } catch (err: any) {
@@ -260,6 +264,24 @@ export default function SubjectDialog({
                                 className="rounded-xl border-gray-200 dark:border-slate-800"
                             />
                         </div>
+
+                        <div>
+                            <Label>{t("coff_label")}</Label>
+                            <Input
+                                type="number"
+                                name="coff"
+                                value={form.coff}
+                                onChange={(e) =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        coff: Number(e.target.value),
+                                    }))
+                                }
+                                required
+                                className="rounded-xl border-gray-200 dark:border-slate-800"
+                            />
+                        </div>
+
 
                         {showSubSubject && (
                             <div>

@@ -244,7 +244,8 @@
       "title": "Admin",
       "users": "Users",
       "roles": "Roles"
-    }
+    },
+    "report_card": "Report Card"
   },
   "actions": {
     "add": "Add",
@@ -332,7 +333,8 @@
     "announcements_title": "Announcements",
     "view_all": "View All",
     "performance_by_class": "Performance by Class",
-    "attendance": "Attendance"
+    "attendance": "Attendance",
+    "all_classes": "All Classes"
   },
   "nav": {
     "upgrade_pro": "Upgrade to Pro",
@@ -515,7 +517,8 @@
         "type_admin": "Admin",
         "type_teacher": "Teacher",
         "type_employer": "Employer",
-        "address": "Address"
+        "address": "Address",
+        "email": "Email"
       },
       "placeholders": {
         "code": "Employer Code",
@@ -536,7 +539,8 @@
         "numerical_id": "Numerical",
         "search_subjects": "Search subjects...",
         "address": "Address",
-        "observations": "Observations"
+        "observations": "Observations",
+        "email": "Email"
       },
       "subjects": {
         "available": "Available Subjects",
@@ -669,9 +673,12 @@
       "sub_subjects": "{count} Sub-subjects",
       "no_sub_subjects": "No Sub-subjects",
       "points": "{count} Points",
+      "coff": "{count} Coff",
       "delete_title": "Delete Subject?",
       "delete_description": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
-      "add_sub_subject": "Add Sub-subject"
+      "add_sub_subject": "Add Sub-subject",
+      "cancel": "Cancel",
+      "delete": "Delete"
     },
     "form": {
       "create_title": "Create Subject",
@@ -681,6 +688,7 @@
       "name_label": "Subject Name",
       "points_label": "Total Points",
       "parent_label": "Parent Subject",
+      "coff_label": "Coffiecient",
       "block_label": "Block this subject",
       "processing": "Processing...",
       "create": "Create",

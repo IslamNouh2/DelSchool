@@ -1,32 +1,40 @@
-import { IsEnum, IsInt, IsString, IsOptional } from "class-validator";
+import { IsEnum, IsInt, IsString, IsOptional } from 'class-validator';
 
 export class CreateTimetableDto {
-    @IsEnum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
-    day: string;
+  @IsEnum([
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ])
+  day: string;
 
-    @IsInt()
-    classId: number;
+  @IsInt()
+  classId: number;
 
-    @IsInt()
-    subjectId: number;
+  @IsInt()
+  subjectId: number;
 
-    @IsInt()
-    timeSlotId: number;
+  @IsInt()
+  timeSlotId: number;
 
-    @IsOptional()
-    @IsInt()
-    employerId?: number;
+  @IsOptional()
+  @IsInt()
+  employerId?: number;
 
-    @IsString()
-    academicYear: string;
+  @IsString()
+  academicYear: string;
 
-    @IsOptional()
-    @IsEnum(['MANUAL', 'AI_GENERATED'])
-    mode?: 'MANUAL' | 'AI_GENERATED';
+  @IsOptional()
+  @IsEnum(['MANUAL', 'AI_GENERATED'])
+  mode?: 'MANUAL' | 'AI_GENERATED';
 
-    @IsOptional()
-    aiOptimizationScore?: number;
+  @IsOptional()
+  aiOptimizationScore?: number;
 
-    @IsOptional()
-    aiGeneratedAt?: Date;
+  @IsOptional()
+  aiGeneratedAt?: Date;
 }

@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { Link } from "@/i18n/routing"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 
 import {

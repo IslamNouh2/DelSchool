@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { LocalService } from './local.service';
 import { CreateLocalDto } from './DTO/CreateLocal.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -10,8 +21,7 @@ import { TenantId } from 'src/auth/decorators/tenant-id.decorator';
 @Roles('ADMIN')
 @Controller('local')
 export class LocalController {
-  constructor(private readonly localService: LocalService) { }
-
+  constructor(private readonly localService: LocalService) {}
 
   @Get()
   async getLocals(
@@ -19,13 +29,19 @@ export class LocalController {
     @Query('page') page = '1',
     @Query('limit') limit = '10',
     @Query('sort') sort: string,
-    @Query('search') search: string
+    @Query('search') search: string,
   ) {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    const validSortFields = ['dateCreate', 'code', 'name', 'NumClass']
-    const orderByField = validSortFields.includes(sort) ? sort : 'name'
-    return this.localService.GetLocal(tenantId, pageNumber, limitNumber, orderByField, search);
+    const validSortFields = ['dateCreate', 'code', 'name', 'NumClass'];
+    const orderByField = validSortFields.includes(sort) ? sort : 'name';
+    return this.localService.GetLocal(
+      tenantId,
+      pageNumber,
+      limitNumber,
+      orderByField,
+      search,
+    );
   }
 
   @Post('create')
@@ -34,22 +50,20 @@ export class LocalController {
     return Local;
   }
 
-
   @Delete(':id')
   async DeleteLocal(
     @TenantId() tenantId: string,
-    @Param('id', ParseIntPipe) id: number
+    @Param('id', ParseIntPipe) id: number,
   ) {
     const Delete = await this.localService.DeleteLocal(tenantId, id);
     return { message: 'Local deleted successfully' };
   }
 
-
   @Put('/:id')
   async UpdateLocals(
     @TenantId() tenantId: string,
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreateLocalDto
+    @Body() dto: CreateLocalDto,
   ) {
     const Local = await this.localService.UpdateLocal(tenantId, id, dto);
     return Local;
@@ -59,6 +73,4 @@ export class LocalController {
   getSubjectCount(@TenantId() tenantId: string) {
     return this.localService.CountLocals(tenantId);
   }
-
- 
 }

@@ -16,9 +16,17 @@ import {
   InternalServerErrorException,
   BadRequestException,
   UseGuards,
-  Req
+  Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response, Request } from 'express';
 import { StudentService } from './student.service';
@@ -36,7 +44,7 @@ export class StudentController {
     private readonly studentService: StudentService,
     private readonly localservice: LocalService,
     private readonly feeService: FeeService,
-  ) { }
+  ) {}
 
   @Get('all-locals')
   async getLocalsFromStudentController(@Req() req: any) {
@@ -65,46 +73,56 @@ export class StudentController {
   @ApiOperation({ summary: 'Create a new student' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Student successfully created' })
-  @UseInterceptors(FileInterceptor('photo', {
-    limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB
-    },
-    fileFilter: (req, file, cb) => {
-      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (allowedMimes.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new HttpException('Invalid file type', HttpStatus.BAD_REQUEST), false);
-      }
-    },
-  }))
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (allowedMimes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(
+            new HttpException('Invalid file type', HttpStatus.BAD_REQUEST),
+            false,
+          );
+        }
+      },
+    }),
+  )
   async createStudent(
     @Req() req: any,
     @Body() dto: CreateStudentDto,
-    @UploadedFile() photo?: Express.Multer.File
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
     return this.studentService.CreateStudent(req.tenantId, dto, photo);
   }
 
   @Put('update/:id')
-  @UseInterceptors(FileInterceptor('photo', {
-    limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB
-    },
-    fileFilter: (req, file, cb) => {
-      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (allowedMimes.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new HttpException('Invalid file type', HttpStatus.BAD_REQUEST), false);
-      }
-    },
-  }))
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (allowedMimes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(
+            new HttpException('Invalid file type', HttpStatus.BAD_REQUEST),
+            false,
+          );
+        }
+      },
+    }),
+  )
   async updateStudent(
     @Req() req: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStudentDto,
-    @UploadedFile() photo?: Express.Multer.File
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
     return this.studentService.UpdateStudent(req.tenantId, id, dto, photo);
   }
@@ -121,17 +139,17 @@ export class StudentController {
   @ApiQuery({ name: 'classId', required: false })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'search', required: false })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Returns a paginated list of students',
     schema: {
       example: {
         data: [],
         total: 120,
         page: 1,
-        limit: 10
-      }
-    }
+        limit: 10,
+      },
+    },
   })
   async getStudents(
     @Req() req: any,
@@ -141,7 +159,14 @@ export class StudentController {
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
-    return this.studentService.GetStudent(req.tenantId, page, limit, classId, status, search);
+    return this.studentService.GetStudent(
+      req.tenantId,
+      page,
+      limit,
+      classId,
+      status,
+      search,
+    );
   }
 
   @Get(':id')
@@ -154,16 +179,18 @@ export class StudentController {
     @Req() req: any,
     @Query('name') name: string,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
+    @Query('limit') limit: number = 10,
   ) {
-    return this.studentService.GetStudentWithName(req.tenantId, name, page, limit);
+    return this.studentService.GetStudentWithName(
+      req.tenantId,
+      name,
+      page,
+      limit,
+    );
   }
 
   @Get('photo/:fileName')
-  async getPhoto(
-    @Param('fileName') fileName: string,
-    @Res() res: Response
-  ) {
+  async getPhoto(@Param('fileName') fileName: string, @Res() res: Response) {
     try {
       const photoBuffer = await this.studentService.getPhotoFile(fileName);
       const fileExtension = path.extname(fileName).toLowerCase();

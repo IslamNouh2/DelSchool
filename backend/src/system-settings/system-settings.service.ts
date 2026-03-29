@@ -7,24 +7,18 @@ export class SystemSettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getSettings(tenantId: string) {
-    let settings = await this.prisma.systemSettings.findFirst({
+    return this.prisma.systemSettings.upsert({
       where: { tenantId },
+      update: {},
+      create: {
+        tenantId,
+      },
     });
-
-    if (!settings) {
-      settings = await this.prisma.systemSettings.create({
-        data: {
-          tenantId,
-        },
-      });
-    }
-
-    return settings;
   }
 
   async updateSettings(tenantId: string, dto: UpdateSettingsDto) {
     const settings = await this.getSettings(tenantId);
-    
+
     return this.prisma.systemSettings.update({
       where: { id: settings.id },
       data: dto,

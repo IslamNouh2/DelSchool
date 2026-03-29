@@ -18,12 +18,14 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/components/contexts/AuthContext";
 
 export default function DashboardLayout({
     children,
 }: {
     children: ReactNode
 }) {
+    const { user } = useAuth();
     const pathname = usePathname();
     const { setTheme } = useTheme();
     const t = useTranslations("menu");
@@ -53,18 +55,14 @@ export default function DashboardLayout({
             // Generate full key based on current context
             const fullKey = pathContext ? `${pathContext}.${segment}` : segment;
 
-            // Resolver helper
+            // Resolver helper — use t.has() to avoid console errors for missing keys
             const resolveTranslation = (key: string) => {
-                try {
-                    const result = t(key as any);
-                    // If result is string, we're good
-                    if (typeof result === 'string') return { label: result, context: key };
-                } catch (e: any) {
-                    // If it's an object (INSUFFICIENT_PATH), try to get the title
-                    try {
-                        const titleResult = t(`${key}.title` as any);
-                        if (typeof titleResult === 'string') return { label: titleResult, context: key };
-                    } catch (innerE) {}
+                const titleKey = `${key}.title`;
+                if (t.has(titleKey as any)) {
+                    return { label: t(titleKey as any), context: key };
+                }
+                if (t.has(key as any)) {
+                    return { label: t(key as any), context: key };
                 }
                 return null;
             };
@@ -119,7 +117,7 @@ export default function DashboardLayout({
                                         className="mx-2 h-4 bg-gray-200 dark:bg-white/20"
                                     />
                                     <h1 className="text-xl font-bold hidden lg:block tracking-tight text-gray-900 dark:text-white">
-                                        {commonT("welcome")} Educlerk 👋
+                                        {commonT("welcome")} {user?.username} 👋
                                     </h1>
                                 </div>
                                 
@@ -150,11 +148,11 @@ export default function DashboardLayout({
 
                                 <div className={`flex items-center gap-3 ${isRtl ? 'pr-6 border-r' : 'pl-6 border-l'} border-gray-200 dark:border-white/10 ${isRtl ? 'flex-row-reverse' : 'flex-row'}`}>
                                     <div className={`hidden lg:flex flex-col ${isRtl ? 'items-start' : 'items-end'}`}>
-                                        <span className="text-sm font-bold text-gray-900 dark:text-white leading-tight">Mr Nahid</span>
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Admin</span>
+                                        <span className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{user?.username}</span>
+                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{user?.role}</span>
                                     </div>
                                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#0052cc] to-blue-400 border-2 border-white/20 flex items-center justify-center font-bold text-sm shadow-lg overflow-hidden">
-                                        <span className="text-white">MN</span>
+                                        <span className="text-white">{user?.username.charAt(0).toUpperCase()}</span>
                                     </div>
                                 </div>
 

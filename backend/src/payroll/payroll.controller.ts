@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PayrollService } from './payroll.service';
 import { CreatePayrollDto } from './dto/create-payroll.dto';
@@ -24,14 +35,25 @@ export class PayrollController {
 
   @Post('generate')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Generate payrolls for all or specific employers for a period' })
+  @ApiOperation({
+    summary: 'Generate payrolls for all or specific employers for a period',
+  })
   generate(@Req() req: any, @Body() generatePayrollDto: GeneratePayrollDto) {
-    return this.payrollService.generatePayroll(req.tenantId, generatePayrollDto);
+    return this.payrollService.generatePayroll(
+      req.tenantId,
+      generatePayrollDto,
+    );
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all payroll records with optional period filter' })
-  findAll(@Req() req: any, @Query('start') start?: string, @Query('end') end?: string) {
+  @ApiOperation({
+    summary: 'Get all payroll records with optional period filter',
+  })
+  findAll(
+    @Req() req: any,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+  ) {
     return this.payrollService.findAll(req.tenantId, start, end);
   }
 
@@ -50,7 +72,11 @@ export class PayrollController {
   @Patch(':id')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Update a payroll record' })
-  update(@Req() req: any, @Param('id') id: string, @Body() updatePayrollDto: UpdatePayrollDto) {
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() updatePayrollDto: UpdatePayrollDto,
+  ) {
     return this.payrollService.update(req.tenantId, +id, updatePayrollDto);
   }
 
@@ -76,8 +102,25 @@ export class PayrollController {
 
   @Post('pay/:id')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Mark payroll as paid and create treasury payment/journal entry' })
-  pay(@Req() req: any, @Param('id') id: string, @Body() body: { paymentMethod: string, compteId?: number, expenseAccountId?: number }) {
-    return this.payrollService.payPayroll(req.tenantId, +id, body.paymentMethod, body.compteId, body.expenseAccountId);
+  @ApiOperation({
+    summary: 'Mark payroll as paid and create treasury payment/journal entry',
+  })
+  pay(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      paymentMethod: string;
+      compteId?: number;
+      expenseAccountId?: number;
+    },
+  ) {
+    return this.payrollService.payPayroll(
+      req.tenantId,
+      +id,
+      body.paymentMethod,
+      body.compteId,
+      body.expenseAccountId,
+    );
   }
 }

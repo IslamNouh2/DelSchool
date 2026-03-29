@@ -2,7 +2,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TeacherEvaluationService } from './teacher-evaluation.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('TeacherEvaluationService', () => {
   let service: TeacherEvaluationService;
@@ -15,9 +18,9 @@ describe('TeacherEvaluationService', () => {
     Teachersubjects: [],
     TeacherCalsses: {
       Class: {
-        studentClasses: []
-      }
-    }
+        studentClasses: [],
+      },
+    },
   };
 
   beforeEach(async () => {
@@ -41,7 +44,7 @@ describe('TeacherEvaluationService', () => {
 
     service = module.get<TeacherEvaluationService>(TeacherEvaluationService);
     prisma = module.get<PrismaService>(PrismaService);
-    
+
     // Mock global fetch
     globalThis.fetch = jest.fn();
   });
@@ -53,11 +56,15 @@ describe('TeacherEvaluationService', () => {
   describe('evaluateTeacher', () => {
     it('should throw NotFoundException if teacher does not exist', async () => {
       jest.spyOn(prisma.employer, 'findUnique').mockResolvedValue(null);
-      await expect(service.evaluateTeacher(99)).rejects.toThrow(NotFoundException);
+      await expect(service.evaluateTeacher(99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should return evaluation results when AI service responds', async () => {
-      jest.spyOn(prisma.employer, 'findUnique').mockResolvedValue(mockTeacher as any);
+      jest
+        .spyOn(prisma.employer, 'findUnique')
+        .mockResolvedValue(mockTeacher as any);
       (globalThis.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: jest.fn().mockResolvedValue({
@@ -85,13 +92,17 @@ describe('TeacherEvaluationService', () => {
     });
 
     it('should throw InternalServerErrorException if AI service fails', async () => {
-      jest.spyOn(prisma.employer, 'findUnique').mockResolvedValue(mockTeacher as any);
+      jest
+        .spyOn(prisma.employer, 'findUnique')
+        .mockResolvedValue(mockTeacher as any);
       (globalThis.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         statusText: 'Internal Error',
       });
 
-      await expect(service.evaluateTeacher(1)).rejects.toThrow(InternalServerErrorException);
+      await expect(service.evaluateTeacher(1)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });

@@ -38,8 +38,9 @@ export class HRCalculationService {
     allowances: number = 0,
     salaryBasis: string = 'DAILY', // Added parameter
   ): Promise<SalaryCalculationResult> {
-    const salary = typeof baseSalary === 'number' ? baseSalary : baseSalary.toNumber();
-    
+    const salary =
+      typeof baseSalary === 'number' ? baseSalary : baseSalary.toNumber();
+
     // Fetch rules from settings
     const [monthlyDays, lateRatio] = await Promise.all([
       this.parameterService.getMonthlyDays(),
@@ -48,7 +49,7 @@ export class HRCalculationService {
 
     let dailySalary = 0;
     if (salaryBasis === 'HOURLY') {
-      // If hourly, 'salary' input is actually hourlyRate. 
+      // If hourly, 'salary' input is actually hourlyRate.
       // Assumption: 8 hours per day for calculating dailyRate/deductions
       dailySalary = salary * 8;
     } else {
@@ -57,24 +58,31 @@ export class HRCalculationService {
 
     const summary = {
       totalDays: attendances.length,
-      present: attendances.filter((a) => a.status === AttendanceStatus.PRESENT).length,
-      absent: attendances.filter((a) => a.status === AttendanceStatus.ABSENT).length,
-      late: attendances.filter((a) => a.status === AttendanceStatus.LATE).length,
-      excused: attendances.filter((a) => a.status === AttendanceStatus.EXCUSED).length,
+      present: attendances.filter((a) => a.status === AttendanceStatus.PRESENT)
+        .length,
+      absent: attendances.filter((a) => a.status === AttendanceStatus.ABSENT)
+        .length,
+      late: attendances.filter((a) => a.status === AttendanceStatus.LATE)
+        .length,
+      excused: attendances.filter((a) => a.status === AttendanceStatus.EXCUSED)
+        .length,
     };
 
     const latePenaltyDays = Math.floor(summary.late / lateRatio);
     const totalDeductionDays = summary.absent + latePenaltyDays;
-    
+
     const absentDeduction = summary.absent * dailySalary;
     const lateDeduction = latePenaltyDays * dailySalary;
     const totalDeduction = absentDeduction + lateDeduction;
 
     // Net Salary calculation
     // If DAILY: baseSalary - deductions + allowances
-    // If HOURLY: (totalPresentHours * hourlyRate) - deductions? 
+    // If HOURLY: (totalPresentHours * hourlyRate) - deductions?
     // Usually backend assumes monthly base anyway, so let's stick to base - deduction.
-    const netSalary = (salaryBasis === 'HOURLY' ? (salary * 8 * monthlyDays) : salary) - totalDeduction + allowances;
+    const netSalary =
+      (salaryBasis === 'HOURLY' ? salary * 8 * monthlyDays : salary) -
+      totalDeduction +
+      allowances;
 
     return {
       baseSalary: salary,

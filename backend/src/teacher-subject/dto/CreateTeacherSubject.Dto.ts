@@ -2,9 +2,9 @@
 import { IsInt, IsArray } from 'class-validator';
 
 export class CreateteacherSubjectDto {
-    @IsInt()
-    employerId: number;
+  @IsInt()
+  employerId: number;
 
-    @IsArray()
-    subjectIds: number[];
+  @IsArray()
+  subjectIds: number[];
 }

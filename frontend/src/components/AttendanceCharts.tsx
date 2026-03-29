@@ -25,12 +25,36 @@ const AttendanceChartsComponent = () => {
 
     const [data, setData] = React.useState<{ day: string; present: number; absent: number }[]>([]);
     const [loading, setLoading] = React.useState(true);
+    const [classes, setClasses] = React.useState<{ classId: number; ClassName: string }[]>([]);
+    const [selectedRole, setSelectedRole] = React.useState<"students" | "teachers" | "staff">("students");
+    const [selectedClassId, setSelectedClassId] = React.useState<number>(0);
 
+    // Fetch classes for the dropdown
+    React.useEffect(() => {
+        api.get("/attendance/class")
+            .then((res) => {
+                setClasses(res.data);
+            })
+            .catch((err) => console.error("Failed to fetch classes", err));
+    }, []);
+
+    // Fetch chart data when role or class changes
     React.useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
             try {
-                const res = await api.get("/attendance/global-weekly-chart");
-                // Match the 'name' field used in XAxis
+                let endpoint = "";
+                if (selectedRole === "students") {
+                    if (selectedClassId === 0) {
+                        endpoint = "/attendance/global-weekly-chart";
+                    } else {
+                        endpoint = `/attendance/student-weekly-chart/${selectedClassId}`;
+                    }
+                } else {
+                    endpoint = "/attendance/employer-weekly-chart"; // Teachers & Staff share the same employer attendance table currently
+                }
+
+                const res = await api.get(endpoint);
                 const formattedData = res.data.map((item: any) => ({
                     name: item.day.toUpperCase(),
                     present: item.present,
@@ -39,13 +63,14 @@ const AttendanceChartsComponent = () => {
                 setData(formattedData);
             } catch (error) {
                 console.error("Failed to fetch weekly attendance", error);
+                setData([]);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchData();
-    }, []);
+    }, [selectedRole, selectedClassId]);
 
     return (
         <motion.div 
@@ -69,9 +94,20 @@ const AttendanceChartsComponent = () => {
                             <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">{t("absent")}</span>
                         </div>
                     </div>
-                    <select className="bg-gray-50 dark:bg-[#0b0d17] border border-gray-200 dark:border-white/5 rounded-xl text-[10px] font-bold px-3 py-2 outline-none text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors cursor-pointer">
-                        <option>Class 10</option>
-                    </select>
+                    {selectedRole === "students" && (
+                        <select 
+                            value={selectedClassId}
+                            onChange={(e) => setSelectedClassId(Number(e.target.value))}
+                            className="bg-gray-50 dark:bg-[#0b0d17] border border-gray-200 dark:border-white/5 rounded-xl text-[10px] font-bold px-3 py-2 outline-none text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors cursor-pointer"
+                        >
+                            <option value={0}>{t("all_classes") || "ALL CLASSES"}</option>
+                            {classes.map((c) => (
+                                <option key={c.classId} value={c.classId}>
+                                    {c.ClassName}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                     <select className="bg-gray-50 dark:bg-[#0b0d17] border border-gray-200 dark:border-white/5 rounded-xl text-[10px] font-bold px-3 py-2 outline-none text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors cursor-pointer">
                         <option>This Week</option>
                     </select>
@@ -79,9 +115,24 @@ const AttendanceChartsComponent = () => {
             </div>
 
             <div className="flex items-center gap-8 mb-8 border-b border-gray-100 dark:border-white/5 transition-colors">
-                <button className="pb-4 text-xs font-black text-[#0052cc] border-b-2 border-[#0052cc] uppercase tracking-widest">{t("students")}</button>
-                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">{t("teachers")}</button>
-                <button className="pb-4 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-widest">{t("staff")}</button>
+                <button 
+                    onClick={() => setSelectedRole("students")}
+                    className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${selectedRole === "students" ? "font-black text-[#0052cc] border-b-2 border-[#0052cc]" : "text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+                >
+                    {t("students")}
+                </button>
+                <button 
+                    onClick={() => setSelectedRole("teachers")}
+                    className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${selectedRole === "teachers" ? "font-black text-[#0052cc] border-b-2 border-[#0052cc]" : "text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+                >
+                    {t("teachers")}
+                </button>
+                <button 
+                    onClick={() => setSelectedRole("staff")}
+                    className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${selectedRole === "staff" ? "font-black text-[#0052cc] border-b-2 border-[#0052cc]" : "text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+                >
+                    {t("staff")}
+                </button>
             </div>
             
             <div className="flex-1 w-full min-h-0">

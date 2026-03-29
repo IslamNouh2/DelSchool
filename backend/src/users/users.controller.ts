@@ -1,5 +1,21 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -19,7 +35,9 @@ export class UsersController {
   @ApiQuery({ name: 'take', required: false, example: 10 })
   @ApiQuery({ name: 'search', required: false })
   @ApiResponse({ status: 200, description: 'Returns a list of users' })
-  async findAll(@Query() query: { skip?: string; take?: string; search?: string }) {
+  async findAll(
+    @Query() query: { skip?: string; take?: string; search?: string },
+  ) {
     return this.usersService.findAll({
       skip: query.skip ? +query.skip : undefined,
       take: query.take ? +query.take : undefined,

@@ -6,22 +6,26 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npx nest build",
+    
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "node dist/main.js",
+    
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main.js",
+    
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "postinstall": "node prisma/deploy-and-seed.js",
+    "build": "npx nest build",
+    "start": "node dist/main.js",
+    "start:prod": "node prisma/deploy-and-seed.js && node dist/main.js",
+    "postinstall": "npx prisma generate",
     "deploy-and-seed": "node prisma/deploy-and-seed.js"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -36,6 +40,7 @@
     "@nestjs/websockets": "^11.1.11",
     "@prisma/client": "^6.4.1",
     "@types/cookie-parser": "^1.4.8",
+    "axios": "^1.13.6",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "class-transformer": "^0.5.1",

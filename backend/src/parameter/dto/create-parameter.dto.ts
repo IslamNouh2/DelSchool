@@ -1,15 +1,14 @@
 import { IsString, IsBoolean, IsOptional } from 'class-validator';
 
 export class CreateParameterDto {
-    @IsString()
-    paramName: string;
+  @IsString()
+  paramName: string;
 
-    @IsOptional()
-    @IsBoolean()
-    okActive?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  okActive?: boolean;
 
-    @IsOptional()
-    @IsString()
-    paramValue?: string;
+  @IsOptional()
+  @IsString()
+  paramValue?: string;
 }
-

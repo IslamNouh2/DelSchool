@@ -63,7 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 // Auto-redirect based on role if not already on correct route
                 const currentPath = window.location.pathname;
-                const userRole = userData.role.toLowerCase();
+                const roleLower = userData.role.toLowerCase();
+                const userRole = roleLower === 'teacher' ? 'teachers' : roleLower;
                 const expectedDashboard = `/${userRole}`;
                 
                 // Only redirect if at root or login
@@ -88,8 +89,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setUser(userData);
 
                 // Redirect to role-based dashboard
-                const role = userData.role.toLowerCase();
-                router.push(`/${role}`);
+                const roleLower = userData.role.toLowerCase();
+                const userRole = roleLower === 'teacher' ? 'teachers' : roleLower;
+                router.push(`/${userRole}`);
             }
         } catch (error) {
             throw error; // Re-throw to handle in component
