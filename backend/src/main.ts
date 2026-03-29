@@ -1,5 +1,7 @@
-import * as dotenv from 'dotenv'; // Reload triggered
+import * as dotenv from 'dotenv';
+import { Request, Response, Application } from 'express';
 dotenv.config();
+
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
@@ -16,84 +18,99 @@ async function bootstrap() {
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
+  // ✅ Global Error Handler
   app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost)));
 
+  // ✅ Global Prefix
+  app.setGlobalPrefix('api');
+
+  // ✅ Swagger (disable in production if needed)
   const config = new DocumentBuilder()
     .setTitle('DelSchool API')
-    .setDescription(
-      'Complete API documentation for DelSchool management system',
-    )
+    .setDescription('DelSchool API Docs')
     .setVersion('1.0')
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
       },
-      'JWT-auth', // This name here is important for @ApiBearerAuth()
+      'JWT-auth',
     )
     .build();
-
-  app.setGlobalPrefix('api');
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  // Security Middlewares
-  app.use(helmet());
-  const compressionMiddleware = compression();
-  app.use(compressionMiddleware);
+  // ================= SECURITY =================
+
+  // ✅ Helmet (strong config)
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: false, // avoid breaking Next.js
+    }),
+  );
+
+  // ✅ Compression
+  app.use(compression());
+
+  // ✅ Cookies
   app.use(cookieParser());
 
-  // Enable CORS with enterprise-grade configuration
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://delschool-2.onrender.com',
-    'https://del-school-bvev.vercel.app',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean);
+  // ✅ Handle preflight manually (Railway fix)
+  (app.getHttpAdapter().getInstance() as Application).options(
+    '*',
+    (req: Request, res: Response) => {
+      res.sendStatus(200);
+    },
+  );
 
+  // ✅ CORS (flexible + secure)
   app.enableCors({
     origin: (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true);
+
+      const allowed = [
+        'localhost',
+        'vercel.app',
+        'railway.app',
+        'onrender.com',
+      ];
+
+      const isAllowed = allowed.some((o) => origin.includes(o));
+
+      if (isAllowed) {
         callback(null, true);
       } else {
+        console.log('❌ Blocked by CORS:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'X-Operation-Id',
-      'Accept',
-    ],
-    exposedHeaders: ['Set-Cookie'],
   });
+
+  // ================= VALIDATION =================
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
     }),
   );
 
+  // ================= START =================
+
   const port = process.env.PORT || 47005;
   await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+
+  console.log(`🚀 Server running on: ${await app.getUrl()}`);
 }
+
 bootstrap().catch((err) => {
-  console.error('Failed to start the application:', err);
+  console.error('❌ Failed to start:', err);
 });
