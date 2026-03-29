@@ -17,7 +17,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "build": "nest build",
     "start": "node dist/main.js",
-    "start:prod": "npx nest build && echo 'Dist folder contents:' && ls dist && node dist/main.js",
+    "start:prod": "npx ts-node prisma/deploy-and-seed.ts && node dist/main.js",
     "postinstall": "npx prisma generate",
     "deploy-and-seed": "npx ts-node prisma/deploy-and-seed.ts"
   },
