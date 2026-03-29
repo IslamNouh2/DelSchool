@@ -23,6 +23,7 @@ interface SocketData {
   cors: {
     origin: [
       'http://localhost:3000',
+      'http://localhost:3001',
       'https://del-school-bvev.vercel.app',
       'https://delschool-production.up.railway.app',
     ],

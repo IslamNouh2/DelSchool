@@ -16,7 +16,26 @@ import { winstonConfig } from './common/logger/winston.config';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://del-school-bvev.vercel.app',
+    'https://delschool-production.up.railway.app',
+  ];
+
   const app = await NestFactory.create(AppModule, {
+    cors: {
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+      ],
+      exposedHeaders: ['Set-Cookie'],
+    },
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
@@ -49,52 +68,6 @@ async function bootstrap() {
 
   // 🔒 Cookies
   app.use(cookieParser());
-
-  // ================= CORS (FIXED) =================
-
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://del-school-bvev.vercel.app',
-    'https://delschool-production.up.railway.app',
-  ];
-
-  app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      console.warn('❌ CORS BLOCKED:', origin);
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-    ],
-    exposedHeaders: ['Set-Cookie'],
-  });
-
-  // ================= PREFLIGHT FIX (RAILWAY) =================
-
-  server.options('*', (req: express.Request, res: express.Response) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header(
-      'Access-Control-Allow-Methods',
-      'GET,POST,PUT,DELETE,PATCH,OPTIONS',
-    );
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.sendStatus(200);
-  });
 
   // ================= GLOBAL FILTER =================
 
@@ -138,9 +111,9 @@ async function bootstrap() {
   // ================= START =================
 
   const port = process.env.PORT || 47005;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 Server running on: ${await app.getUrl()}`);
+  console.log(`🚀 Server running on: http://0.0.0.0:${port}`);
 }
 
 bootstrap().catch((err: Error) => {
