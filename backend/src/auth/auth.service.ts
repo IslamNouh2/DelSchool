@@ -153,6 +153,7 @@ export class AuthService {
 
     return {
       user: { ...user, role, permissions },
+      accessToken,
       message: 'Registration successful',
     };
   }
@@ -238,6 +239,7 @@ export class AuthService {
         role,
         permissions,
       },
+      accessToken,
       message: 'Login successful',
     };
   }
@@ -283,7 +285,7 @@ export class AuthService {
         7 * 24 * 60 * 60 * 1000,
       );
 
-      return { message: 'Tokens refreshed' };
+      return { message: 'Tokens refreshed', accessToken };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }

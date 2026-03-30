@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,15 @@ export default function LoginPage() {
                 password: form.password,
             });
 
-            const { user } = res.data;
+            const { user, accessToken } = res.data;
+
+            if (accessToken) {
+                Cookies.set('accessToken', accessToken, {
+                    secure: true,
+                    sameSite: 'none',
+                    expires: 1 / 96,
+                });
+            }
 
             // ✅ REMOVE ROLE CHECK
 

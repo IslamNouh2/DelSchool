@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { OfflineDB } from './db';
+import Cookies from 'js-cookie';
 
 const rawBaseURL = process.env.NEXT_PUBLIC_API_URL || '';
 const baseURL = rawBaseURL.trim().endsWith('/api') 
@@ -64,7 +65,16 @@ api.interceptors.request.use(async (config) => {
 
 // 2. Response Interceptor: Refresh Rotation & Error Handling
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        if (response.data?.accessToken) {
+            Cookies.set('accessToken', response.data.accessToken, {
+                secure: true,
+                sameSite: 'none',
+                expires: 1 / 96,
+            });
+        }
+        return response;
+    },
     async (error) => {
         const originalRequest = error.config;
 
