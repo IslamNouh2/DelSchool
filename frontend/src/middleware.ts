@@ -5,26 +5,31 @@ import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 
+const PROTECTED_PATTERN = /^\/(?:[a-z]{2}\/)?(?:dashboard|list|report-card|admin)(?:\/.*)?$/;
+const PUBLIC_PATTERN = /^\/(?:[a-z]{2}\/)?(?:login|register|_next|api|favicon)(?:\/.*)?$/;
+
 export async function middleware(request: NextRequest) {
-    // 1. Handle i18n routing first
-    const response = intlMiddleware(request);
-
-    // 2. Check if the current route is protected (regardless of locale prefix)
     const pathname = request.nextUrl.pathname;
-    
-    // Check for protected patterns: /dashboard, /list, /report-card or /[locale]/dashboard, /[locale]/list, /[locale]/report-card
-    const isDashboardRoute = pathname.match(/^\/(?:[a-z]{2}\/)?dashboard(?:\/.*)?$/);
-    const isListRoute = pathname.match(/^\/(?:[a-z]{2}\/)?list(?:\/.*)?$/);
-    const isReportCardRoute = pathname.match(/^\/(?:[a-z]{2}\/)?report-card(?:\/.*)?$/);
 
-    if (isDashboardRoute || isListRoute || isReportCardRoute) {
+    // تجاهل الروتات العامة
+    if (PUBLIC_PATTERN.test(pathname)) {
+        return intlMiddleware(request);
+    }
+
+    // تحقق من الروتات المحمية
+    if (PROTECTED_PATTERN.test(pathname)) {
         const accessToken = request.cookies.get('accessToken')?.value;
         const refreshToken = request.cookies.get('refreshToken')?.value;
 
+        // debug مؤقت - احذفه بعد الحل
+        console.log('[Middleware] PATH:', pathname);
+        console.log('[Middleware] accessToken exists:', !!accessToken);
+        console.log('[Middleware] JWT_SECRET exists:', !!process.env.JWT_ACCESS_SECRET);
+
+        const locale = pathname.split('/')[1];
+        const redirectLocale = routing.locales.includes(locale as any) ? locale : 'en';
+
         if (!accessToken && !refreshToken) {
-            // Get current locale from pathname or default
-            const locale = pathname.split('/')[1] || 'en';
-            const redirectLocale = routing.locales.includes(locale as any) ? locale : 'en';
             return NextResponse.redirect(new URL(`/${redirectLocale}/login`, request.url));
         }
 
@@ -32,26 +37,31 @@ export async function middleware(request: NextRequest) {
             try {
                 const payload = await verifyToken(accessToken);
                 if (payload?.role) {
-                    return response; // Proceed with intl response
+                    return intlMiddleware(request); // ✅ توكن صحيح
                 }
             } catch (e) {
-                console.error('Invalid access token, checking refresh token');
+                console.error('[Middleware] verifyToken error:', e);
             }
         }
 
-        // If accessToken is invalid but refreshToken exists, proceed and let backend handle
-        // or redirect to login if refreshToken is also missing/invalid
-        if (!refreshToken) {
-            const locale = pathname.split('/')[1] || 'en';
-            const redirectLocale = routing.locales.includes(locale as any) ? locale : 'en';
-            return NextResponse.redirect(new URL(`/${redirectLocale}/login`, request.url));
+        // accessToken فاشل لكن refreshToken موجود → خلي الباكند يتعامل معاه
+        if (refreshToken) {
+            return intlMiddleware(request);
         }
+
+        return NextResponse.redirect(new URL(`/${redirectLocale}/login`, request.url));
     }
 
-    return response;
+    return intlMiddleware(request);
 }
 
 export const config = {
-    // Matcher for both i18n and protected routes
-    matcher: ['/', '/(ar|en|fr)/:path*', '/dashboard/:path*', '/list/:path*', '/admin/:path*', '/report-card/:path*'],
+    matcher: [
+        '/',
+        '/(ar|en|fr)/:path*',
+        '/dashboard/:path*',
+        '/list/:path*',
+        '/admin/:path*',
+        '/report-card/:path*',
+    ],
 };
