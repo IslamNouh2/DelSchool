@@ -14,16 +14,18 @@ export default function LoginPage() {
         const checkAuth = async () => {
             try {
                 const res = await api.get('/auth/me');
-                const role = res.data?.user?.role?.toLowerCase();
-                if (role) {
-                    router.push(`/${role}`);
+                const role = res.data?.role?.toLowerCase();
+                console.log("ME:", res.data);
+
+                // ✅ منع loop
+                if (role && window.location.pathname === "/login") {
+                    router.replace(`/${role}`);
                 }
-            } catch (err) {
-                console.log('No valid token or user not authenticated');
-            }
+            } catch { }
         };
+
         checkAuth();
-    }, [router]);
+    }, []);
 
     const [form, setForm] = useState({
         emailOrUsername: '',
