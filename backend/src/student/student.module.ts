@@ -10,5 +10,6 @@ import { FeeModule } from 'src/fee/fee.module';
   imports: [FeeModule],
   controllers: [StudentController, ParentController],
   providers: [StudentService, LocalService, PrismaService],
+  exports: [StudentService],
 })
 export class StudentModule {}

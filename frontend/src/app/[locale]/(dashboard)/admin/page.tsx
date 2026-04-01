@@ -89,23 +89,18 @@ const AdminPage = () => {
         try {
             setLoading(true);
             const today = new Date().toISOString().split('T')[0];
-            const [studentRes, teacherRes, parentRes, staffRes, attendanceRes] = await Promise.allSettled([
-                api.get("/student/count"),
-                api.get("/employer/count/teacher"),
-                api.get("/parent/count"),
-                api.get("/employer/count/staff"),
-                api.get(`/attendance/global-daily-summary/${today}`)
-            ]);
+            const res = await api.get(`/dashboard/stats/${today}`);
+            const data = res.data;
 
             setCounts({
-                studentCount: studentRes.status === 'fulfilled' ? studentRes.value.data.total || 0 : 0,
-                teacherCount: teacherRes.status === 'fulfilled' ? teacherRes.value.data.total || 0 : 0,
-                parentCount: parentRes.status === 'fulfilled' ? parentRes.value.data.total || 0 : 0,
-                staffCount: staffRes.status === 'fulfilled' ? staffRes.value.data.total || 0 : 0,
+                studentCount: data.studentCount.total || 0,
+                teacherCount: data.teacherCount.total || 0,
+                parentCount: data.parentCount.total || 0,
+                staffCount: data.staffCount.total || 0,
             });
 
-            if (attendanceRes.status === 'fulfilled') {
-                const summary = attendanceRes.value.data;
+            const summary = data.attendanceSummary;
+            if (summary) {
                 const present = summary.find((i: any) => i.name === 'Present')?.value || 0;
                 const absent = summary.find((i: any) => i.name === 'Absent')?.value || 0;
                 const late = summary.find((i: any) => i.name === 'Late')?.value || 0;

@@ -37,6 +37,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { TimetableOptimizerModule } from './timetable-optimizer/timetable-optimizer.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { TimetableOptimizerModule } from './timetable-optimizer/timetable-optimi
     SystemSettingsModule,
     TimetableOptimizerModule,
     ReportCardModule,
+    DashboardModule,
   ],
 })
 export class AppModule implements NestModule {
