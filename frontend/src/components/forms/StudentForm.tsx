@@ -273,7 +273,19 @@ const StudentForm: React.FC<StudentFormProps> = ({
             toast.success(type === "create" ? t("messages.create_success") : t("messages.update_success"));
         } catch (err: any) {
             console.error("Error during form submission:", err);
-            toast.error(translateError(err));
+            
+            if (err.response?.data?.message) {
+                const apiMessage = err.response.data.message;
+                if (Array.isArray(apiMessage)) {
+                    apiMessage.forEach((msg: string) => toast.error(msg));
+                } else if (typeof apiMessage === 'string') {
+                    toast.error(apiMessage);
+                } else {
+                    toast.error(translateError(err));
+                }
+            } else {
+                toast.error(translateError(err));
+            }
         } finally {
             setIsLoading(false);
         }
@@ -351,9 +363,6 @@ const StudentForm: React.FC<StudentFormProps> = ({
                         </div>
 
                         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormItem label={t("form.labels.student_code")} required>
-                                <Input name="code" value={form.code} onChange={handleChange} placeholder={t("form.placeholders.student_code")} required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
-                            </FormItem>
                             <FormItem label={t("form.labels.first_name")} required>
                                 <Input name="nom" value={form.nom} onChange={handleChange} placeholder={t("form.placeholders.first_name")} required className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>

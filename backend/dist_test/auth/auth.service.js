@@ -62,7 +62,7 @@ let AuthService = class AuthService {
     generateTokens(payload) {
         const accessToken = this.jwtService.sign(payload, {
             secret: this.configService.get('JWT_ACCESS_SECRET'),
-            expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN', '15m'),
+            expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN', '24h'),
         });
         const refreshToken = this.jwtService.sign(payload, {
             secret: this.configService.get('JWT_REFRESH_SECRET'),
@@ -101,12 +101,12 @@ let AuthService = class AuthService {
         const payload = { sub: user.id, username: user.username, email: user.email, role: user.role, tenantId: user.tenantId };
         const { accessToken, refreshToken } = this.generateTokens(payload);
         await this.storeRefreshToken(user.id, refreshToken);
-        this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
+        this.setCookie(response, 'accessToken', accessToken, 24 * 60 * 60 * 1000);
         this.setCookie(response, 'refreshToken', refreshToken, 7 * 24 * 60 * 60 * 1000);
         return { user, message: 'Registration successful' };
     }
     async validateUser(username, password) {
-        const user = await this.prisma.user.findUnique({ where: { username } });
+        const user = await this.prisma.user.findFirst({ where: { OR: [{username }, { email: username }] } });
         if (user && (await bcrypt.compare(password, user.password))) {
             const { password, ...result } = user;
             return result;
@@ -117,10 +117,11 @@ let AuthService = class AuthService {
         const payload = { sub: user.id, username: user.username, email: user.email, role: user.role, tenantId: user.tenantId };
         const { accessToken, refreshToken } = this.generateTokens(payload);
         await this.storeRefreshToken(user.id, refreshToken);
-        this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
+        this.setCookie(response, 'accessToken', accessToken, 24 * 60 * 60 * 1000);
         this.setCookie(response, 'refreshToken', refreshToken, 7 * 24 * 60 * 60 * 1000);
         return {
             user: { id: user.id, username: user.username, email: user.email, role: user.role },
+            accessToken,
             message: 'Login successful',
         };
     }
@@ -149,7 +150,7 @@ let AuthService = class AuthService {
             };
             const { accessToken, refreshToken } = this.generateTokens(newPayload);
             await this.storeRefreshToken(payload.sub, refreshToken);
-            this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
+            this.setCookie(response, 'accessToken', accessToken, 24 * 60 * 60 * 1000);
             this.setCookie(response, 'refreshToken', refreshToken, 7 * 24 * 60 * 60 * 1000);
             return { message: 'Tokens refreshed' };
         }

@@ -37,7 +37,7 @@ export class CreateStudentDto {
     example: '123 Main St, City',
     description: 'Address of the student',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   address: string;
 
@@ -83,10 +83,13 @@ export class CreateStudentDto {
   @IsString()
   fatherJob: string;
 
-  @ApiProperty({ example: 'STU12345', description: 'Unique student code' })
-  @IsNotEmpty() // Add this decorator
+  @ApiPropertyOptional({
+    example: 'STU12345',
+    description: 'Unique student code',
+  })
+  @IsOptional()
   @IsString()
-  code: string;
+  code?: string;
 
   @IsOptional()
   @IsString()

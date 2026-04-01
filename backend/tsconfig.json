@@ -18,5 +18,5 @@
     }
   },
   "include": ["src/**/*.ts", "prisma/**/*.ts"],
-  "exclude": ["node_modules", "test", "dist"]
+  "exclude": ["node_modules", "test", "dist", "dist_test"]
 }

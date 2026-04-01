@@ -13,10 +13,8 @@ import {
   ParseIntPipe,
   HttpException,
   HttpStatus,
-  InternalServerErrorException,
   BadRequestException,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,19 +23,21 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiConsumes,
-  ApiBody,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { StudentService } from './student.service';
 import { CreateStudentDto } from './dto/CreateStudentDto';
 import { UpdateStudentDto } from './dto/UpdateStudentDto';
 import * as path from 'path';
 import { LocalService } from 'src/local/local.service';
 import { FeeService } from 'src/fee/fee.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { TenantId } from 'src/auth/decorators/tenant-id.decorator';
 
 @ApiTags('Students')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 @Controller('student')
 export class StudentController {
   constructor(
@@ -47,26 +47,29 @@ export class StudentController {
   ) {}
 
   @Get('all-locals')
-  async getLocalsFromStudentController(@Req() req: any) {
+  async getLocalsFromStudentController(@TenantId() tenantId: string) {
     try {
-      return await this.localservice.getAllLocals(req.tenantId);
-    } catch (error) {
-      throw new BadRequestException(error.message);
+      return await this.localservice.getAllLocals(tenantId);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An error occurred');
     }
   }
 
   @Get('count')
   @ApiOperation({ summary: 'Get total student count' })
   @ApiResponse({ status: 200, description: 'Returns the count of students' })
-  async getCountStudent(@Req() req: any) {
-    return this.studentService.GetCountStudent(req.tenantId);
+  async getCountStudent(@TenantId() tenantId: string) {
+    return this.studentService.GetCountStudent(tenantId);
   }
 
   @Get('counts-by-gender')
   @ApiOperation({ summary: 'Get student counts by gender' })
   @ApiResponse({ status: 200, description: 'Returns counts by gender' })
-  async getCountsByGender(@Req() req: any) {
-    return this.studentService.GetCountStudent(req.tenantId);
+  async getCountsByGender(@TenantId() tenantId: string) {
+    return this.studentService.GetCountStudent(tenantId);
   }
 
   @Post('create')
@@ -92,11 +95,11 @@ export class StudentController {
     }),
   )
   async createStudent(
-    @Req() req: any,
+    @TenantId() tenantId: string,
     @Body() dto: CreateStudentDto,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return this.studentService.CreateStudent(req.tenantId, dto, photo);
+    return this.studentService.CreateStudent(tenantId, dto, photo);
   }
 
   @Put('update/:id')
@@ -119,17 +122,20 @@ export class StudentController {
     }),
   )
   async updateStudent(
-    @Req() req: any,
+    @TenantId() tenantId: string,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStudentDto,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return this.studentService.UpdateStudent(req.tenantId, id, dto, photo);
+    return this.studentService.UpdateStudent(tenantId, id, dto, photo);
   }
 
   @Delete('delete/:id')
-  async deleteStudent(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.studentService.DeleteStudent(req.tenantId, id);
+  async deleteStudent(
+    @TenantId() tenantId: string,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.studentService.DeleteStudent(tenantId, id);
   }
 
   @Get('list')
@@ -152,7 +158,7 @@ export class StudentController {
     },
   })
   async getStudents(
-    @Req() req: any,
+    @TenantId() tenantId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('classId') classId?: number,
@@ -160,7 +166,7 @@ export class StudentController {
     @Query('search') search?: string,
   ) {
     return this.studentService.GetStudent(
-      req.tenantId,
+      tenantId,
       page,
       limit,
       classId,
@@ -170,23 +176,21 @@ export class StudentController {
   }
 
   @Get(':id')
-  async getStudentById(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.studentService.GetStudentById(req.tenantId, id);
+  async getStudentById(
+    @TenantId() tenantId: string,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.studentService.GetStudentById(tenantId, id);
   }
 
   @Get('search')
   async searchStudents(
-    @Req() req: any,
+    @TenantId() tenantId: string,
     @Query('name') name: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    return this.studentService.GetStudentWithName(
-      req.tenantId,
-      name,
-      page,
-      limit,
-    );
+    return this.studentService.GetStudentWithName(tenantId, name, page, limit);
   }
 
   @Get('photo/:fileName')
@@ -206,12 +210,16 @@ export class StudentController {
 
       res.send(photoBuffer);
     } catch (error) {
+      console.error(error);
       res.status(404).send('Photo not found');
     }
   }
 
   @Get(':id/pending-fees')
-  async getPendingFees(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.feeService.getPendingFees(req.tenantId, id);
+  async getPendingFees(
+    @TenantId() tenantId: string,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.feeService.getPendingFees(tenantId, id);
   }
 }

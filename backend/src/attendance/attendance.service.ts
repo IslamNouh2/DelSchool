@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AttendanceRepository } from './attendance.repository';
 import { SaveStudentAttendanceDto } from './dto/create-student-attendance.dto';
 import { UpdateStudentAttendanceDto } from './dto/update-attendance.dto';
@@ -59,13 +59,11 @@ export class AttendanceService {
 
   // 👩‍🏫 Employer
   async createEmployer(tenantId: string, dto: CreateEmployerAttendanceDto) {
-    let { status, checkInTime, employerId } = dto;
+    const { checkInTime, employerId } = dto;
+    let status = dto.status;
 
     // Fetch employer config for this specific pointage
-    const employer = (await this.repo.getEmployerConfig(
-      tenantId,
-      employerId,
-    )) as any;
+    const employer = await this.repo.getEmployerConfig(tenantId, employerId);
 
     // Auto-determine status if not explicitly set to something else (like EXCUSED)
     if (
@@ -114,7 +112,8 @@ export class AttendanceService {
     id: number,
     dto: UpdateEmployerAttendanceDto,
   ) {
-    let { status, checkInTime, employerId } = dto;
+    const { checkInTime, employerId } = dto;
+    let status = dto.status;
 
     if (
       checkInTime &&
@@ -122,25 +121,21 @@ export class AttendanceService {
         status === AttendanceStatus.PRESENT ||
         status === AttendanceStatus.LATE)
     ) {
-      // We need employerId to get config. If not in DTO, we might need to fetch existing record first.
-      let eid = employerId;
-      if (!eid) {
-        const existing = await this.repo.getEmployerAttendanceById(
-          tenantId,
-          id,
-        );
-        eid = existing?.employerId;
-      }
+      // Ensure we have employerId
+      const eid =
+        employerId ??
+        (await this.repo.getEmployerAttendanceById(tenantId, id))?.employerId;
 
       if (eid) {
-        const employer = (await this.repo.getEmployerConfig(
-          tenantId,
-          eid,
-        )) as any;
-        const checkIn = new Date(checkInTime as any);
+        // Use proper typing instead of 'any'
+        const employer: { checkInTime?: string } | null =
+          await this.repo.getEmployerConfig(tenantId, eid);
+
+        const checkIn = new Date(checkInTime);
         const hours = checkIn.getHours();
         const minutes = checkIn.getMinutes();
 
+        // Default thresholds
         let thresholdHours = 8;
         let thresholdMinutes = 10;
 
@@ -155,14 +150,11 @@ export class AttendanceService {
           thresholdMinutes = globalThreshold.minutes;
         }
 
-        if (
+        status =
           hours > thresholdHours ||
           (hours === thresholdHours && minutes > thresholdMinutes)
-        ) {
-          status = AttendanceStatus.LATE;
-        } else {
-          status = AttendanceStatus.PRESENT;
-        }
+            ? AttendanceStatus.LATE
+            : AttendanceStatus.PRESENT;
       }
     }
 
@@ -173,7 +165,6 @@ export class AttendanceService {
     this.socketGateway.emitRefresh();
     return result;
   }
-
   getAllEmployers(tenantId: string) {
     return this.repo.getAllEmployers(tenantId);
   }

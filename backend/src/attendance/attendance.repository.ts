@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AttendanceStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SaveStudentAttendanceDto } from './dto/create-student-attendance.dto';
 import { CreateEmployerAttendanceDto } from './dto/create-employer-attendance.dto';
@@ -157,7 +157,7 @@ export class AttendanceRepository {
       select: {
         checkInTime: true,
         checkOutTime: true,
-      } as any,
+      },
     });
   }
 
@@ -172,7 +172,7 @@ export class AttendanceRepository {
         code: true,
         checkInTime: true,
         checkOutTime: true,
-      } as any,
+      },
       orderBy: { lastName: 'asc' },
     });
   }
@@ -481,7 +481,10 @@ export class AttendanceRepository {
     const today = new Date();
 
     const totalEmployers = await this.prisma.employer.count({
-      where: { tenantId },
+      where: {
+        tenantId,
+        type: { not: 'teacher' },
+      },
     });
 
     for (let i = 6; i >= 0; i--) {
@@ -496,6 +499,9 @@ export class AttendanceRepository {
           date: {
             gte: startOfDay,
             lte: endOfDay,
+          },
+          employer: {
+            type: { not: 'teacher' },
           },
         },
         select: { status: true },

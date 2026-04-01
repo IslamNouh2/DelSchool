@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     BarChart,
     Bar,
@@ -23,14 +23,14 @@ const AttendanceChartsComponent = () => {
     const { theme } = useTheme();
     const isDark = theme === "dark";
 
-    const [data, setData] = React.useState<{ day: string; present: number; absent: number }[]>([]);
-    const [loading, setLoading] = React.useState(true);
-    const [classes, setClasses] = React.useState<{ classId: number; ClassName: string }[]>([]);
-    const [selectedRole, setSelectedRole] = React.useState<"students" | "teachers" | "staff">("students");
-    const [selectedClassId, setSelectedClassId] = React.useState<number>(0);
+    const [data, setData] = useState<{ day: string; present: number; absent: number }[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [classes, setClasses] = useState<{ classId: number; ClassName: string }[]>([]);
+    const [selectedRole, setSelectedRole] = useState<"students" | "teachers" | "staff">("students");
+    const [selectedClassId, setSelectedClassId] = useState<number>(0);
 
     // Fetch classes for the dropdown
-    React.useEffect(() => {
+    useEffect(() => {
         api.get("/attendance/class")
             .then((res) => {
                 setClasses(res.data);
@@ -39,7 +39,7 @@ const AttendanceChartsComponent = () => {
     }, []);
 
     // Fetch chart data when role or class changes
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {

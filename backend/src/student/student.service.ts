@@ -13,6 +13,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class StudentService {
@@ -24,7 +25,7 @@ export class StudentService {
     private prisma: PrismaService,
     private socketGateway: SocketGateway,
   ) {
-    this.ensureUploadDirectory();
+    void this.ensureUploadDirectory();
   }
 
   private async ensureUploadDirectory() {
@@ -141,6 +142,13 @@ export class StudentService {
     if (!finalParentId) {
       finalParentId = 1;
     }
+
+    let finalCode = code;
+    if (!finalCode) {
+      const count = await this.prisma.student.count({ where: { tenantId } });
+      finalCode = `STU-${tenantId}-${String(count + 1).padStart(2, '0')}`;
+    }
+
     try {
       const student = await this.prisma.student.create({
         data: {
@@ -150,7 +158,7 @@ export class StudentService {
           gender,
           address,
           parentId: finalParentId,
-          code,
+          code: finalCode,
           health,
           dateCreate: dateCreate ? new Date(dateCreate) : new Date(),
           dateModif: dateModif ? new Date(dateModif) : new Date(),
@@ -171,11 +179,11 @@ export class StudentService {
       });
 
       // Auto-create User for login
-      const hashedPassword = await bcrypt.hash(code, 12);
+      const hashedPassword = await bcrypt.hash(finalCode, 12);
       await this.prisma.user.create({
         data: {
-          email: email || `${code}@delschool.com`,
-          username: code,
+          email: email || `${finalCode}@delschool.com`,
+          username: finalCode,
           password: hashedPassword,
           roleId: 3, // STUDENT
           tenantId,
@@ -184,7 +192,7 @@ export class StudentService {
 
       const targetClassId = Number(classId || localId);
       if (targetClassId) {
-        let schoolYear;
+        let schoolYear: { id: number } | null = null;
         if (academicYear) {
           schoolYear = await this.prisma.schoolYear.findUnique({
             where: { year: academicYear },
@@ -333,7 +341,6 @@ export class StudentService {
       code,
       health,
       dateCreate,
-      dateModif,
       lieuOfBirth,
       bloodType,
       etatCivil,
@@ -422,7 +429,7 @@ export class StudentService {
 
     const targetClassId = Number(classId || localId);
     if (targetClassId) {
-      let schoolYear;
+      let schoolYear: { id: number } | null = null;
       if (academicYear) {
         schoolYear = await this.prisma.schoolYear.findUnique({
           where: { year: academicYear },
@@ -565,7 +572,9 @@ export class StudentService {
   ) {
     const skip = (page - 1) * limit;
 
-    const where: any = { tenantId };
+    const where: Prisma.StudentWhereInput = {
+      tenantId,
+    };
     if (classId) {
       where.studentClasses = {
         some: {
@@ -697,7 +706,14 @@ export class StudentService {
     }
   }
 
-  private calculateFinancialSummary(fees: any[]) {
+  private calculateFinancialSummary(
+    fees: {
+      title: string;
+      amount: Prisma.Decimal | number;
+      dueDate: Date | string;
+      payments: { amount: Prisma.Decimal | number }[];
+    }[],
+  ) {
     let totalDue = 0;
     let totalPaid = 0;
     let hasOverdue = false;
@@ -706,11 +722,15 @@ export class StudentService {
     const subscriptions = fees.map((f) => f.title);
 
     for (const fee of fees) {
-      const amount = Number(fee.amount);
+      const amount =
+        typeof fee.amount === 'number' ? fee.amount : fee.amount.toNumber();
+
       const paid = fee.payments.reduce(
-        (sum: number, p: any) => sum + p.amount,
+        (sum: number, p) =>
+          sum + (typeof p.amount === 'number' ? p.amount : p.amount.toNumber()),
         0,
       );
+
       totalDue += amount;
       totalPaid += paid;
 
@@ -825,7 +845,7 @@ export class StudentService {
           name: true,
         },
       });
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Failed to fetch locales');
     }
   }
@@ -903,7 +923,7 @@ export class StudentService {
 
     try {
       return await fs.readFile(filePath);
-    } catch (error) {
+    } catch {
       throw new NotFoundException('Photo not found');
     }
   }
