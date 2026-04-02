@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import api from "@/lib/api";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Filter, Search, Download, Eye, Edit, Trash2, Columns3, Briefcase, UserCheck } from "lucide-react";
@@ -231,11 +232,18 @@ export default function TeacherListPage() {
             key: "photo",
             visible: columnVisibility.photo,
             render: (teacher: Employer) => (
-                <img
-                    src={teacher.photoFileName ? `http://localhost:47005/employer/photo/${teacher.photoFileName}` : "/avatar.png"}
-                    alt={`${teacher.firstName} ${teacher.lastName}`}
-                    className="w-10 h-10 rounded-full object-cover border border-border"
-                />
+                <div className="relative w-10 h-10">
+                    <Image
+                        src={
+                            teacher.photoFileName
+                                ? `${process.env.NEXT_PUBLIC_API_URL}/api/employer/photo/${teacher.photoFileName}`
+                                : "/avatar.png"
+                        }
+                        alt={`${teacher.firstName} ${teacher.lastName}`}
+                        fill
+                        className="rounded-full object-cover border border-border"
+                    />
+                </div>
             ),
         },
         {

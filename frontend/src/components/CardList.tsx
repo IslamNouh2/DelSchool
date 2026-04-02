@@ -36,10 +36,11 @@ const CardList: React.FC<UserCardProps> = ({
             if (photoUrl.startsWith("http") || photoUrl.startsWith("data:image/")) {
                 return photoUrl;
             }
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:47005";
             if (photoUrl.startsWith("/api/")) {
-                return `http://localhost:47005${photoUrl}`;
+                return `${apiBase}${photoUrl}`;
             }
-            return `http://localhost:47005/api/student/photo/${photoUrl}`;
+            return `${apiBase}/api/student/photo/${photoUrl}`;
         }
         return "/avatar.png";
     };

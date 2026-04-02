@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import api from "@/lib/api";
+import NextImage from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Filter, Search, Download, Eye, Edit, Trash2, ArrowDownWideNarrow, Columns3, GraduationCap, FileText } from "lucide-react";
@@ -233,7 +234,7 @@ export default function StudentListPage() {
     }, []);
 
     const getPhotoUrl = (filename?: string) =>
-        filename ? `http://localhost:47005/api/student/photo/${filename}` : "/avatar.png";
+        filename ? `${process.env.NEXT_PUBLIC_API_URL}/api/student/photo/${filename}` : "/avatar.png";
 
     const columns = useMemo(() => [
         {
@@ -241,14 +242,14 @@ export default function StudentListPage() {
             key: "photo",
             visible: columnVisibility.photo,
             render: (student: Student) => (
-                <img
-                    src={getPhotoUrl(student.photoFileName)}
-                    alt={`${student.firstName} ${student.lastName}`}
-                    className="w-10 h-10 rounded-full object-cover border border-border"
-                    onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/avatar.png";
-                    }}
-                />
+                <div className="relative w-10 h-10">
+                    <NextImage
+                        src={getPhotoUrl(student.photoFileName)}
+                        alt={`${student.firstName} ${student.lastName}`}
+                        fill
+                        className="rounded-full object-cover border border-border"
+                    />
+                </div>
             ),
         },
         {

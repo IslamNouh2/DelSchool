@@ -17,6 +17,24 @@ const nextConfig = {
         port: isProd ? "" : "47005",
         pathname: "/api/student/photo/**",
       },
+      {
+        protocol: isProd ? "https" : "http",
+        hostname: isProd ? "delschool-2.onrender.com" : "localhost",
+        port: isProd ? "" : "47005",
+        pathname: "/student/photo/**",
+      },
+      {
+        protocol: isProd ? "https" : "http",
+        hostname: isProd ? "delschool-2.onrender.com" : "localhost",
+        port: isProd ? "" : "47005",
+        pathname: "/api/employer/photo/**",
+      },
+      {
+        protocol: isProd ? "https" : "http",
+        hostname: isProd ? "delschool-2.onrender.com" : "localhost",
+        port: isProd ? "" : "47005",
+        pathname: "/employer/photo/**",
+      },
     ],
   },
   experimental: {

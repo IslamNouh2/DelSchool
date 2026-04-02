@@ -93,7 +93,6 @@ export default function EmployerDialog({
     hideButton = false,
 }: EmployerDialogProps) {
     const [form, setForm] = useState({
-        code: "",
         firstName: "",
         lastName: "",
         dateNaissance: "",
@@ -161,7 +160,7 @@ export default function EmployerDialog({
                     toast.error("Failed to load assigned subjects");
                 });
         }
-    }, [showSubjectDialog,t]);
+    }, [showSubjectDialog,createdEmployerId,data?.employerId]);
     
     useEffect(() => {
         const checkClassTeacherParam = async () => {
@@ -236,7 +235,6 @@ export default function EmployerDialog({
             if (normalizedGender.toLowerCase() === "female") normalizedGender = "Female";
 
             const initialForm = {
-                code: data.code || "",
                 firstName: data.firstName || "",
                 lastName: data.lastName || "",
                 dateNaissance: data.dateOfBirth || "",
@@ -269,11 +267,10 @@ export default function EmployerDialog({
             setBirthDate(data.dateOfBirth ? new Date(data.dateOfBirth) : undefined)
             setRegisterDate(data.dateInscription ? new Date(data.dateInscription) : undefined)
             if (data.photoFileName) {
-                setPhotoPreview(`http://localhost:47005/employer/photo/${data.photoFileName}`)
+                setPhotoPreview(`${process.env.NEXT_PUBLIC_API_URL}/api/employer/photo/${data.photoFileName}`)
             }
         } else if (type === "create") {
             setForm({
-                code: "",
                 firstName: "",
                 lastName: "",
                 dateNaissance: "",
@@ -341,7 +338,6 @@ export default function EmployerDialog({
         try {
             const formData = new FormData()
 
-            formData.append("code", form.code)
             formData.append("firstName", form.firstName)
             formData.append("lastName", form.lastName)
             if (birthDate) formData.append("dateOfBirth", birthDate.toISOString())
@@ -489,9 +485,6 @@ export default function EmployerDialog({
                         </div>
 
                         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormItem label={t("form.labels.code")} required>
-                                <Input name="code" value={form.code} onChange={handleChange} placeholder={t("form.placeholders.code")} required className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900 focus:ring-blue-500" />
-                            </FormItem>
                             <FormItem label={t("form.labels.type")} required>
                                 <Select value={form.type} onValueChange={(val) => setForm((prev) => ({ ...prev, type: val }))}>
                                     <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">

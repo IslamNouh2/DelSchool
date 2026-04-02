@@ -34,6 +34,7 @@ import { LocalService } from 'src/local/local.service';
 import { FeeService } from 'src/fee/fee.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { TenantId } from 'src/auth/decorators/tenant-id.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Students')
 @ApiBearerAuth('JWT-auth')
@@ -193,6 +194,7 @@ export class StudentController {
     return this.studentService.GetStudentWithName(tenantId, name, page, limit);
   }
 
+  @Public()
   @Get('photo/:fileName')
   async getPhoto(@Param('fileName') fileName: string, @Res() res: Response) {
     try {
@@ -209,8 +211,7 @@ export class StudentController {
       });
 
       res.send(photoBuffer);
-    } catch (error) {
-      console.error(error);
+    } catch {
       res.status(404).send('Photo not found');
     }
   }

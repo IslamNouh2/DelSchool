@@ -24,7 +24,7 @@ export class EmployerService {
     private prisma: PrismaService,
     private socketGateway: SocketGateway,
   ) {
-    this.ensureUploadDirectory();
+    void this.ensureUploadDirectory();
   }
 
   async GetCountTeacher(tenantId: string) {
@@ -138,7 +138,6 @@ export class EmployerService {
       type,
       phone,
       weeklyWorkload,
-      salary,
       salaryBasis,
       checkInTime,
       checkOutTime,
@@ -597,7 +596,7 @@ export class EmployerService {
     const filePath = path.join(this.uploadPath, fileName);
     try {
       return await fs.readFile(filePath);
-    } catch (error) {
+    } catch {
       throw new NotFoundException('Photo not found');
     }
   }
@@ -607,8 +606,11 @@ export class EmployerService {
     employerId: number,
     classId: number,
   ) {
-    // 1. Assign the class
-    let teacherClassRes;
+    type TeacherClassResult = Awaited<
+      ReturnType<typeof this.prisma.teaherClass.update>
+    >;
+
+    let teacherClassRes: TeacherClassResult;
     const existing = await this.prisma.teaherClass.findFirst({
       where: { employerId, tenantId },
     });

@@ -125,7 +125,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
             if (data.dateOfBirth) setBirthDate(new Date(data.dateOfBirth));
             if (data.dateInscription) setRegisterDate(new Date(data.dateInscription));
-            if (data.photoUrl) setPhotoPreview(`http://localhost:47005${data.photoUrl}`);
+            if (data.photoUrl) setPhotoPreview(`${process.env.NEXT_PUBLIC_API_URL}/api${data.photoUrl}`);
         }
         fetchLocal();
     }, [type, data]);

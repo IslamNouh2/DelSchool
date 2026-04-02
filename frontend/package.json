@@ -75,6 +75,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash.debounce": "^4.0.9",
@@ -82,8 +83,8 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.5",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
