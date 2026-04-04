@@ -148,17 +148,22 @@ console.log(studentRes.data);
         if (id) fetchData();
     }, [id, fetchData, refreshKey]);
 
-    const handleUpdate = useCallback(async (id: number) => {
+    const handleUpdate = useCallback(async (sid: number) => {
         try {
-            const response = await api.get(`/student/${id}`);
-            const studentData = response.data;
-            setSelectedStudent(studentData);
+            const response = await api.get(`/student/${sid}`);
+            const detail = response.data;
+            setSelectedStudent({
+                ...detail,
+                gender: detail.gender ?? student?.gender,
+                bloodType: detail.bloodType ?? student?.bloodType,
+                etatCivil: detail.etatCivil ?? student?.etatCivil,
+            });
             setFormType("update");
             setIsDialogOpen(true);
         } catch (error) {
             console.error("Error fetching student details:", error);
         }
-    }, []);
+    }, [student]);
 
     const handleFormSuccess = useCallback(() => {
         fetchData();

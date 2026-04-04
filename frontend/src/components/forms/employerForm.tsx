@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslations } from "next-intl"
 import { useTranslateError } from "@/hooks/useTranslateError"
+import { ComboboxDemo } from "../ui/combobox";
 
 interface EmployerDialogProps {
     type?: "create" | "update"
@@ -266,8 +267,11 @@ export default function EmployerDialog({
 
             setBirthDate(data.dateOfBirth ? new Date(data.dateOfBirth) : undefined)
             setRegisterDate(data.dateInscription ? new Date(data.dateInscription) : undefined)
-            if (data.photoFileName) {
-                setPhotoPreview(`${process.env.NEXT_PUBLIC_API_URL}/api/employer/photo/${data.photoFileName}`)
+            
+            // Fix photo display: use photoFileName and the specific employer photo endpoint
+            const photoFile = data.photoFileName || data.photo;
+            if (photoFile) {
+                setPhotoPreview(`${process.env.NEXT_PUBLIC_API_URL}/api/employer/photo/${photoFile}`)
             }
         } else if (type === "create") {
             setForm({
@@ -486,16 +490,19 @@ export default function EmployerDialog({
 
                         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormItem label={t("form.labels.type")} required>
-                                <Select value={form.type} onValueChange={(val) => setForm((prev) => ({ ...prev, type: val }))}>
-                                    <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">
-                                        <SelectValue placeholder={t("form.placeholders.type")} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="admin">{t("form.labels.type_admin")}</SelectItem>
-                                        <SelectItem value="teacher">{t("form.labels.type_teacher")}</SelectItem>
-                                        <SelectItem value="employer">{t("form.labels.type_employer")}</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <ComboboxDemo
+                                    frameworks={[
+                                        { value: "admin", label: t("form.labels.type_admin") || "Admin" },
+                                        { value: "teacher", label: t("form.labels.type_teacher") || "Teacher" },
+                                        { value: "employer", label: t("form.labels.type_employer") || "Employer" }
+                                    ]}
+                                    type={t("form.labels.type")}
+                                    value={form.type}
+                                    onChange={(val) => {
+                                        if (val) setForm((prev) => ({ ...prev, type: val }));
+                                    }}
+                                    width="w-full"
+                                />
                             </FormItem>
                             <FormItem label={t("form.labels.first_name")} required>
                                 <Input name="firstName" value={form.firstName} onChange={handleChange} placeholder={t("form.placeholders.first_name")} required className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
@@ -529,35 +536,32 @@ export default function EmployerDialog({
                                     <Input name="nationality" value={form.nationality} onChange={handleChange} placeholder={t("form.placeholders.nationality")} className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
                                 </FormItem>
                                 <FormItem label={t("form.labels.gender")} required>
-                                    <Select value={form.gender} onValueChange={(val) => setForm((prev) => ({ ...prev, gender: val }))}>
-                                        <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">
-                                            <SelectValue placeholder={t("form.placeholders.gender")} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Male">{t("form.labels.gender_male")}</SelectItem>
-                                            <SelectItem value="Female">{t("form.labels.gender_female")}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <ComboboxDemo
+                                        frameworks={[
+                                            { value: "Male", label: t("form.labels.gender_male") || "Male" },
+                                            { value: "Female", label: t("form.labels.gender_female") || "Female" }
+                                        ]}
+                                        type={t("form.labels.gender")}
+                                        value={form.gender}
+                                        onChange={(val) => {
+                                            if (val) setForm((prev) => ({ ...prev, gender: val }));
+                                        }}
+                                        width="w-full"
+                                    />
                                 </FormItem>
                                 <FormItem label={t("form.labels.marital_status")} required>
                                     <Input name="etatCivil" value={form.etatCivil} onChange={handleChange} placeholder={t("form.placeholders.marital_status")} className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
                                 </FormItem>
                                 <FormItem label={t("form.labels.blood_type")} required>
-                                    <Select value={form.groupeSanguin} onValueChange={(val) => setForm((prev) => ({ ...prev, groupeSanguin: val }))}>
-                                        <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">
-                                            <SelectValue placeholder={t("form.placeholders.blood_type")} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="A+">A+</SelectItem>
-                                            <SelectItem value="A-">A-</SelectItem>
-                                            <SelectItem value="B+">B+</SelectItem>
-                                            <SelectItem value="B-">B-</SelectItem>
-                                            <SelectItem value="O+">O+</SelectItem>
-                                            <SelectItem value="O-">O-</SelectItem>
-                                            <SelectItem value="AB+">AB+</SelectItem>
-                                            <SelectItem value="AB-">AB-</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <ComboboxDemo
+                                        frameworks={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(opt => ({ value: opt, label: opt }))}
+                                        type={t("form.labels.blood_type")}
+                                        value={form.groupeSanguin}
+                                        onChange={(val) => {
+                                            if (val) setForm((prev) => ({ ...prev, groupeSanguin: val }));
+                                        }}
+                                        width="w-full"
+                                    />
                                 </FormItem>
                                 
                             </div>
@@ -618,15 +622,18 @@ export default function EmployerDialog({
                                     <Input type="number" name="salary" value={form.salary} onChange={handleChange} placeholder={t("form.placeholders.salary")} min={0} step="0.01" className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />
                                 </FormItem>
                                 <FormItem label="Base de calcul">
-                                    <Select value={form.salaryBasis} onValueChange={(val) => setForm((prev) => ({ ...prev, salaryBasis: val }))}>
-                                        <SelectTrigger className="w-full rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900">
-                                            <SelectValue placeholder="Choisir la base" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="DAILY">Journalière</SelectItem>
-                                            <SelectItem value="HOURLY">Horaire</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <ComboboxDemo
+                                        frameworks={[
+                                            { value: "DAILY", label: "Journalière" },
+                                            { value: "HOURLY", label: "Horaire" }
+                                        ]}
+                                        type="Base de calcul"
+                                        value={form.salaryBasis}
+                                        onChange={(val) => {
+                                            if (val) setForm((prev) => ({ ...prev, salaryBasis: val }));
+                                        }}
+                                        width="w-full"
+                                    />
                                 </FormItem>
                                 <FormItem label="Heure d'Entrée">
                                     <Input type="time" name="checkInTime" value={form.checkInTime} onChange={handleChange} className="rounded-xl border-gray-200 dark:border-slate-700 dark:bg-slate-900" />

@@ -35,6 +35,18 @@ type Local = {
     }[];
 };
 
+const BLOOD_OPTIONS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+
+function normalizeGender(raw: unknown): string {
+    const s = String(raw ?? "").trim();
+    if (!s) return "";
+    const g = s.toLowerCase();
+    if (g === "male" || g === "m") return "Male";
+    if (g === "female" || g === "f") return "Female";
+    if (s === "Male" || s === "Female") return s;
+    return s;
+}
+
 const StudentForm: React.FC<StudentFormProps> = ({
     type,
     data,
@@ -53,14 +65,14 @@ const StudentForm: React.FC<StudentFormProps> = ({
         dateNaissance: "",
         dateInscription: "",
         lieuNaissance: "",
-        nationalite: "",
+        nationalist: "",
         genre: "",
         carteNationale: "",
         etatCivil: "",
         etatSante: "",
         groupeSanguin: "",
         identifiantScolaire: "",
-        adresse: "",
+        address: "",
         observation: "",
         classe: "",
         pereNom: "",
@@ -89,35 +101,46 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
     useEffect(() => {
         if (type === "update" && data) {
+            // Handle both 'gender' and 'genre' if API names vary, and normalize to "Male"/"Female"
+            const genderValue = data.gender || data.genre || "";
+            const genre = normalizeGender(genderValue);
+
+            // Robust extraction for blood type and civil status
+            let currentBloodType = String(data.bloodType || data.groupeSanguin || "").trim();
+            const bloodMatch = BLOOD_OPTIONS.find(
+                (b) => b.toLowerCase() === currentBloodType.toLowerCase()
+            );
+            if (bloodMatch) currentBloodType = bloodMatch;
+
             const initialForm = {
                 code: data.code || "",
-                nom: data.firstName || "",
-                prenom: data.lastName || "",
+                nom: data.firstName || data.nom || "",
+                prenom: data.lastName || data.prenom || "",
                 dateNaissance: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : "",
                 dateInscription: data.dateInscription ? new Date(data.dateInscription).toISOString() : "",
-                lieuNaissance: data.lieuOfBirth || "",
-                nationalite: data.nationality || "",
-                genre: data.gender || "",
-                groupeSanguin: data.bloodType || "",
-                carteNationale: data.cid || "",
-                etatCivil: data.civilStatus || "",
-                etatSante: data.health || "",
-                identifiantScolaire: data.numNumerisation || "",
-                adresse: data.address || "",
+                lieuNaissance: data.lieuOfBirth || data.lieuNaissance || "",
+                nationalist: data.nationality || data.nationalist || "",
+                genre,
+                carteNationale: data.cid || data.carteNationale || "",
+                etatCivil: data.etatCivil ?? data.civilStatus ?? "",
+                etatSante: data.health || data.etatSante || "",
+                groupeSanguin: currentBloodType,
+                identifiantScolaire: data.numNumerisation || data.identifiantScolaire || "",
+                address: data.address || data.address || "",
                 observation: data.observation || "",
                 classe: "",
-                pereNom: data.parent?.father || "",
-                pereTel: data.parent?.fatherNumber || "",
-                pereEmploi: data.parent?.fatherJob || "",
+                pereNom: data.parent?.father || data.pereNom || "",
+                pereTel: data.parent?.fatherNumber || data.pereTel || "",
+                pereEmploi: data.parent?.fatherJob || data.pereEmploi || "",
                 pereCarte: "",
-                mereNom: data.parent?.mother || "",
-                mereTel: data.parent?.motherNumber || "",
-                mereEmploi: data.parent?.motherJob || "",
+                mereNom: data.parent?.mother || data.mereNom || "",
+                mereTel: data.parent?.motherNumber || data.mereTel || "",
+                mereEmploi: data.parent?.motherJob || data.mereEmploi || "",
                 kafili: false,
                 photo: null,
                 localId: data.localId ? String(data.localId) : "",
                 classId: data.classId ? String(data.classId) : "",
-                academicYear: '', 
+                academicYear: data.academicYear || "", 
                 email: data.email || "",
                 phone: data.phone || "",
             };
@@ -125,7 +148,12 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
             if (data.dateOfBirth) setBirthDate(new Date(data.dateOfBirth));
             if (data.dateInscription) setRegisterDate(new Date(data.dateInscription));
-            if (data.photoUrl) setPhotoPreview(`${process.env.NEXT_PUBLIC_API_URL}/api${data.photoUrl}`);
+            
+            // Fix photo display: use photoFileName and the specific student photo endpoint
+            const photoFile = data.photoFileName || data.photo;
+            if (photoFile) {
+                setPhotoPreview(`${process.env.NEXT_PUBLIC_API_URL}/api/student/photo/${photoFile}`);
+            }
         }
         fetchLocal();
     }, [type, data]);
@@ -184,7 +212,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
         formData.append("lastName", form.prenom);
         formData.append("dateOfBirth", form.dateNaissance);
         formData.append("gender", form.genre);
-        formData.append("address", form.adresse);
+        formData.append("address", form.address);
         formData.append("parentId", "1");
         formData.append("code", form.code);
         formData.append("health", form.etatSante);
@@ -194,7 +222,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
         formData.append("bloodType", form.groupeSanguin);
         formData.append("etatCivil", form.etatCivil);
         formData.append("cid", form.carteNationale);
-        formData.append("nationality", form.nationalite);
+        formData.append("nationality", form.nationalist);
         formData.append("observation", form.observation);
         formData.append("numNumerisation", form.identifiantScolaire || "0001");
         formData.append("dateInscription", form.dateInscription);
@@ -221,14 +249,14 @@ const StudentForm: React.FC<StudentFormProps> = ({
                     lastName: form.prenom,
                     dateOfBirth: form.dateNaissance,
                     gender: form.genre,
-                    address: form.adresse,
+                    address: form.address,
                     code: form.code,
                     health: form.etatSante,
                     lieuOfBirth: form.lieuNaissance,
                     bloodType: form.groupeSanguin,
                     etatCivil: form.etatCivil,
                     cid: form.carteNationale,
-                    nationality: form.nationalite,
+                    nationality: form.nationalist,
                     observation: form.observation,
                     numNumerisation: form.identifiantScolaire || "0001",
                     dateInscription: form.dateInscription,
@@ -374,7 +402,9 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                     frameworks={[{ value: "Male", label: t("form.labels.gender_male") || "Male" }, { value: "Female", label: t("form.labels.gender_female") || "Female" }]}
                                     type={t("form.labels.gender")}
                                     value={form.genre}
-                                    onChange={(val) => setForm(prev => ({ ...prev, genre: val }))}
+                                    onChange={(val) => {
+                                        if (val) setForm(prev => ({ ...prev, genre: val }));
+                                    }}
                                     width="w-full"
                                 />
                             </FormItem>
@@ -394,14 +424,16 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                 <Input name="lieuNaissance" value={form.lieuNaissance} onChange={handleChange} placeholder={t("form.placeholders.pob")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label={t("form.labels.nationality")}>
-                                <Input name="nationalite" value={form.nationalite} onChange={handleChange} placeholder={t("form.placeholders.nationality")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
+                                <Input name="nationalist" value={form.nationalist} onChange={handleChange} placeholder={t("form.placeholders.nationality")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white focus:ring-blue-500/50" />
                             </FormItem>
                             <FormItem label={t("form.labels.blood_group")}>
                                 <ComboboxDemo
-                                    frameworks={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(t => ({ value: t, label: t }))}
+                                    frameworks={BLOOD_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
                                     type={t("form.labels.blood_group")}
                                     value={form.groupeSanguin}
-                                    onChange={(val) => setForm(prev => ({ ...prev, groupeSanguin: val }))}
+                                    onChange={(val) => {
+                                        if (val) setForm(prev => ({ ...prev, groupeSanguin: val }));
+                                    }}
                                     width="w-full"
                                 />
                             </FormItem>
@@ -428,7 +460,9 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                     frameworks={localOptions}
                                     type={t("form.labels.assigned_local")}
                                     value={form.localId}
-                                    onChange={(val) => setForm(prev => ({ ...prev, localId: val, classId: "" }))}
+                                    onChange={(val) => {
+                                        if (val) setForm(prev => ({ ...prev, localId: val, classId: "" }));
+                                    }}
                                     width="w-full"
                                 />
                             </FormItem>
@@ -437,7 +471,9 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                     frameworks={classOptions}
                                     type={t("form.labels.assigned_class")}
                                     value={form.classId}
-                                    onChange={(val) => setForm(prev => ({ ...prev, classId: val }))}
+                                    onChange={(val) => {
+                                        if (val) setForm(prev => ({ ...prev, classId: val }));
+                                    }}
                                     width="w-full"
                                     disabled={!form.localId}
                                 />
@@ -472,7 +508,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                                     </FormItem>
                                 </div>
                                 <FormItem label={t("form.labels.full_address")}>
-                                    <Textarea name="adresse" value={form.adresse} onChange={handleChange} placeholder={t("form.placeholders.full_address")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
+                                    <Textarea name="address" value={form.address} onChange={handleChange} placeholder={t("form.placeholders.full_address")} className="rounded-xl border-gray-200 dark:border-white/10 dark:bg-[#0b0d17] dark:text-white min-h-[100px] focus:ring-blue-500/50" />
                                 </FormItem>
                             </div>
                         </Section>

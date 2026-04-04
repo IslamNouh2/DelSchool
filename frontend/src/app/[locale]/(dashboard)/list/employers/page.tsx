@@ -260,7 +260,7 @@ export default function TeacherListPage() {
                 <div className="flex items-center gap-2">
                     <span>{teacher.firstName} {teacher.lastName}</span>
                     <SyncStatusBadge id={teacher.employerId} isPending={!!teacher.pendingSync} />
-                </div>
+                </div>  
             ),
             className: "text-foreground",
         },
@@ -333,22 +333,22 @@ export default function TeacherListPage() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
                 <div>
-                   <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
-                      <div className="p-3 bg-lamaPurple rounded-2xl shadow-lg shadow-purple-500/20 text-white">
-                          <Briefcase size={24} />
-                      </div>
+                <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                    <div className="p-3 bg-lamaPurple rounded-2xl shadow-lg shadow-purple-500/20 text-white">
+                        <Briefcase size={24} />
+                    </div>
                         {t("title")}
-                      <span className="text-sm font-bold bg-purple-100 text-purple-700 px-3 py-1 rounded-full dark:bg-purple-900/30 dark:text-purple-300">
-                           {t("total_count", { count: totalCount })}
-                      </span>
-                   </h1>
-                   <p className="text-gray-500 font-medium mt-2 max-w-lg">
-                      {t("subtitle")}
-                   </p>
+                    <span className="text-sm font-bold bg-purple-100 text-purple-700 px-3 py-1 rounded-full dark:bg-purple-900/30 dark:text-purple-300">
+                    {t("total_count", { count: totalCount })}
+                    </span>
+                </h1>
+                <p className="text-gray-500 font-medium mt-2 max-w-lg">
+                    {t("subtitle")}
+                </p>
                 </div>
                 <Button
                     onClick={handleAddTeacher}
-                    className="flex items-center gap-2 px-6 py-3 bg-lamaSky hover:bg-lamaSkyLight text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none font-bold"
+                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
                 >
                     <Plus className="w-5 h-5" />
                     {t("add_title")}

@@ -32,12 +32,27 @@ export function ComboboxDemo({
     width = "w-64",
     disabled = false,
 }: ComboboxDemoProps) {
+    // Radix Select only shows a selection when `value` matches a SelectItem exactly. Trim/case differences
+    // from the API (e.g. "Female " vs "Female") must map to the canonical option value.
+    const normalizedInput = String(value ?? "").trim().toLowerCase()
+    const matched =
+        normalizedInput.length > 0
+            ? frameworks.find(
+                (f) =>
+                    String(f.value).trim().toLowerCase() === normalizedInput
+            )
+            : undefined
+
+    const safeValue = matched ? String(matched.value) : undefined
+
+    // console.log(`Combobox [${type}] value:`, value, "normalized:", normalizedInput, "matched:", matched?.value, "safeValue:", safeValue);
+
     return (
-        <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <Select value={safeValue} onValueChange={onChange} disabled={disabled}>
             <SelectTrigger className={`text-right ${width}`}>
                 <SelectValue placeholder={`Select ${type}...`} />
             </SelectTrigger>
-            <SelectContent className="!w-[var(--radix-select-trigger-width)]">
+            <SelectContent className="z-[100] !w-[var(--radix-select-trigger-width)]">
                 <SelectGroup>
                     <SelectLabel className="text-gray-400 dark:text-slate-500 text-sm">{type}</SelectLabel>
                     {frameworks.map((f) => (

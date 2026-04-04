@@ -23,15 +23,15 @@ import { toast } from "sonner";
 import { SyncStatusBadge } from "@/components/pwa/SyncStatusBadge";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { OfflineDB } from "@/lib/db";
-import { 
-    AlertDialog, 
-    AlertDialogAction, 
-    AlertDialogCancel, 
-    AlertDialogContent, 
-    AlertDialogDescription, 
-    AlertDialogFooter, 
-    AlertDialogHeader, 
-    AlertDialogTitle 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 
 
@@ -138,10 +138,10 @@ export default function StudentListPage() {
                     search: debouncedFilterValue,
                 },
             });
-            
+
             const students = Array.isArray(response.data.students) ? response.data.students : [];
             const total = typeof response.data.total === 'number' ? response.data.total : 0;
-            
+
             // Merge pending offline student creations
             const pendingMutations = await OfflineDB.getSyncQueue(tenantId);
             const pendingStudents = pendingMutations
@@ -156,12 +156,12 @@ export default function StudentListPage() {
             setTotalCount(total + pendingStudents.length);
         } catch (error: any) {
             console.error("Error fetching students:", error);
-            
+
             // If offline, try to load from cache or at least show pending
             const tenantId = document.cookie.match(/tenantId=([^;]+)/)?.[1] || 'default';
             if (!navigator.onLine || error.isOffline) {
-                 const pendingMutations = await OfflineDB.getSyncQueue(tenantId);
-                 const pendingStudents = pendingMutations
+                const pendingMutations = await OfflineDB.getSyncQueue(tenantId);
+                const pendingStudents = pendingMutations
                     .filter(m => m.entity === 'student' && m.type === 'CREATE')
                     .map(m => ({
                         ...m.data,
@@ -199,11 +199,17 @@ export default function StudentListPage() {
         }
     };
 
-    const handleUpdate = useCallback(async (id: number) => {
+    const handleUpdate = useCallback(async (row: Student) => {
         try {
-            const response = await api.get(`/student/${id}`);
-            const studentData = response.data;
-            setSelectedStudent(studentData);
+            const response = await api.get(`/student/${row.studentId}`);
+            const detail = response.data;
+            // Prefer API detail; fall back to list row so selects stay filled if a field is missing from GET.
+            setSelectedStudent({
+                ...detail,
+                gender: detail.gender ?? row.gender,
+                bloodType: detail.bloodType ?? row.bloodType,
+                etatCivil: detail.etatCivil ?? row.etatCivil,
+            });
             setFormType("update");
             setIsDialogOpen(true);
         } catch (error) {
@@ -328,7 +334,7 @@ export default function StudentListPage() {
                         <FileText className="w-4 h-4 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400" />
                     </Link>
                     <button
-                        onClick={() => handleUpdate(student.studentId)}
+                        onClick={() => handleUpdate(student)}
                         className="p-2 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors group"
                     >
                         <Edit className="w-4 h-4 text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
@@ -349,22 +355,22 @@ export default function StudentListPage() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
                 <div>
-                   <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
-                      <div className="p-3 bg-lamaYellow rounded-2xl shadow-lg shadow-yellow-500/20 text-white">
-                          <GraduationCap size={24} />
-                      </div>
-                      {t("title")}
-                      <span className="text-sm font-bold bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full dark:bg-yellow-900/30 dark:text-yellow-300">
-                           {t("total_count", { count: totalCount })}
-                      </span>
-                   </h1>
-                   <p className="text-gray-500 font-medium mt-2 max-w-lg">
-                      {t("subtitle")}
-                   </p>
+                    <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                        <div className="p-3 bg-lamaYellow rounded-2xl shadow-lg shadow-yellow-500/20 text-white">
+                            <GraduationCap size={24} />
+                        </div>
+                        {t("title")}
+                        <span className="text-sm font-bold bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full dark:bg-yellow-900/30 dark:text-yellow-300">
+                            {t("total_count", { count: totalCount })}
+                        </span>
+                    </h1>
+                    <p className="text-gray-500 font-medium mt-2 max-w-lg">
+                        {t("subtitle")}
+                    </p>
                 </div>
                 <Button
                     onClick={handleAddStudent}
-                    className="flex items-center gap-2 px-6 py-3 bg-lamaSky hover:bg-lamaSkyLight text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/40 transition-all border-none font-bold"
+                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
                 >
                     <Plus className="w-5 h-5" />
                     {t("add_title")}
@@ -488,7 +494,7 @@ export default function StudentListPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel className="rounded-xl border-gray-200 dark:border-white/10 dark:text-gray-300 font-bold">{actionsT("cancel")}</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                             onClick={confirmDelete}
                             className="rounded-xl bg-red-500 hover:bg-red-600 text-white border-none font-bold"
                         >

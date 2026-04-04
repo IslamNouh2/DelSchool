@@ -20,6 +20,7 @@ import GradesChart from "@/components/GradesChart";
 import { 
   Badge 
 } from "@/components/ui/badge";
+import console from "console";
 
 const StudentDashboard = () => {
     const t = useTranslations("dashboard");
@@ -45,11 +46,13 @@ const StudentDashboard = () => {
                 setStudentData(studentRes.data);
                 setGrades(gradesRes.data);
                 setUpcomingExams(examsRes.data);
+                
             } catch (err) {
                 console.error("Failed to fetch student data", err);
             } finally {
                 setLoading(false);
             }
+            console.log(studentData);
         };
 
         fetchStudentData();
