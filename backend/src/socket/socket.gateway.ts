@@ -85,7 +85,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`🔌 Client disconnected: ${client.id}`);
+    const userData = (client.data as SocketData).user;
+    const username = userData?.username || 'Unknown';
+    console.log(`🔌 Client disconnected: ${username} (${client.id})`);
   }
 
   // ✅ Emit to all

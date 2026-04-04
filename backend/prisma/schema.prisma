@@ -22,6 +22,7 @@ model User {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @default(now()) @updatedAt
   tenantId              String?
+  tokenVersion          Int               @default(0)
   refreshTokens         RefreshToken[]
   userPermissions       UserPermission[]
   deletedAt             DateTime?

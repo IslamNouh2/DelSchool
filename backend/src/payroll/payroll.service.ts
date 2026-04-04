@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import { HRCalculationService } from './hr-calculation.service';
 import { PayrollApprovalService } from './payroll-approval.service';
+import { SocketGateway } from 'src/socket/socket.gateway';
 
 @Injectable()
 export class PayrollService {
@@ -20,10 +21,11 @@ export class PayrollService {
     private compteService: CompteService,
     private hrCalculation: HRCalculationService,
     private approvalService: PayrollApprovalService,
+    private socketGateway: SocketGateway,
   ) {}
 
   async create(tenantId: string, createPayrollDto: CreatePayrollDto) {
-    return this.prisma.payroll.create({
+    const payroll = await this.prisma.payroll.create({
       data: {
         employerId: createPayrollDto.employerId,
         period_start: new Date(createPayrollDto.period_start),
@@ -36,6 +38,8 @@ export class PayrollService {
         tenantId, // Enforce tenant
       },
     });
+    this.socketGateway.emitRefresh();
+    return payroll;
   }
 
   async findAll(tenantId: string, start?: string, end?: string) {
@@ -257,6 +261,7 @@ export class PayrollService {
         },
       });
 
+      this.socketGateway.emitRefresh();
       return { payment, payroll: updatedPayroll };
     });
   }
@@ -299,10 +304,12 @@ export class PayrollService {
       data.netSalary = base + allowances - deductions;
     }
 
-    return this.prisma.payroll.update({
+    const payroll = await this.prisma.payroll.update({
       where: { id },
       data,
     });
+    this.socketGateway.emitRefresh();
+    return payroll;
   }
 
   async remove(tenantId: string, id: number) {
@@ -312,9 +319,11 @@ export class PayrollService {
     });
     if (!check) throw new BadRequestException('Payroll not found');
 
-    return this.prisma.payroll.delete({
+    const res = await this.prisma.payroll.delete({
       where: { id },
     });
+    this.socketGateway.emitRefresh();
+    return res;
   }
 
   // logic: 1 day absent = (baseSalary / 30) deduction (assuming 30 days month or actual days)
@@ -388,6 +397,7 @@ export class PayrollService {
       generatedPayrolls.push(payroll);
     }
 
+    this.socketGateway.emitRefresh();
     return { count: generatedPayrolls.length, generatedPayrolls };
   }
 }

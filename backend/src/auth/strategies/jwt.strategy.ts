@@ -4,15 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
-
-export interface JwtPayload {
-  sub: number;
-  username: string;
-  email: string;
-  role: string;
-  permissions: string[];
-  tenantId: string | null;
-}
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 // Custom JWT extractor function to get token from cookies
 const cookieExtractor = (req: Request): string | null => {
@@ -39,7 +31,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    // console.log('Validating payload:', payload);
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {
@@ -61,10 +52,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user || user.status === 'LOCKED') {
-      console.log('User not found in DB or LOCKED for sub:', payload.sub);
       throw new UnauthorizedException(
         user?.status === 'LOCKED' ? 'Account is locked' : 'Unauthorized',
       );
+    }
+
+    if (user.tokenVersion !== payload.tokenVersion) {
+      throw new UnauthorizedException('Token is no longer valid');
     }
 
     const roleName = user.role?.name || 'GUEST';
@@ -79,8 +73,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     return {
       id: user.id,
-      username: user.username,
-      email: user.email,
       role: roleName,
       permissions: allPermissions,
       tenantId: user.tenantId,

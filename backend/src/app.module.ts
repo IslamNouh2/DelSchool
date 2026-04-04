@@ -49,7 +49,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 10,
+        limit: 1000, // Augmented for enterprise usage and multi-device WebSocket support
       },
     ]),
     PrismaModule,

@@ -1,11 +1,15 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CollectPaymentDto } from './dto/collect-payment.dto';
-import { JournalEntryStatus } from '@prisma/client';
+import { JournalEntryStatus, PaymentMethod } from '@prisma/client';
+import { SocketGateway } from 'src/socket/socket.gateway';
 
 @Injectable()
 export class PaymentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private socketGateway: SocketGateway,
+  ) {}
 
   private readonly STUDENT_RECEIVABLE_ACCOUNT_ID = 4; // Placeholder
   private readonly CASH_JOURNAL_ID = 2; // CASH
@@ -43,7 +47,7 @@ export class PaymentService {
       const payment = await tx.payment.create({
         data: {
           amount: dto.amount,
-          method: (dto.method as any) || 'CASH',
+          method: (dto.method as PaymentMethod) ?? PaymentMethod.CASH,
           transactionId: dto.reference,
           description: dto.description,
           feeId: dto.feeId,
@@ -92,6 +96,7 @@ export class PaymentService {
         },
       });
 
+      this.socketGateway.emitRefresh();
       return payment;
     });
   }

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useRouter } from 'next/navigation';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -18,6 +19,7 @@ export const useSocket = () => useContext(SocketContext);
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
     const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:47005';
@@ -27,19 +29,29 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const newSocket = io(socketUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     newSocket.on('connect', () => {
-      console.log('Connected to WebSocket server');
+      console.log('✅ WebSocket Connected:', newSocket.id);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ WebSocket Connection Error:', error.message);
     });
 
     newSocket.on('refresh', () => {
-      console.log('Received refresh event');
+      console.log('🔄 WebSocket: Refresh event received');
       setRefreshKey((prev) => prev + 1);
+      router.refresh();
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Disconnected from WebSocket server');
+    newSocket.on('disconnect', (reason) => {
+      console.log('🔌 WebSocket Disconnected:', reason);
     });
 
     setSocket(newSocket);
@@ -47,7 +59,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [router]);
 
   return (
     <SocketContext.Provider value={{ socket, refreshKey }}>

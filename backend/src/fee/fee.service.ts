@@ -6,11 +6,16 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFeeDto } from './dto/create-fee.dto';
 import { SubscribeStudentDto } from './dto/subscribe-student.dto';
-import { JournalEntryStatus } from '@prisma/client';
+import { JournalEntryStatus, Fee } from '@prisma/client';
+
+import { SocketGateway } from 'src/socket/socket.gateway';
 
 @Injectable()
 export class FeeService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private socketGateway: SocketGateway,
+  ) {}
 
   // Constants for internal accounting (would ideally be configurable)
   private readonly STUDENT_RECEIVABLE_ACCOUNT_ID = 4; // Placeholder
@@ -18,7 +23,7 @@ export class FeeService {
   private readonly GENERAL_JOURNAL_ID = 1; // Placeholder
 
   async createTemplate(tenantId: string, dto: CreateFeeDto) {
-    return this.prisma.fee.create({
+    const res = await this.prisma.fee.create({
       data: {
         title: dto.title,
         amount: dto.amount,
@@ -34,6 +39,8 @@ export class FeeService {
         tenantId,
       },
     });
+    this.socketGateway.emitRefresh();
+    return res;
   }
 
   async findAllTemplates(tenantId: string) {
@@ -62,7 +69,7 @@ export class FeeService {
         throw new NotFoundException('Some fee templates not found');
       }
 
-      const results: any[] = [];
+      const results: Fee[] = [];
       for (const template of templates) {
         // Check if already subscribed
         const existing = await tx.fee.findFirst({
@@ -128,6 +135,7 @@ export class FeeService {
         });
         results.push(studentFee);
       }
+      this.socketGateway.emitRefresh();
       return results;
     });
   }
@@ -144,7 +152,7 @@ export class FeeService {
         select: { studentId: true },
       });
 
-      const results: any[] = [];
+      const results: Fee[] = [];
       for (const student of students) {
         const studentFee = await tx.fee.create({
           data: {
@@ -194,6 +202,7 @@ export class FeeService {
         });
         results.push(studentFee);
       }
+      this.socketGateway.emitRefresh();
       return results;
     });
   }
@@ -267,6 +276,7 @@ export class FeeService {
           },
         },
       });
+      this.socketGateway.emitRefresh();
       return fee;
     });
   }
@@ -337,8 +347,10 @@ export class FeeService {
   }
 
   async deleteFee(tenantId: string, id: number) {
-    return this.prisma.fee.delete({
+    const res = await this.prisma.fee.delete({
       where: { id, tenantId },
     });
+    this.socketGateway.emitRefresh();
+    return res;
   }
 }

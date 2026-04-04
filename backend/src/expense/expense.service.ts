@@ -2,13 +2,17 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
+import { SocketGateway } from 'src/socket/socket.gateway';
 
 @Injectable()
 export class ExpenseService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private socketGateway: SocketGateway,
+  ) {}
 
   async create(tenantId: string, dto: CreateExpenseDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const res = await this.prisma.$transaction(async (tx) => {
       let realStart: Date | null = dto.dateStartConsommation
         ? new Date(dto.dateStartConsommation)
         : null;
@@ -103,7 +107,8 @@ export class ExpenseService {
         }
       }
 
-      return expense;
+      this.socketGateway.emitRefresh();
+      return res;
     });
   }
 
@@ -164,7 +169,7 @@ export class ExpenseService {
   }
 
   async update(tenantId: string, id: number, dto: UpdateExpenseDto) {
-    return this.prisma.expense.update({
+    const expense = await this.prisma.expense.update({
       where: { id, tenantId }, // Enforce tenant
       data: {
         ...dto,
@@ -177,12 +182,16 @@ export class ExpenseService {
           : undefined,
       },
     });
+    this.socketGateway.emitRefresh();
+    return expense;
   }
 
   async remove(tenantId: string, id: number) {
-    return this.prisma.expense.delete({
+    const res = await this.prisma.expense.delete({
       where: { id, tenantId }, // Enforce tenant
     });
+    this.socketGateway.emitRefresh();
+    return res;
   }
 
   async pay(
@@ -254,11 +263,12 @@ export class ExpenseService {
         });
       }
 
-      // Update Expense
-      return tx.expense.update({
+      const res = await tx.expense.update({
         where: { id, tenantId }, // Enforce tenant
         data: { isPaid: true },
       });
+      this.socketGateway.emitRefresh();
+      return res;
     });
   }
 }
