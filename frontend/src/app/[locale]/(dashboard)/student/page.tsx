@@ -20,7 +20,6 @@ import GradesChart from "@/components/GradesChart";
 import { 
   Badge 
 } from "@/components/ui/badge";
-import console from "console";
 
 const StudentDashboard = () => {
     const t = useTranslations("dashboard");
@@ -52,7 +51,6 @@ const StudentDashboard = () => {
             } finally {
                 setLoading(false);
             }
-            //console.log(studentData);
         };
 
         fetchStudentData();
