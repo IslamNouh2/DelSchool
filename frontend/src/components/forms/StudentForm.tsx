@@ -89,6 +89,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
         academicYear: '', 
         email: "",
         phone: "",
+        parentId: "" as string | number,
     });
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -141,6 +142,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                 academicYear: data.academicYear || "", 
                 email: data.email || "",
                 phone: data.phone || "",
+                parentId: data.parentId || "",
             };
             setForm(initialForm);
 
@@ -211,7 +213,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
         formData.append("dateOfBirth", form.dateNaissance);
         formData.append("gender", form.genre);
         formData.append("address", form.address);
-        formData.append("parentId", "1");
+        if (form.parentId) formData.append("parentId", String(form.parentId));
+        else if (type === "create") formData.append("parentId", "1"); // Fallback for new students if no parent selected
         formData.append("code", form.code);
         formData.append("health", form.etatSante);
         formData.append("dateCreate", new Date().toISOString());
@@ -268,6 +271,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
                     classId: form.classId ? Number(form.classId) : undefined,
                     email: form.email,
                     phone: form.phone,
+                    parentId: form.parentId ? Number(form.parentId) : 1,
                 };
 
                 const { OfflineDB } = await import("@/lib/db");

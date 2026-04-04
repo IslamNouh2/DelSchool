@@ -17,7 +17,7 @@ export interface JwtPayload {
 // Custom JWT extractor function to get token from cookies
 const cookieExtractor = (req: Request): string | null => {
   if (req && req.cookies) {
-    return req.cookies['accessToken']; // ✅ match the new AuthService cookie name
+    return (req.cookies['accessToken'] as string) || null;
   }
   return null;
 };
@@ -39,7 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    console.log('Validating payload:', payload);
+    // console.log('Validating payload:', payload);
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {

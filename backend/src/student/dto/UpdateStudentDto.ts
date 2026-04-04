@@ -38,6 +38,7 @@ export class UpdateStudentDto {
   phone?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   parentId?: number;
 

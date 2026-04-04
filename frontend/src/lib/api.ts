@@ -70,7 +70,7 @@ api.interceptors.response.use(
             Cookies.set('accessToken', response.data.accessToken, {
                 secure: true,
                 sameSite: 'none',
-                expires: 1 / 96,
+                expires: 1 / 24, // Synchronize with 1-hour session duration
             });
         }
         return response;
@@ -101,8 +101,8 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // Enterprise: Always use a dedicated refresh call to avoid interceptor overlap
-                await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+                // Enterprise: Use absolute baseURL to ensure refresh reaches the backend
+                await axios.post(`${baseURL}/auth/refresh`, {}, { withCredentials: true });
                 
                 processQueue(null, 'refreshed');
                 return api(originalRequest);

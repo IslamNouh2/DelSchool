@@ -143,7 +143,7 @@ export class AuthService {
 
     await this.storeRefreshToken(user.id, refreshToken);
 
-    this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
+    this.setCookie(response, 'accessToken', accessToken, 60 * 60 * 1000);
     this.setCookie(
       response,
       'refreshToken',
@@ -223,7 +223,7 @@ export class AuthService {
 
     await this.storeRefreshToken(user.id, refreshToken);
 
-    this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
+    this.setCookie(response, 'accessToken', accessToken, 60 * 60 * 1000);
     this.setCookie(
       response,
       'refreshToken',
@@ -277,7 +277,7 @@ export class AuthService {
 
       await this.storeRefreshToken(payload.sub, refreshToken);
 
-      this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
+      this.setCookie(response, 'accessToken', accessToken, 60 * 60 * 1000);
       this.setCookie(
         response,
         'refreshToken',
