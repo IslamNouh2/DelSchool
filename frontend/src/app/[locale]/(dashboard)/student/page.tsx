@@ -52,7 +52,7 @@ const StudentDashboard = () => {
             } finally {
                 setLoading(false);
             }
-            console.log(studentData);
+            //console.log(studentData);
         };
 
         fetchStudentData();

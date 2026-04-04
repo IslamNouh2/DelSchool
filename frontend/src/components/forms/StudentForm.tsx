@@ -94,8 +94,6 @@ const StudentForm: React.FC<StudentFormProps> = ({
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
     const [registerDate, setRegisterDate] = useState<Date | undefined>(undefined);
-    const [openBirth, setOpenBirth] = useState(false);
-    const [openRegister, setOpenRegister] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [locals, setLocals] = useState<Local[]>([]);
 
