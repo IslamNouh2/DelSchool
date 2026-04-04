@@ -6,6 +6,7 @@ import {
     ClipboardCheck, DollarSign, User, Users, Heart, Download, Upload,
     TrendingUp, MessageSquare, Bell, Activity, BookOpen, Clock, Target,
 } from 'lucide-react';
+import NextImage from 'next/image';
 import {
     LineChart, Line, BarChart, Bar, RadarChart, Radar, PolarGrid,
     PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid,
@@ -28,17 +29,6 @@ const tabs = [
     { id: 'financial', label: 'Financial', icon: DollarSign },
     { id: 'documents', label: 'Documents', icon: FileText },
 ];
-
-// Mock data for charts (to be replaced with real data aggregation later)
-const gradeData = [
-    { subject: 'Math', score: 92, previous: 88 },
-    { subject: 'English', score: 87, previous: 85 },
-    { subject: 'Science', score: 95, previous: 90 },
-    { subject: 'History', score: 84, previous: 82 },
-    { subject: 'Geography', score: 89, previous: 87 },
-    { subject: 'PE', score: 96, previous: 94 },
-];
-
 
 
 interface Student {
@@ -64,7 +54,8 @@ interface Student {
     motherName: string;
     fatherPhone: string;
     motherPhone: string;
-
+    bloodType?: string;
+    etatCivil?: string;
 }
 
 interface Grade {
@@ -197,7 +188,7 @@ console.log(studentRes.data);
         subject: g.subject.subjectName.substring(0, 3).toUpperCase(), // Short name for x-axis
         fullSubject: g.subject.subjectName,
         score: g.grads
-    })) : gradeData;
+    })) : [];
 
     return (
         <div className="flex flex-col gap-6 p-4">
@@ -252,9 +243,11 @@ console.log(studentRes.data);
                             {/* Profile Details */}
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="relative">
-                                    <img    
+                                    <NextImage   
                                         src={student?.photoUrl ? `http://localhost:47005${student.photoUrl}` : "/avatar.png"} 
                                         alt="Student" 
+                                        width={96}
+                                        height={96}
                                         className="w-24 h-24 rounded-full object-cover border-4 border-blue-50 dark:border-slate-800"
                                     />
                                 </div>
@@ -453,7 +446,7 @@ console.log(studentRes.data);
                             {/* Chart Area - Custom Visual to match design */}
                             <div className="relative h-64 w-full">
                                 <div className="absolute inset-x-4 inset-y-0 flex items-end justify-between gap-2">
-                                    {studentGrades.slice(0, 5).map((item, idx) => (
+                                    {studentGrades.slice(0, 5).map((item: { subject: string; fullSubject?: string; score: number }, idx: number) => (
                                         <div key={idx} className="flex flex-col items-center gap-2 flex-1 group relative">
                                             <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-xs py-1 px-3 rounded-full mb-2 z-10 pointer-events-none whitespace-nowrap">
                                                 {(item as any).fullSubject || item.subject} - {item.score}%
@@ -519,10 +512,10 @@ console.log(studentRes.data);
                              </div>
                         </div>
 
-                        {/* Parent's Information */}
+                        {/* Parent&apos;s Information */}
                         <div className="bg-pink-50/50 dark:bg-pink-900/10 rounded-[20px] p-6">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100">Parent's Information</h3>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100">Parent&apos;s Information</h3>
                                 <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-full text-pink-500">
                                     <User className="w-4 h-4" />
                                 </div>
@@ -530,7 +523,7 @@ console.log(studentRes.data);
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-lg">👩</div>
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-lg">👨</div>
                                         <div>
                                             <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{student?.fatherName || 'N/A'}</p>
                                             <p className="text-xs text-gray-400">{student?.fatherPhone || 'N/A'}</p>
@@ -542,7 +535,7 @@ console.log(studentRes.data);
                                 </div>
                                 <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-lg">👨</div>
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-lg">👩</div>
                                         <div>
                                             <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{student?.motherName || 'N/A'}</p>
                                             <p className="text-xs text-gray-400">{student?.motherPhone || 'N/A'}</p>
