@@ -89,11 +89,10 @@ export class AuthService {
     maxAge: number,
   ) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    const frontendDomain = this.configService.get<string>('FRONTEND_DOMAIN');
     response.cookie(name, token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: frontendDomain ? 'none' : isProduction ? 'strict' : 'lax',
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
       maxAge,
     });

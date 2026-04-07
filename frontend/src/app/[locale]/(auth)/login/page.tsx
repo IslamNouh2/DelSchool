@@ -50,13 +50,13 @@ export default function LoginPage() {
 
             const { user, accessToken } = res.data;
 
-            // if (accessToken) {
-            //     Cookies.set('accessToken', accessToken, {
-            //         secure: process.env.NODE_ENV === 'production',
-            //         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            //         expires: 1,
-            //     });
-            // }
+            if (accessToken) {
+                Cookies.set('accessToken', accessToken, {
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    expires: 1,
+                });
+            }
 
             localStorage.setItem('user_role', user.role.toLowerCase());
 

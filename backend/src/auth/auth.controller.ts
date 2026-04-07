@@ -24,6 +24,8 @@ import { Roles } from './decorators/roles.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Response as ExpressResponse } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
+import { Request as ExpressRequest } from 'express';
+import { AuthenticatedUser } from './types/authenticated-user.type';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -48,7 +50,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User successfully logged in' })
   @Post('login')
   async login(
-    @Request() req,
+    @Request() req: ExpressRequest & { user: AuthenticatedUser },
     @Response({ passthrough: true }) response: ExpressResponse,
   ) {
     return this.authService.login(req.user, response);
@@ -59,10 +61,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Token successfully refreshed' })
   @Post('refresh')
   async refresh(
-    @Request() req,
+    @Request() req: ExpressRequest,
     @Response({ passthrough: true }) response: ExpressResponse,
   ) {
-    const refreshToken = req.cookies['refreshToken'];
+    const refreshToken = req.cookies?.refreshToken as string;
     return this.authService.refresh(refreshToken, response);
   }
 
@@ -70,10 +72,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User successfully logged out' })
   @Post('logout')
   async logout(
-    @Request() req,
+    @Request() req: ExpressRequest,
     @Response({ passthrough: true }) response: ExpressResponse,
   ) {
-    const refreshToken = req.cookies['refreshToken'];
+    const refreshToken = req.cookies?.refreshToken as string;
     return this.authService.logout(response, refreshToken);
   }
 
@@ -94,8 +96,9 @@ export class AuthController {
     description: 'Returns the current user information',
   })
   @Get('me')
-  async getCurrentUser(@CurrentUser() user) {
+  async getCurrentUser(@CurrentUser() user: AuthenticatedUser) {
     const profile = await this.authService.getProfile(user.id);
+
     return {
       user: {
         id: user.id,
