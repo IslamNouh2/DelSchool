@@ -21,15 +21,17 @@ export async function middleware(request: NextRequest) {
         const accessToken = request.cookies.get('accessToken')?.value;
         const refreshToken = request.cookies.get('refreshToken')?.value;
 
-        // debug مؤقت - احذفه بعد الحل
-        console.log('[Middleware] PATH:', pathname);
-        console.log('[Middleware] accessToken exists:', !!accessToken);
-        console.log('[Middleware] JWT_SECRET exists:', !!process.env.JWT_ACCESS_SECRET);
+        // --- DIAGNOSTIC LOGGING ---
+        console.log(`[Middleware] [${new Date().toISOString()}] Checking path: ${pathname}`);
+        console.log(`[Middleware] accessToken: ${accessToken ? 'PRESENT' : 'MISSING'}`);
+        console.log(`[Middleware] refreshToken: ${refreshToken ? 'PRESENT' : 'MISSING'}`);
+        console.log(`[Middleware] JWT_ACCESS_SECRET state: ${process.env.JWT_ACCESS_SECRET ? 'DEFINED (Length: ' + process.env.JWT_ACCESS_SECRET.length + ')' : 'UNDEFINED'}`);
 
         const locale = pathname.split('/')[1];
         const redirectLocale = routing.locales.includes(locale as any) ? locale : 'en';
 
         if (!accessToken && !refreshToken) {
+            console.log('[Middleware] Redirecting to login: No tokens found.');
             return NextResponse.redirect(new URL(`/${redirectLocale}/login`, request.url));
         }
 
@@ -37,18 +39,23 @@ export async function middleware(request: NextRequest) {
             try {
                 const payload = await verifyToken(accessToken);
                 if (payload?.role) {
-                    return intlMiddleware(request); // ✅ توكن صحيح
+                    console.log(`[Middleware] Access GRANTED. Role: ${payload.role}`);
+                    return intlMiddleware(request);
+                } else {
+                    console.log('[Middleware] Token payload missing role.');
                 }
-            } catch (e) {
-                console.error('[Middleware] verifyToken error:', e);
+            } catch (e: any) {
+                console.error('[Middleware] Token Verification ERROR:', e.message || e);
+                // If it's a "signature mismatch", it's definitely the secret.
             }
         }
 
-        // accessToken فاشل لكن refreshToken موجود → خلي الباكند يتعامل معاه
         if (refreshToken) {
+            console.log('[Middleware] accessToken failed/missing but refreshToken present. Passing to backend.');
             return intlMiddleware(request);
         }
 
+        console.log('[Middleware] Fallback: Redirecting to login.');
         return NextResponse.redirect(new URL(`/${redirectLocale}/login`, request.url));
     }
 

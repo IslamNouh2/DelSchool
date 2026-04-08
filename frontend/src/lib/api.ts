@@ -60,6 +60,16 @@ api.interceptors.request.use(async (config) => {
             return Promise.reject({ isOffline: true, config });
         }
     }
+    // --- HYBRID AUTH FIX ---
+    // Manually attach accessToken from cookies to Authorization header
+    // This provides a fallback when cross-domain cookies are blocked by the browser
+    if (typeof window !== 'undefined') {
+        const token = Cookies.get('accessToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+
     return config;
 });
 
