@@ -26,7 +26,10 @@ export class PaymentService {
         throw new BadRequestException('Fee not found');
       }
 
-      const totalPaid = fee.payments.reduce((sum, p) => sum + p.amount, 0);
+      const totalPaid = fee.payments.reduce(
+        (sum, p) => sum + Number(p.amount),
+        0,
+      );
       const remaining = Number(fee.amount) - totalPaid;
 
       if (dto.amount > remaining) {

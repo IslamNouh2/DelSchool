@@ -3,47 +3,46 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-
 }
 
 model User {
-  id                    Int               @id @default(autoincrement())
-  email                 String            @unique
-  username              String            @unique
-  password              String
-  roleId                Int?
-  role                  Role?             @relation(fields: [roleId], references: [id])
-  status                UserStatus        @default(ACTIVE)
-  failedLoginAttempts  Int               @default(0)
-  lockUntil             DateTime?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @default(now()) @updatedAt
-  tenantId              String?
-  tokenVersion          Int               @default(0)
-  refreshTokens         RefreshToken[]
-  userPermissions       UserPermission[]
-  deletedAt             DateTime?
+  id                  Int              @id @default(autoincrement())
+  email               String           @unique
+  username            String           @unique
+  password            String
+  deletedAt           DateTime?
+  tenantId            String?
+  createdAt           DateTime         @default(now())
+  failedLoginAttempts Int              @default(0)
+  lockUntil           DateTime?
+  roleId              Int?
+  status              UserStatus       @default(ACTIVE)
+  updatedAt           DateTime         @default(now()) @updatedAt
+  tokenVersion        Int              @default(0)
+  refreshTokens       RefreshToken[]
+  role                Role?            @relation(fields: [roleId], references: [id])
+  userPermissions     UserPermission[]
 }
 
 model Role {
-  id            Int              @id @default(autoincrement())
-  name          String           @unique
-  description   String?
-  parentId      Int?
-  parent        Role?            @relation("RoleHierarchy", fields: [parentId], references: [id])
-  children      Role[]           @relation("RoleHierarchy")
-  users         User[]
-  permissions   RolePermission[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  parentId    Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  parent      Role?            @relation("RoleHierarchy", fields: [parentId], references: [id])
+  children    Role[]           @relation("RoleHierarchy")
+  permissions RolePermission[]
+  users       User[]
 }
 
 model Permission {
   id          Int              @id @default(autoincrement())
-  name        String           @unique // e.g., "user:create"
+  name        String           @unique
   description String?
   roles       RolePermission[]
   users       UserPermission[]
@@ -52,35 +51,29 @@ model Permission {
 model RolePermission {
   roleId       Int
   permissionId Int
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
   @@id([roleId, permissionId])
 }
 
 model UserPermission {
   userId       Int
   permissionId Int
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([userId, permissionId])
 }
 
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  LOCKED
-}
-
-
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  action    String   // CREATE, UPDATE, DELETE
-  entity    String   // Student, User, etc.
-  entityId  Int
-  userId    Int?
-  details   Json?
-  createdAt DateTime @default(now())
-  
+  id          Int      @id @default(autoincrement())
+  action      String
+  entity      String
+  entityId    Int
+  userId      Int?
+  details     Json?
+  createdAt   DateTime @default(now())
   tenantId    String
   version     Int      @default(1)
   operationId String?  @unique
@@ -92,17 +85,17 @@ model RefreshToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   revoked   Boolean  @default(false)
   deviceId  String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model TokenRevocation {
   id        Int      @id @default(autoincrement())
-  jti       String   @unique // JWT ID
+  jti       String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
@@ -129,27 +122,24 @@ model Student {
   dateInscription   DateTime
   okBlock           Boolean             @default(false)
   photoFileName     String?
-  email             String?
-  phone             String?
-  
-  // Sync & Multi-tenancy
+  lastModifiedBy    Int?
+  operationId       String?             @unique
   tenantId          String
   version           Int                 @default(1)
-  operationId       String?             @unique
-  lastModifiedBy    Int?
-
+  email             String?
+  phone             String?
   fees              Fee[]
   payments          Payment[]
   studentAttendance StudentAttendance[]
+  riskProfile       StudentRiskProfile?
   compte            Compte?
   studentClasses    StudentClass[]
   parent            Parent              @relation(fields: [parentId], references: [parentId], onDelete: Cascade)
-  riskProfile       StudentRiskProfile?
 
-  @@map("students")
   @@index([firstName, lastName])
   @@index([parentId])
   @@index([tenantId])
+  @@map("students")
 }
 
 model Parent {
@@ -160,15 +150,13 @@ model Parent {
   motherJob    String?
   fatherNumber String?
   motherNumber String?
-  
+  operationId  String?   @unique
   tenantId     String
   version      Int       @default(1)
-  operationId  String?   @unique
-
   students     Student[]
 
-  @@map("parents")
   @@index([tenantId])
+  @@map("parents")
 }
 
 model Local {
@@ -179,12 +167,10 @@ model Local {
   dateModif     DateTime?
   NumClass      Int?
   size          Int             @default(0)
-  weeklyHours   Int             @default(6)  // حجم الساعي الأسبوعي
-
+  operationId   String?         @unique
   tenantId      String
   version       Int             @default(1)
-  operationId   String?         @unique
-
+  weeklyHours   Int             @default(6)
   classes       classes[]
   subject_local subject_local[]
 
@@ -201,79 +187,74 @@ model classes {
   localId           Int
   okBlock           String              @default("N")
   cloture           Boolean             @default(false)
-
+  operationId       String?             @unique
   tenantId          String
   version           Int                 @default(1)
-  operationId       String?             @unique
-
+  translations      ClassTranslation[]
   fees              Fee[]
   studentAttendance StudentAttendance[]
   TeacherCalsses    TeaherClass[]
   Timetables        Timetable[]
   local             Local               @relation(fields: [localId], references: [localId])
   studentClasses    StudentClass[]
-  translations      ClassTranslation[]
 
   @@index([tenantId])
 }
 
 model ClassTranslation {
-  id        Int      @id @default(autoincrement())
-  classId   Int
-  locale    String
-  name      String
-  class     classes  @relation(fields: [classId], references: [classId], onDelete: Cascade)
+  id      Int     @id @default(autoincrement())
+  classId Int
+  locale  String
+  name    String
+  class   classes @relation(fields: [classId], references: [classId], onDelete: Cascade)
 
   @@unique([classId, locale])
 }
 
 model subject {
-  subjectId       Int              @id @default(autoincrement())
+  subjectId       Int                  @id @default(autoincrement())
   subjectName     String
   totalGrads      Float
-  coff            Float            @default(1)
   parentId        Int
   BG              Int
   BD              Int
   level           Int?
   dateCreate      DateTime?
   dateModif       DateTime?
-  okBlock         Boolean          @default(false)
-
+  okBlock         Boolean              @default(false)
+  operationId     String?              @unique
   tenantId        String
-  version         Int              @default(1)
-  operationId     String?          @unique
-
+  version         Int                  @default(1)
+  coff            Float                @default(1)
+  translations    SubjectTranslation[]
   Teachersubjects TeacherSubject[]
   Timetables      Timetable[]
   grads           Grads[]
-  parent          subject          @relation("SubjectToParent", fields: [parentId], references: [subjectId])
-  children        subject[]        @relation("SubjectToParent")
+  parent          subject              @relation("SubjectToParent", fields: [parentId], references: [subjectId])
+  children        subject[]            @relation("SubjectToParent")
   subject_local   subject_local[]
-  translations    SubjectTranslation[]
 
   @@index([tenantId])
 }
 
 model SubjectTranslation {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   subjectId Int
-  locale    String   // 'en', 'ar', 'fr'
+  locale    String
   name      String
-  subject   subject  @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
+  subject   subject @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
 
   @@unique([subjectId, locale])
 }
 
 model parameter {
-  paramId   Int     @id @default(autoincrement())
-  paramName String  @unique
-  okActive  Boolean @default(false)
-  paramValue String? // Extended for non-boolean settings
-
-  tenantId    String?   // Optional for global settings, but mostly per tenant
-  version     Int       @default(1)
-  operationId String?   @unique
+  paramId     Int     @id @default(autoincrement())
+  paramName   String  @unique
+  okActive    Boolean @default(false)
+  operationId String? @unique
+  paramValue  String?
+  tenantId    String?
+  version     Int     @default(1)
 
   @@index([tenantId])
 }
@@ -285,11 +266,9 @@ model subject_local {
   cloture        Boolean   @default(false)
   dateCreate     DateTime?
   dateModif      DateTime?
-
+  operationId    String?   @unique
   tenantId       String?
   version        Int       @default(1)
-  operationId    String?   @unique
-
   local          Local     @relation(fields: [localId], references: [localId])
   subject        subject   @relation(fields: [subjectId], references: [subjectId])
 
@@ -304,18 +283,17 @@ model StudentClass {
   isCurrent    Boolean    @default(false)
   cloture      Boolean    @default(false)
   schoolYearId Int
+  operationId  String?    @unique
+  tenantId     String?
+  version      Int        @default(1)
   grads        Grads[]
   Class        classes    @relation(fields: [classId], references: [classId])
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
   Student      Student    @relation(fields: [studentId], references: [studentId])
 
-  tenantId    String?
-  version     Int        @default(1)
-  operationId String?    @unique
-
   @@unique([studentId, schoolYearId])
-  @@map("student_classes")
   @@index([tenantId])
+  @@map("student_classes")
 }
 
 model SchoolYear {
@@ -324,29 +302,27 @@ model SchoolYear {
   startDate      DateTime
   endDate        DateTime
   isCurrent      Boolean        @default(false)
-
+  operationId    String?        @unique
   tenantId       String
-  version         Int              @default(1)
-  operationId     String?          @unique
-
-  studentClasses StudentClass[]
+  version        Int            @default(1)
   semesters      Semester[]
+  studentClasses StudentClass[]
 
-  @@map("school_years")
   @@index([tenantId])
+  @@map("school_years")
 }
 
 model Semester {
-  id             Int          @id @default(autoincrement())
-  name           String       // e.g., "الفصل الأول"
+  id             Int        @id @default(autoincrement())
+  name           String
   startDate      DateTime
   endDate        DateTime
   academicYearId Int
-  schoolYear     SchoolYear   @relation(fields: [academicYearId], references: [id])
-  exams          Exam[]
   tenantId       String
-  version        Int          @default(1)
-  operationId    String?      @unique
+  version        Int        @default(1)
+  operationId    String?    @unique
+  exams          Exam[]
+  schoolYear     SchoolYear @relation(fields: [academicYearId], references: [id])
 
   @@index([tenantId])
 }
@@ -376,101 +352,90 @@ model Employer {
   type               String
   photoFileName      String?
   phone              String?
-  email              String?
   weeklyWorkload     Int                  @default(20)
-  salary             Decimal              @default(0) @db.Decimal(10, 2)
-  salaryBasis        String               @default("DAILY") // DAILY or HOURLY
   checkInTime        String?              @default("08:00")
   checkOutTime       String?              @default("16:00")
-
+  operationId        String?              @unique
+  salary             Decimal              @default(0) @db.Decimal(10, 2)
+  salaryBasis        String               @default("DAILY")
   tenantId           String
   version            Int                  @default(1)
-  operationId        String?              @unique
-
+  email              String?
   employerAttendance EmployerAttendance[]
   payments           Payment[]
   payroll            Payroll[]
+  teacherEvaluations TeacherEvaluation[]
   Teachersubjects    TeacherSubject[]
   TeacherCalsses     TeaherClass?
   Timetables         Timetable[]
   compte             Compte?
-  teacherEvaluations TeacherEvaluation[]
 
-  @@map("employers")
   @@index([tenantId])
+  @@map("employers")
 }
 
 model TeaherClass {
-  id         Int      @id @default(autoincrement())
-  employerId Int      @unique
-  classId    Int
-  isCurrent  Boolean  @default(false)
-
-  tenantId   String
-  version    Int      @default(1)
-  operationId String? @unique
-
-  Class      classes  @relation(fields: [classId], references: [classId])
-  Employer   Employer @relation(fields: [employerId], references: [employerId])
+  id          Int      @id @default(autoincrement())
+  employerId  Int      @unique
+  classId     Int
+  isCurrent   Boolean  @default(false)
+  operationId String?  @unique
+  tenantId    String
+  version     Int      @default(1)
+  Class       classes  @relation(fields: [classId], references: [classId])
+  Employer    Employer @relation(fields: [employerId], references: [employerId])
 
   @@index([tenantId])
 }
 
 model TeacherSubject {
-  id         Int      @id @default(autoincrement())
-  employerId Int
-  subjectId  Int
-  isCurrent  Boolean  @default(false)
-
-  tenantId   String
-  version    Int      @default(1)
-  operationId String? @unique
-
-  Employer   Employer @relation(fields: [employerId], references: [employerId])
-  subject    subject  @relation(fields: [subjectId], references: [subjectId])
+  id          Int      @id @default(autoincrement())
+  employerId  Int
+  subjectId   Int
+  isCurrent   Boolean  @default(false)
+  operationId String?  @unique
+  tenantId    String
+  version     Int      @default(1)
+  Employer    Employer @relation(fields: [employerId], references: [employerId])
+  subject     subject  @relation(fields: [subjectId], references: [subjectId])
 
   @@unique([employerId, subjectId])
   @@index([tenantId])
 }
 
 model TimeSlot {
-  id         Int         @id @default(autoincrement())
-  label      String
-  startTime  String
-  endTime    String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-
-  tenantId   String
-  version    Int         @default(1)
-  operationId String?    @unique
-
-  Timetables Timetable[]
+  id          Int         @id @default(autoincrement())
+  label       String
+  startTime   String
+  endTime     String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  operationId String?     @unique
+  tenantId    String
+  version     Int         @default(1)
+  Timetables  Timetable[]
 
   @@index([tenantId])
 }
 
 model Timetable {
-  id           Int       @id @default(autoincrement())
-  day          String
-  classId      Int
-  subjectId    Int
-  timeSlotId   Int
-  employerId   Int?
-  academicYear String
-
-  tenantId     String
-  version      Int       @default(1)
-  operationId  String?   @unique
-
-  mode                TimetableMode @default(MANUAL)
-  aiOptimizationScore Float?
+  id                  Int           @id @default(autoincrement())
+  day                 String
+  classId             Int
+  subjectId           Int
+  timeSlotId          Int
+  employerId          Int?
+  academicYear        String
+  operationId         String?       @unique
+  tenantId            String
+  version             Int           @default(1)
   aiGeneratedAt       DateTime?
-
-  Class        classes   @relation(fields: [classId], references: [classId])
-  teacher      Employer? @relation(fields: [employerId], references: [employerId])
-  subject      subject   @relation(fields: [subjectId], references: [subjectId])
-  timeSlot     TimeSlot  @relation(fields: [timeSlotId], references: [id])
+  aiOptimizationScore Float?
+  mode                TimetableMode @default(MANUAL)
+  Class               classes       @relation(fields: [classId], references: [classId])
+  teacher             Employer?     @relation(fields: [employerId], references: [employerId])
+  subject             subject       @relation(fields: [subjectId], references: [subjectId])
+  timeSlot            TimeSlot      @relation(fields: [timeSlotId], references: [id])
 
   @@unique([day, timeSlotId, classId, academicYear])
   @@index([tenantId])
@@ -483,11 +448,9 @@ model StudentAttendance {
   date         DateTime         @default(now())
   status       AttendanceStatus @default(ABSENT)
   academicYear String
-
+  operationId  String?          @unique
   tenantId     String
   version      Int              @default(1)
-  operationId  String?          @unique
-
   class        classes          @relation(fields: [classId], references: [classId])
   student      Student          @relation(fields: [studentId], references: [studentId])
 
@@ -503,13 +466,11 @@ model EmployerAttendance {
   checkOutTime DateTime?
   status       AttendanceStatus @default(ABSENT)
   remarks      String?
-  lateMinutes  Int?             @default(0)
   academicYear String
-
+  lateMinutes  Int?             @default(0)
+  operationId  String?          @unique
   tenantId     String
   version      Int              @default(1)
-  operationId  String?          @unique
-
   employer     Employer         @relation(fields: [employerId], references: [employerId])
 
   @@unique([employerId, date, academicYear])
@@ -517,94 +478,88 @@ model EmployerAttendance {
 }
 
 model Exam {
-  id         Int       @id @default(autoincrement())
-  examName   String
-  dateStart  DateTime
-  dateEnd    DateTime
-  dateCreate DateTime?
-  dateModif  DateTime?
-  publish    Boolean
-  semesterId Int?
-  semester   Semester? @relation(fields: [semesterId], references: [id])
-
-  tenantId   String
-  version    Int       @default(1)
-  operationId String?    @unique
-
-  grads      Grads[]
+  id          Int       @id @default(autoincrement())
+  examName    String
+  dateStart   DateTime
+  dateEnd     DateTime
+  dateCreate  DateTime?
+  dateModif   DateTime?
+  publish     Boolean
+  operationId String?   @unique
+  tenantId    String
+  version     Int       @default(1)
+  semesterId  Int?
+  semester    Semester? @relation(fields: [semesterId], references: [id])
+  grads       Grads[]
 
   @@index([tenantId])
 }
 
 model Grads {
   id             Int          @id @default(autoincrement())
-  studentClassId Int
-  subjectId      Int
-  examId         Int
   grads          Float
   dateCreate     DateTime?    @default(now())
   dateModif      DateTime?    @updatedAt
-
+  examId         Int
+  studentClassId Int
+  subjectId      Int
+  operationId    String?      @unique
   tenantId       String
   version        Int          @default(1)
-  operationId    String?      @unique
-
   exam           Exam         @relation(fields: [examId], references: [id])
   studentClass   StudentClass @relation(fields: [studentClassId], references: [id])
   subject        subject      @relation(fields: [subjectId], references: [subjectId])
 
   @@unique([examId, studentClassId, subjectId])
-  @@map("grads")
   @@index([tenantId])
+  @@map("grads")
 }
 
 model Compte {
-  id                Int            @id @default(autoincrement())
+  id                Int                 @id @default(autoincrement())
   name              String
   parentId          Int
   BG                Int
   BD                Int
   level             Int?
-  dateCreate        DateTime?      @default(now())
-  dateModif         DateTime?      @updatedAt
-  isPosted          Boolean        @default(false)
-  employerId        Int?           @unique
-  studentId         Int?           @unique
-  code              String?        @unique
-  nameAr            String? // Kept for backward compatibility but marked for migration
+  dateCreate        DateTime?           @default(now())
+  dateModif         DateTime?           @updatedAt
+  isPosted          Boolean             @default(false)
+  employerId        Int?                @unique
+  studentId         Int?                @unique
+  category          CompteCategory      @default(GENERAL)
+  code              String?             @unique
+  isFeeCash         Boolean             @default(false)
+  nameAr            String?
+  nature            AccountNature       @default(ASSET)
+  operationId       String?             @unique
   selectionCode     String?
-  isFeeCash         Boolean        @default(false)
-  showInParent      Boolean        @default(true)
-  nature            AccountNature  @default(ASSET)
-  category          CompteCategory @default(GENERAL)
-
+  showInParent      Boolean             @default(true)
   tenantId          String
-  version           Int            @default(1)
-  operationId       String?        @unique
-
+  version           Int                 @default(1)
+  translations      CompteTranslation[]
+  expenses          Expense[]
   fees              Fee[]
   journalEntryLines JournalLine[]
+  paymentsDest      Payment[]           @relation("PaymentDest")
   payments          Payment[]
-  paymentsSource    Payment[]      @relation("PaymentSource")
-  paymentsDest      Payment[]      @relation("PaymentDest")
+  paymentsSource    Payment[]           @relation("PaymentSource")
   payrolls          Payroll[]
-  expenses          Expense[]
-  employer          Employer?      @relation(fields: [employerId], references: [employerId])
-  parent            Compte         @relation("CompteToParent", fields: [parentId], references: [id])
-  children          Compte[]       @relation("CompteToParent")
-  student           Student?       @relation(fields: [studentId], references: [studentId])
-  translations      CompteTranslation[]
+  employer          Employer?           @relation(fields: [employerId], references: [employerId])
+  parent            Compte              @relation("CompteToParent", fields: [parentId], references: [id])
+  children          Compte[]            @relation("CompteToParent")
+  student           Student?            @relation(fields: [studentId], references: [studentId])
 
-  @@map("comptes")
   @@index([tenantId])
+  @@map("comptes")
 }
 
 model CompteTranslation {
-  id        Int      @id @default(autoincrement())
-  compteId  Int
-  locale    String
-  name      String
-  compte    Compte   @relation(fields: [compteId], references: [id], onDelete: Cascade)
+  id       Int    @id @default(autoincrement())
+  compteId Int
+  locale   String
+  name     String
+  compte   Compte @relation(fields: [compteId], references: [id], onDelete: Cascade)
 
   @@unique([compteId, locale])
 }
@@ -622,11 +577,9 @@ model Fee {
   compteId              Int?
   dateEndConsommation   DateTime?
   dateStartConsommation DateTime?
-
+  operationId           String?   @unique
   tenantId              String
   version               Int       @default(1)
-  operationId           String?   @unique
-
   class                 classes?  @relation(fields: [classId], references: [classId])
   compte                Compte?   @relation(fields: [compteId], references: [id])
   student               Student?  @relation(fields: [studentId], references: [studentId])
@@ -636,82 +589,76 @@ model Fee {
 }
 
 model Payroll {
-  id           Int           @id @default(autoincrement())
-  employerId   Int
-  period_start DateTime
-  period_end   DateTime
-  baseSalary   Decimal       @db.Decimal(10, 2)
-  allowances   Decimal       @default(0) @db.Decimal(10, 2)
-  deductions   Decimal       @default(0) @db.Decimal(10, 2)
-  netSalary    Decimal       @db.Decimal(10, 2)
+  id                Int           @id @default(autoincrement())
+  employerId        Int
+  period_start      DateTime
+  period_end        DateTime
+  baseSalary        Decimal       @db.Decimal(10, 2)
+  allowances        Decimal       @default(0) @db.Decimal(10, 2)
+  deductions        Decimal       @default(0) @db.Decimal(10, 2)
+  netSalary         Decimal       @db.Decimal(10, 2)
   status            PayrollStatus @default(DRAFT)
-  attendanceSummary Json?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-
+  attendanceSummary Json?
+  compteId          Int?
+  operationId       String?       @unique
   tenantId          String
   version           Int           @default(1)
-  operationId       String?       @unique
-
-  employer          Employer      @relation(fields: [employerId], references: [employerId])
-  compteId          Int?
   compte            Compte?       @relation(fields: [compteId], references: [id])
+  employer          Employer      @relation(fields: [employerId], references: [employerId])
 
   @@index([tenantId])
 }
 
 model Expense {
-  id          Int       @id @default(autoincrement())
-  title       String
-  category    String
-  amount      Decimal   @db.Decimal(10, 2)
-  expenseDate DateTime
-  description String?
-  isPaid      Boolean   @default(false)
-  dateStartConsommation DateTime?
-  dateEndConsommation   DateTime?
-  isAmortization        Boolean   @default(false)
+  id                    Int       @id @default(autoincrement())
+  title                 String
+  category              String
+  amount                Decimal   @db.Decimal(10, 2)
+  expenseDate           DateTime
+  description           String?
+  isPaid                Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   compteId              Int?
+  dateEndConsommation   DateTime?
+  dateStartConsommation DateTime?
+  isAmortization        Boolean   @default(false)
+  operationId           String?   @unique
+  tenantId              String
+  version               Int       @default(1)
   compte                Compte?   @relation(fields: [compteId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  tenantId    String
-  version     Int       @default(1)
-  operationId String?   @unique
-
-  payments    Payment[]
+  payments              Payment[]
 
   @@index([tenantId])
 }
 
 model Payment {
-  id            Int           @id @default(autoincrement())
-  feeId         Int?
-  amount        Float
-  date          DateTime      @default(now())
-  method        PaymentMethod @default(CASH)
-  status        PaymentStatus @default(COMPLETED)
-  transactionId String?
-  description   String?
-  studentId     Int?
-  employerId    Int?
-  compteId      Int?
-  compteSourceId Int?
+  id             Int           @id @default(autoincrement())
+  feeId          Int?
+  amount         Decimal       @default(0) @db.Decimal(15, 2)
+  date           DateTime      @default(now())
+  method         PaymentMethod @default(CASH)
+  status         PaymentStatus @default(COMPLETED)
+  transactionId  String?
+  description    String?
+  studentId      Int?
+  employerId     Int?
+  compteId       Int?
+  expenseId      Int?
   compteDestId   Int?
-  expenseId     Int?
-
-  tenantId      String
-  version       Int           @default(1)
-  operationId   String?       @unique
-
-  compte        Compte?       @relation(fields: [compteId], references: [id])
-  compteSource  Compte?       @relation("PaymentSource", fields: [compteSourceId], references: [id])
-  compteDest    Compte?       @relation("PaymentDest", fields: [compteDestId], references: [id])
-  employer      Employer?     @relation(fields: [employerId], references: [employerId])
-  expense       Expense?      @relation(fields: [expenseId], references: [id])
-  fee           Fee?          @relation(fields: [feeId], references: [id])
-  student       Student?      @relation(fields: [studentId], references: [studentId])
+  compteSourceId Int?
+  operationId    String?       @unique
+  tenantId       String
+  version        Int           @default(1)
+  compteDest     Compte?       @relation("PaymentDest", fields: [compteDestId], references: [id])
+  compte         Compte?       @relation(fields: [compteId], references: [id])
+  compteSource   Compte?       @relation("PaymentSource", fields: [compteSourceId], references: [id])
+  employer       Employer?     @relation(fields: [employerId], references: [employerId])
+  expense        Expense?      @relation(fields: [expenseId], references: [id])
+  fee            Fee?          @relation(fields: [feeId], references: [id])
+  student        Student?      @relation(fields: [studentId], references: [studentId])
 
   @@index([studentId])
   @@index([employerId])
@@ -720,23 +667,21 @@ model Payment {
 }
 
 model Journal {
-  id        Int            @id @default(autoincrement())
-  code      String         @unique
-  name      String
-  type      JournalType
-  isActive  Boolean        @default(true)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  createdBy Int
+  id          Int            @id @default(autoincrement())
+  code        String         @unique
+  name        String
+  type        JournalType
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  createdBy   Int
+  operationId String?        @unique
+  tenantId    String
+  version     Int            @default(1)
+  entries     JournalEntry[]
 
-  tenantId  String
-  version   Int            @default(1)
-  operationId String?      @unique
-
-  entries   JournalEntry[]
-
-  @@map("journals")
   @@index([tenantId])
+  @@map("journals")
 }
 
 model JournalEntry {
@@ -754,11 +699,9 @@ model JournalEntry {
   postedAt      DateTime?
   createdBy     Int
   postedBy      Int?
-
+  operationId   String?            @unique
   tenantId      String
   version       Int                @default(1)
-  operationId   String?            @unique
-
   journal       Journal            @relation(fields: [journalId], references: [id])
   lines         JournalLine[]
 
@@ -774,11 +717,9 @@ model JournalLine {
   debit       Decimal      @default(0) @db.Decimal(15, 2)
   credit      Decimal      @default(0) @db.Decimal(15, 2)
   description String?
-
+  operationId String?      @unique
   tenantId    String
   version     Int          @default(1)
-  operationId String?      @unique
-
   compte      Compte       @relation(fields: [compteId], references: [id])
   entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
@@ -794,6 +735,75 @@ model FiscalYear {
   isClosed  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenantId    String
+  version     Int      @default(1)
+  operationId String?  @unique
+  isPublic    Boolean  @default(true)
+
+  @@index([tenantId])
+  @@map("events")
+}
+
+model StudentRiskProfile {
+  id                 Int       @id @default(autoincrement())
+  studentId          Int       @unique
+  attendance         Float     @default(0)
+  averageGrade       Float     @default(0)
+  behaviorScore      Float     @default(0)
+  homeworkCompletion Float     @default(0)
+  riskLevel          RiskLevel @default(LOW)
+  recommendation     String?
+  lastCalculatedAt   DateTime  @default(now())
+  tenantId           String
+  version            Int       @default(1)
+  operationId        String?   @unique
+  student            Student   @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model TeacherEvaluation {
+  id                     Int      @id @default(autoincrement())
+  teacherId              Int
+  score                  Float
+  improvementProbability Float
+  weakAreas              String[]
+  trainingPlan           String[]
+  createdAt              DateTime @default(now())
+  tenantId               String
+  teacher                Employer @relation(fields: [teacherId], references: [employerId])
+
+  @@index([teacherId])
+  @@index([tenantId])
+}
+
+model SystemSettings {
+  id           Int     @id @default(autoincrement())
+  weekStartDay WeekDay @default(SUNDAY)
+  firstHour    String  @default("08:00")
+  lastHour     String  @default("16:00")
+  slotDuration Int     @default(60)
+  tenantId     String  @unique
+  version      Int     @default(1)
+  operationId  String? @unique
+
+  @@index([tenantId])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
 }
 
 enum AttendanceStatus {
@@ -854,84 +864,15 @@ enum CompteCategory {
   DEPENSE
 }
 
-model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  startTime   DateTime
-  endTime     DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenantId    String
-  version     Int      @default(1)
-  operationId String?  @unique
-  isPublic    Boolean  @default(true)
-
-  @@map("events")
-  @@index([tenantId])
-}
-
 enum RiskLevel {
   LOW
   MEDIUM
   HIGH
 }
 
-model StudentRiskProfile {
-  id                 Int       @id @default(autoincrement())
-  studentId          Int       @unique
-  attendance         Float     @default(0)
-  averageGrade       Float     @default(0)
-  behaviorScore      Float     @default(0)
-  homeworkCompletion Float     @default(0)
-  riskLevel          RiskLevel @default(LOW)
-  recommendation     String?
-  lastCalculatedAt   DateTime  @default(now())
-
-  tenantId           String
-  version            Int       @default(1)
-  operationId        String?   @unique
-
-  student            Student   @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model TeacherEvaluation {
-  id                     Int      @id @default(autoincrement())
-  teacherId              Int
-  score                  Float
-  improvementProbability Float
-  weakAreas              String[]
-  trainingPlan           String[]
-  createdAt              DateTime @default(now())
-  
-  teacher                Employer @relation(fields: [teacherId], references: [employerId])
-  
-  tenantId               String
-
-  @@index([teacherId])
-  @@index([tenantId])
-}
-
 enum TimetableMode {
   MANUAL
   AI_GENERATED
-}
-
-model SystemSettings {
-  id            Int      @id @default(autoincrement())
-  weekStartDay  WeekDay  @default(SUNDAY)
-  firstHour     String   @default("08:00")
-  lastHour      String   @default("16:00")
-  slotDuration  Int      @default(60)
-
-  tenantId      String   @unique
-  version       Int      @default(1)
-  operationId   String?  @unique
-
-  @@index([tenantId])
 }
 
 enum WeekDay {
@@ -942,4 +883,70 @@ enum WeekDay {
   FRIDAY
   SATURDAY
   SUNDAY
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  domain    String   @unique
+  plan      Plan     @default(STARTER)
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  tenantId      String
+  plan          Plan
+  billingPeriod BillingPeriod
+  status        SubscriptionStatus
+  startDate     DateTime
+  endDate       DateTime
+  autoRenew     Boolean            @default(true)
+  price         Int // Store in DZD
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  history       SubscriptionHistory[]
+
+  @@index([tenantId])
+}
+
+model SubscriptionHistory {
+  id             String        @id @default(uuid())
+  subscriptionId String
+  event          String
+  plan           Plan
+  billingPeriod  BillingPeriod
+  changedAt      DateTime      @default(now())
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+}
+
+enum Plan {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum BillingPeriod {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIAL
+  EXPIRED
+  SUSPENDED
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }

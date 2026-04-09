@@ -20,9 +20,11 @@ async function bootstrap() {
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
-  // ================= NUCLEAR CORS FIX =================
-  // This middleware runs BEFORE NestJS routing and handles preflights manually.
-  const server = app.getHttpAdapter().getInstance() as express.Application;
+  // ================= SECURE CORS CONFIGURATION =================
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:3000', 'http://localhost:3001'];
 
   app.use(
     (
@@ -32,11 +34,8 @@ async function bootstrap() {
     ) => {
       const origin = req.headers.origin;
 
-      // Unconditionally echo the origin to prevent any filtering issues
-      if (origin) {
+      if (origin && (allowedOrigins.includes(origin) || !isProduction)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
-      } else {
-        res.setHeader('Access-Control-Allow-Origin', '*');
       }
 
       res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -54,7 +53,6 @@ async function bootstrap() {
       );
 
       if (req.method === 'OPTIONS') {
-        // Return 200 instead of 204 to ensure proxies don't strip headers
         res.status(200).end();
         return;
       }
@@ -63,6 +61,7 @@ async function bootstrap() {
   );
 
   // 🔒 Hide Express fingerprint
+  const server = app.getHttpAdapter().getInstance() as express.Application;
   server.disable('x-powered-by');
 
   // 🔒 Helmet (advanced config)

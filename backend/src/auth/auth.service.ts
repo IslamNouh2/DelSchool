@@ -100,7 +100,7 @@ export class AuthService {
 
   // ======== REGISTER ========
   async register(registerDto: RegisterDto, response: Response) {
-    const { email, username, password, roleId } = registerDto;
+    const { email, username, password } = registerDto;
 
     const existingUser = await this.prisma.user.findFirst({
       where: { OR: [{ email }, { username }] },
@@ -110,12 +110,15 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Hardcode role to STUDENT (3) for public registration to prevent privilege escalation
+    const STUDENT_ROLE_ID = 3;
+
     const user: UserWithRole = await this.prisma.user.create({
       data: {
         email,
         username,
         password: hashedPassword,
-        roleId: roleId || null,
+        roleId: STUDENT_ROLE_ID,
         tokenVersion: 0,
       },
       include: { role: true },
@@ -303,17 +306,18 @@ export class AuthService {
   // ======== LOGOUT ========
   async logout(
     response: Response,
+    userId: number,
     refreshToken?: string,
     logoutAll: boolean = false,
   ) {
     if (logoutAll) {
       await this.prisma.refreshToken.updateMany({
-        where: { revoked: false },
+        where: { userId, revoked: false },
         data: { revoked: true },
       });
     } else if (refreshToken) {
       const tokens = await this.prisma.refreshToken.findMany({
-        where: { revoked: false },
+        where: { userId, revoked: false },
       });
       for (const t of tokens) {
         if (await bcrypt.compare(refreshToken, t.token)) {

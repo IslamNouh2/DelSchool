@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsInt,
   IsBoolean,
+  IsEmail,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -46,7 +47,7 @@ export class CreateStudentDto {
     description: 'Email address',
   })
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @ApiPropertyOptional({ example: '+123456789', description: 'Phone number' })

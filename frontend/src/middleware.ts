@@ -37,7 +37,33 @@ export async function middleware(request: NextRequest) {
 
         if (accessToken) {
             try {
-                const payload = await verifyToken(accessToken);
+                const payload: any = await verifyToken(accessToken);
+                
+                // --- Subscription Check ---
+                // Skip check for paths that shouldn't be blocked (auth, blocked itself, etc.)
+                const isBlockedPath = pathname.includes('/blocked');
+                
+                if (payload?.tenantId && !isBlockedPath) {
+                    try {
+                        const apiRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscriptions/${payload.tenantId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        });
+
+                        if (apiRes.status === 403) {
+                            const data = await apiRes.json();
+                            if (data.blocked) {
+                                console.log(`[Middleware] Subscription BLOCKED: ${data.reason}. Redirecting.`);
+                                return NextResponse.redirect(new URL(`/${redirectLocale}/blocked?reason=${data.reason}`, request.url));
+                            }
+                        }
+                    } catch (fetchError) {
+                        console.error('[Middleware] Subscription check failed:', fetchError);
+                        // If backend is down, we usually allow progress to avoid total outage
+                    }
+                }
+
                 if (payload?.role) {
                     console.log(`[Middleware] Access GRANTED. Role: ${payload.role}`);
                     return intlMiddleware(request);
@@ -46,7 +72,6 @@ export async function middleware(request: NextRequest) {
                 }
             } catch (e: any) {
                 console.error('[Middleware] Token Verification ERROR:', e.message || e);
-                // If it's a "signature mismatch", it's definitely the secret.
             }
         }
 

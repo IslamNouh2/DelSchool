@@ -39,6 +39,10 @@ import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { TimetableOptimizerModule } from './timetable-optimizer/timetable-optimizer.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
+import { SubscriptionModule } from './subscription/subscription.module';
+import { SubscriptionGuard } from './subscription/subscription.guard';
+import { APP_GUARD } from '@nestjs/core';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -86,6 +90,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
     TimetableOptimizerModule,
     ReportCardModule,
     DashboardModule,
+    SubscriptionModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: SubscriptionGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {

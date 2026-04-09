@@ -25,7 +25,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { Response as ExpressResponse } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
 import { Request as ExpressRequest } from 'express';
-import { AuthenticatedUser } from './types/authenticated-user.type';
+import { AuthenticatedUser } from './auth.service';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -68,15 +68,18 @@ export class AuthController {
     return this.authService.refresh(refreshToken, response);
   }
 
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: 200, description: 'User successfully logged out' })
   @Post('logout')
   async logout(
-    @Request() req: ExpressRequest,
+    @CurrentUser() user: AuthenticatedUser,
     @Response({ passthrough: true }) response: ExpressResponse,
+    @Request() req: ExpressRequest,
   ) {
     const refreshToken = req.cookies?.refreshToken as string;
-    return this.authService.logout(response, refreshToken);
+    return this.authService.logout(response, user.id, refreshToken);
   }
 
   @ApiBearerAuth('JWT-auth')

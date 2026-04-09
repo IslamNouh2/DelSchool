@@ -8,7 +8,7 @@ export class FinanceService {
   async getStats(tenantId: string) {
     // 1. Get Current School Year for date filtering
     const currentSchoolYear = await this.prisma.schoolYear.findFirst({
-      where: { isCurrent: true },
+      where: { isCurrent: true, tenantId },
     });
 
     const startDate = currentSchoolYear
@@ -19,11 +19,9 @@ export class FinanceService {
       : new Date(new Date().getFullYear(), 11, 31);
 
     // 2. Total Income (Student Fees)
-    // We assume Income = Fees created or due in this period?
-    // Or Payments linked to Fees?
-    // Usually "Chiffre d'affaire" is billed fees.
     const fees = await this.prisma.fee.aggregate({
       where: {
+        tenantId,
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -36,9 +34,9 @@ export class FinanceService {
     const totalIncome = Number(fees._sum.amount || 0);
 
     // 3. Total Expenses (Recorded Expenses + Payroll?)
-    // Expenses
     const expenses = await this.prisma.expense.aggregate({
       where: {
+        tenantId,
         expenseDate: {
           gte: startDate,
           lte: endDate,
@@ -49,22 +47,19 @@ export class FinanceService {
       },
     });
 
-    // Payroll (Net Salary + Allowances - Deductions? Or just Net Salary paid?)
-    // For P&L, it's Gross Salary (Base + Allowances).
-    // Let's sum NetSalary for now as a proxy if Gross not easy, but schema has baseSalary.
-    // Let's use Net Salary for simplicity or Base + Allowances.
     const payrolls = await this.prisma.payroll.aggregate({
       where: {
+        tenantId,
         period_start: {
           gte: startDate,
         },
         period_end: {
           lte: endDate,
         },
-        status: { not: 'PAID' }, // Exclude PAID payrolls as they are already in Expenses
+        status: { not: 'PAID' },
       },
       _sum: {
-        netSalary: true, // simplified
+        netSalary: true,
       },
     });
 
@@ -77,6 +72,7 @@ export class FinanceService {
     // 5. Treasury Breakdown (Caisse vs Banque)
     const treasuryAccounts = await this.prisma.compte.findMany({
       where: {
+        tenantId,
         category: { in: ['CAISSE', 'BANQUE'] },
       },
       select: { id: true, category: true },
@@ -86,7 +82,7 @@ export class FinanceService {
     const calculateBalance = async (ids: number[]) => {
       if (ids.length === 0) return 0;
       const result = await this.prisma.journalLine.aggregate({
-        where: { compteId: { in: ids } },
+        where: { compteId: { in: ids }, tenantId }, // Enforce tenantId
         _sum: { debit: true, credit: true },
       });
       return Number(result._sum.debit || 0) - Number(result._sum.credit || 0);
@@ -139,7 +135,7 @@ export class FinanceService {
         count = 6;
         break;
       case 'monthly':
-      default:
+      default: {
         const currentSchoolYear = await this.prisma.schoolYear.findFirst({
           where: { isCurrent: true, tenantId }, // Enforce tenant
         });
@@ -152,6 +148,7 @@ export class FinanceService {
         interval = 'month';
         count = 12; // Adjusted dynamically below
         break;
+      }
     }
 
     const dataPoints: {

@@ -179,7 +179,11 @@ export class StudentService {
       });
 
       // Auto-create User for login
-      const hashedPassword = await bcrypt.hash(finalCode, 12);
+      // Use a more secure default password: code + birth year
+      const birthYear = new Date(dateOfBirth).getFullYear();
+      const defaultPassword = `${finalCode}@${birthYear}`;
+      const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+
       await this.prisma.user.create({
         data: {
           email: email || `${finalCode}@delschool.com`,

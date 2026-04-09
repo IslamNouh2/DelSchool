@@ -23,29 +23,52 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    let message = 'An error occurred';
+    let stack = undefined;
+
+    if (exception instanceof HttpException) {
+      const response = exception.getResponse();
+      message =
+        typeof response === 'object' &&
+        response !== null &&
+        'message' in response
+          ? (response as any).message
+          : exception.message;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      stack = exception.stack;
+    } else if (typeof exception === 'string') {
+      message = exception;
+    }
+
     const responseBody = {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
-      path: httpAdapter.getRequestUrl(ctx.getRequest()),
+      path: String(httpAdapter.getRequestUrl(ctx.getRequest())),
       message:
-        (exception as any).message ||
-        (typeof exception === 'string' ? exception : 'Internal server error'),
+        httpStatus === (HttpStatus.INTERNAL_SERVER_ERROR as number)
+          ? 'Internal server error'
+          : message,
     };
 
     // Log the error
     const errorLog = {
       status: httpStatus,
       path: responseBody.path,
-      message: responseBody.message,
-      stack: (exception as any).stack,
+      message: message,
+      stack: stack,
       exception: exception,
     };
 
     this.logger.error(
       `Http Status: ${httpStatus} Error: ${JSON.stringify(
         errorLog,
-        (key, value) =>
-          key === 'stack' ? (value ? value.split('\n') : undefined) : value,
+        (key, value) => {
+          if (key === 'stack' && typeof value === 'string') {
+            return value.split('\n');
+          }
+          return value;
+        },
       )}`,
     );
 
