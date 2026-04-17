@@ -4,67 +4,94 @@ import {
   Injectable,
   ForbiddenException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { SubscriptionService } from './subscription.service';
 import { SubscriptionStatus } from '@prisma/client';
 import { Request } from 'express';
+import { IS_PUBLIC_KEY } from '../common/decorators/public.decorator';
 
 interface AuthenticatedRequest extends Request {
   user?: {
     tenantId: string;
+    email: string;
+    sub: number;
   };
-  tenantId?: string;
 }
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
-  constructor(private subscriptionService: SubscriptionService) {}
+  constructor(
+    private readonly subscriptionService: SubscriptionService,
+    private reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) return true;
+
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const url = request.url;
+    const { url, user } = request;
 
-    // 1. Exclude specific routes
-    const excludedPaths = ['/auth', '/health'];
+    // Manual overlaps for routes that might not be tagged but should be skipped
+    const skipPaths = [
+      '/auth',
+      '/health',
+      '/tenants/register',
+      '/subscriptions/check',
+    ];
+    const isSkip =
+      skipPaths.some((path) => url.includes(path)) ||
+      (url.includes('/subscriptions/') && url.endsWith('/renew'));
 
-    // Check if URL starts with any excluded path or is a renew route
-    if (
-      excludedPaths.some((path) => url.startsWith(path)) ||
-      url.includes('/renew')
-    ) {
-      return true;
-    }
+    if (isSkip) return true;
 
-    // 2. Extract tenantId from JWT payload
-    const tenantId = request.user?.tenantId ?? request.tenantId;
-
+    const tenantId = user?.tenantId;
     if (!tenantId) {
-      // If no tenantId, we can't check subscription.
-      // This might happen on public routes not covered by excludedPaths.
-      return true;
+      // If we're here, JwtAuthGuard should have already run (or this is a non-protected route)
+      // But if somehow no tenantId, block if not in skip list
+      throw new ForbiddenException({
+        blocked: true,
+        reason: 'NO_TENANT_ID',
+        message: 'No tenant ID found in session.',
+      });
     }
 
-    // 3. Check subscription status
-    const subscription = await this.subscriptionService.findByTenant(tenantId);
+    try {
+      const subscription = await this.subscriptionService.findByTenant(tenantId);
 
-    if (!subscription) {
+      if (!subscription) {
+        throw new ForbiddenException({
+          blocked: true,
+          reason: 'NO_SUBSCRIPTION',
+          message: 'No subscription found for this tenant.',
+        });
+      }
+
+      if (
+        subscription.status === SubscriptionStatus.EXPIRED ||
+        subscription.status === SubscriptionStatus.SUSPENDED
+      ) {
+        throw new ForbiddenException({
+          blocked: true,
+          reason: subscription.status,
+          message: 'Subscription inactive. Please renew.',
+        });
+      }
+
+      return true;
+    } catch (error) {
+      if (error instanceof ForbiddenException) throw error;
+
+      // If findByTenant throws because no sub found
       throw new ForbiddenException({
         blocked: true,
         reason: 'NO_SUBSCRIPTION',
-        message: 'No subscription found for this tenant.',
+        message: 'Subscription inactive. Please renew.',
       });
     }
-
-    if (
-      subscription.status === SubscriptionStatus.EXPIRED ||
-      subscription.status === SubscriptionStatus.SUSPENDED
-    ) {
-      throw new ForbiddenException({
-        blocked: true,
-        reason: subscription.status,
-        message: 'Your subscription has expired. Please renew to continue.',
-      });
-    }
-
-    return true;
   }
 }

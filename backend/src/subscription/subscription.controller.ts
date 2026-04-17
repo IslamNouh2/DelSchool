@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import {
@@ -13,37 +14,21 @@ import {
   UpdateSubscriptionDto,
 } from './subscription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SuperAdminGuard } from '../auth/guards/super-admin.guard';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
-  // ======== ADMIN ROUTES (SaaS Owner) ========
-
-  @Get('admin/stats')
-  @UseGuards(SuperAdminGuard)
-  adminGetStats() {
-    return this.subscriptionService.adminGetStats();
+  @Get('stats')
+  getStats() {
+    return this.subscriptionService.getStats();
   }
 
-  @Get('admin/tenants')
-  @UseGuards(SuperAdminGuard)
-  adminGetAll() {
-    return this.subscriptionService.adminGetAllSubscriptions();
+  @Get('check')
+  check(@Request() req: { user: { tenantId: string } }) {
+    return this.subscriptionService.check(req.user.tenantId);
   }
-
-  @Patch('admin/tenant/:tenantId')
-  @UseGuards(SuperAdminGuard)
-  adminForceUpdate(
-    @Param('tenantId') tenantId: string,
-    @Body() dto: UpdateSubscriptionDto,
-  ) {
-    return this.subscriptionService.adminForceUpdate(tenantId, dto);
-  }
-
-  // ======== TENANT ROUTES ========
 
   @Get(':tenantId')
   findByTenant(@Param('tenantId') tenantId: string) {
@@ -55,7 +40,9 @@ export class SubscriptionController {
     @Param('tenantId') tenantId: string,
     @Body() dto: CreateSubscriptionDto,
   ) {
-    return this.subscriptionService.create(tenantId, dto);
+    // Ensure tenantId in DTO matches URL
+    dto.tenantId = tenantId;
+    return this.subscriptionService.create(dto);
   }
 
   @Patch(':tenantId')

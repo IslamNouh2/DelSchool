@@ -39,28 +39,21 @@ export async function middleware(request: NextRequest) {
             try {
                 const payload: any = await verifyToken(accessToken);
                 
-                // --- Subscription Check ---
-                // Skip check for paths that shouldn't be blocked (auth, blocked itself, etc.)
-                const isBlockedPath = pathname.includes('/blocked');
-                
-                if (payload?.tenantId && !isBlockedPath) {
-                    try {
-                        const apiRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscriptions/${payload.tenantId}`, {
-                            headers: {
-                                'Authorization': `Bearer ${accessToken}`
-                            }
-                        });
-
-                        if (apiRes.status === 403) {
-                            const data = await apiRes.json();
-                            if (data.blocked) {
-                                console.log(`[Middleware] Subscription BLOCKED: ${data.reason}. Redirecting.`);
-                                return NextResponse.redirect(new URL(`/${redirectLocale}/blocked?reason=${data.reason}`, request.url));
-                            }
-                        }
-                    } catch (fetchError) {
-                        console.error('[Middleware] Subscription check failed:', fetchError);
-                        // If backend is down, we usually allow progress to avoid total outage
+                // --- New Subscription Check ---
+                const subToken = request.cookies.get('access_token')?.value;
+                if (subToken) {
+                    const { checkSubscription } = await import('@/lib/subscription-check');
+                    const result = await checkSubscription(subToken);
+                    
+                    if (result.blocked) {
+                        const params = new URLSearchParams();
+                        if (result.reason) params.set('reason', result.reason);
+                        if (result.tenantName) params.set('tenantName', result.tenantName);
+                        if (result.endDate) params.set('endDate', result.endDate);
+                        
+                        return NextResponse.redirect(
+                            new URL(`/${redirectLocale}/blocked?${params.toString()}`, request.url)
+                        );
                     }
                 }
 

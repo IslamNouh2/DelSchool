@@ -1,15 +1,18 @@
-import { IsEnum, IsBoolean, IsDateString, IsOptional } from 'class-validator';
-import { Plan, BillingPeriod, SubscriptionStatus } from '@prisma/client';
+import { IsString, IsEnum, IsBoolean, IsISO8601, IsOptional } from 'class-validator';
 import { PartialType } from '@nestjs/swagger';
+import { Plan, BillingPeriod, SubscriptionStatus } from '@prisma/client';
 
 export class CreateSubscriptionDto {
+  @IsString()
+  tenantId: string;
+
   @IsEnum(Plan)
   plan: Plan;
 
   @IsEnum(BillingPeriod)
   billingPeriod: BillingPeriod;
 
-  @IsDateString()
+  @IsISO8601()
   startDate: string;
 
   @IsBoolean()

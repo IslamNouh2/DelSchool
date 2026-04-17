@@ -23,42 +23,40 @@ async function bootstrap() {
   // ================= SECURE CORS CONFIGURATION =================
   const isProduction = process.env.NODE_ENV === 'production';
   const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:3000', 'http://localhost:3001'];
 
-  app.use(
-    (
-      req: express.Request,
-      res: express.Response,
-      next: express.NextFunction,
+  app.enableCors({
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      const origin = req.headers.origin;
-
-      if (origin && (allowedOrigins.includes(origin) || !isProduction)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
+      // Allow if no origin (e.g. server-to-server or mobile app)
+      // or if not in production
+      // or if origin is in the allowed list
+      if (!origin || !isProduction || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`🚫 CORS: Origin ${origin} is not allowed.`);
+        callback(new Error('Not allowed by CORS'));
       }
-
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      );
-      res.setHeader(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Operation-Id, X-Tenant-Id, Cache-Control, Pragma, Expires',
-      );
-      res.setHeader(
-        'Access-Control-Expose-Headers',
-        'Set-Cookie, X-Operation-Id',
-      );
-
-      if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
-      }
-      next();
     },
-  );
+    credentials: true,
+    methods: 'GET,POST,PUT,DELETE,PATCH,OPTIONS',
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'X-Operation-Id',
+      'X-Tenant-Id',
+      'Cache-Control',
+      'Pragma',
+      'Expires',
+    ],
+    exposedHeaders: ['Set-Cookie', 'X-Operation-Id'],
+  });
 
   // 🔒 Hide Express fingerprint
   const server = app.getHttpAdapter().getInstance() as express.Application;

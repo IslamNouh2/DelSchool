@@ -41,6 +41,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 
 import { SubscriptionModule } from './subscription/subscription.module';
 import { SubscriptionGuard } from './subscription/subscription.guard';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { TenantModule } from './tenant/tenant.module';
 import { APP_GUARD } from '@nestjs/core';
 
 @Module({
@@ -91,8 +93,13 @@ import { APP_GUARD } from '@nestjs/core';
     ReportCardModule,
     DashboardModule,
     SubscriptionModule,
+    TenantModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: SubscriptionGuard,
