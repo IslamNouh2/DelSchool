@@ -1,7 +1,7 @@
 import RegisterForm from '@/components/register/RegisterForm';
 
-export default function RegisterPage({ params }: { params: { locale: string } }) {
-  const { locale } = params;
+export default async function RegisterPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
 
   return (
     <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen bg-gray-50">

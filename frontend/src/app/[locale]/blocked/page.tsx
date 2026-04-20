@@ -1,13 +1,13 @@
 import React from 'react';
 
 interface BlockedPageProps {
-  params: { locale: string };
-  searchParams: { reason?: string; tenantName?: string; endDate?: string };
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ reason?: string; tenantName?: string; endDate?: string }>;
 }
 
-export default function BlockedPage({ params, searchParams }: BlockedPageProps) {
-  const { reason, tenantName, endDate } = searchParams;
-  const { locale } = params;
+export default async function BlockedPage({ params, searchParams }: BlockedPageProps) {
+  const { reason, tenantName, endDate } = await searchParams;
+  const { locale } = await params;
 
   const getMessage = () => {
     switch (reason) {
