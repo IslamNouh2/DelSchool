@@ -1,4 +1,20 @@
 {
+  "landing": {
+    "title": "تمكين التعليم مع delSchool",
+    "subtitle": "نظام إدارة مدرسية حديث وآمن لتحقيق التميز.",
+    "login": "تسجيل الدخول",
+    "register": "انضم إلى delSchool",
+    "blocked_title": "حالة الاشتراك",
+    "blocked_message": "وصول مدرستك مقيد حاليًا بسبب انتهاء صلاحية الاشتراك أو تعليقه.",
+    "contact_support": "اتصل بالدعم",
+    "features_title": "لماذا تختار delSchool؟",
+    "feature_1_title": "إدارة ذكية",
+    "feature_1_desc": "أتمتة الحضور والدرجات والجداول بكل سهولة.",
+    "feature_2_title": "رقابة مالية",
+    "feature_2_desc": "تتبع الرسوم والنفقات والرواتب في لوحة تحكم مركزية واحدة.",
+    "feature_3_title": "آمن وسريع",
+    "feature_3_desc": "أمان بمعايير الصناعة لحماية بيانات مدرستك."
+  },
   "common": {
     "title": "مدرسة ديل",
     "dashboard": "لوحة القيادة",
@@ -963,6 +979,56 @@
       "load_accounts_error": "فشل في تحميل الحسابات",
       "select_treasury_error": "يرجى اختيار حساب خزينة",
       "select_employee_error": "يرجى اختيار موظف"
+    }
+  },
+  "local": {
+    "title": "القاعات",
+    "subtitle": "إدارة القاعات والمواقع المدرسية",
+    "add_local": "إضافة قاعة",
+    "search_placeholder": "بحث بالاسم أو الكود...",
+    "columns": {
+      "code": "الكود",
+      "name": "الاسم",
+      "capacity": "السعة",
+      "actions": "الإجراءات",
+      "select_columns": "الأعمدة"
+    },
+    "forms": {
+      "add_title": "إضافة قاعة جديدة",
+      "update_title": "تحديث تفاصيل القاعة",
+      "Number_of_hours_worked": "الساعات الأسبوعية (س/أ)",
+      "student_capacity": "سعة الطلاب",
+      "num_class": "رقم القاعة / السعة",
+      "level_name": "اسم القاعة",
+      "code": "الكود",
+      "create": "إنشاء",
+      "update": "تحديث",
+      "cancel": "إلغاء",
+      "show_subjects": "عرض المواد",
+      "manage_subjects": "إدارة المواد",
+      "selected": "تم اختيارها",
+      "available": "متاحة",
+      "save_changes": "حفظ التغييرات",
+      "no_subjects_found": "لم يتم العثور على مواد.",
+      "no_subjects_selected": "لم يتم اختيار أي مواد",
+      "search_subjects": "بحث عن مواد..."
+    },
+    "messages": {
+      "add_local_error": "يرجى إضافة المواد أولاً.",
+      "fetch_error": "فشل في جلب القاعات",
+      "delete_success": "تم حذف القاعة بنجاح",
+      "delete_error": "فشل في حذف القاعة",
+      "delete_confirm_title": "هل أنت متأكد تماماً؟",
+      "delete_confirm_desc": "هذا الإجراء لا يمكن التراجع عنه. سيؤدي إلى حذف هذه القاعة وارتباطاتها بشكل دائم.",
+      "subjects_updated": "تم تحديث المواد بنجاح.",
+      "all_fields_required": "جميع الحقول مطلوبة.",
+      "num_class_numeric": "السعة يجب أن تكون رقماً.",
+      "check_subjects_error": "خطأ في التحقق من المواد"
+    },
+    "dialogs": {
+      "go_to_subjects_title": "الذهاب إلى المواد؟",
+      "go_to_subjects_desc": "يجب عليك إضافة المواد أولاً قبل إنشاء قاعة.",
+      "go_to_subjects_action": "الذهاب إلى المواد"
     }
   }
 }

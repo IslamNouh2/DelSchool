@@ -40,19 +40,20 @@ export async function middleware(request: NextRequest) {
                 const payload: any = await verifyToken(accessToken);
                 
                 // --- New Subscription Check ---
-                const subToken = request.cookies.get('access_token')?.value;
+                const subToken = request.cookies.get('accessToken')?.value;
                 if (subToken) {
                     const { checkSubscription } = await import('@/lib/subscription-check');
                     const result = await checkSubscription(subToken);
                     
-                    if (result.blocked) {
+                        if (result.blocked) {
                         const params = new URLSearchParams();
+                        params.set('blocked', 'true');
                         if (result.reason) params.set('reason', result.reason);
                         if (result.tenantName) params.set('tenantName', result.tenantName);
                         if (result.endDate) params.set('endDate', result.endDate);
                         
                         return NextResponse.redirect(
-                            new URL(`/${redirectLocale}/blocked?${params.toString()}`, request.url)
+                            new URL(`/${redirectLocale}/?${params.toString()}`, request.url)
                         );
                     }
                 }

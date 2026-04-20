@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsBoolean, IsISO8601, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsBoolean,
+  IsISO8601,
+  IsOptional,
+} from 'class-validator';
 import { PartialType } from '@nestjs/swagger';
 import { Plan, BillingPeriod, SubscriptionStatus } from '@prisma/client';
 

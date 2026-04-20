@@ -87,7 +87,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Returns the user profile' })
   @Get('profile')
-  async getProfile(@CurrentUser() user) {
+  getProfile(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.getProfile(user.id);
   }
 
@@ -99,9 +99,8 @@ export class AuthController {
     description: 'Returns the current user information',
   })
   @Get('me')
-  async getCurrentUser(@CurrentUser() user: AuthenticatedUser) {
-    const profile = await this.authService.getProfile(user.id);
-
+  getCurrentUser(@CurrentUser() user: AuthenticatedUser) {
+    // 🚀 ZERO DB CALLS! Payload is pre-hydrated from enriched JWT in JwtStrategy
     return {
       user: {
         id: user.id,
@@ -109,8 +108,8 @@ export class AuthController {
         email: user.email,
         role: user.role,
         permissions: user.permissions,
-        profileId: profile?.profileId,
-        tenantId: profile?.tenantId,
+        profileId: user.profileId,
+        tenantId: user.tenantId,
       },
     };
   }

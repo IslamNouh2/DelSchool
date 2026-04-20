@@ -27,13 +27,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let stack = undefined;
 
     if (exception instanceof HttpException) {
-      const response = exception.getResponse();
-      message =
-        typeof response === 'object' &&
-        response !== null &&
-        'message' in response
-          ? (response as any).message
-          : exception.message;
+      const exceptionResponse = exception.getResponse();
+      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+        const resObj = exceptionResponse as Record<string, unknown>;
+        message =
+          typeof resObj.message === 'string'
+            ? resObj.message
+            : Array.isArray(resObj.message)
+              ? resObj.message.join(', ')
+              : exception.message;
+      } else {
+        message = exception.message;
+      }
     } else if (exception instanceof Error) {
       message = exception.message;
       stack = exception.stack;
@@ -41,7 +46,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = exception;
     }
 
-    const responseBody = {
+    const responseBody: Record<string, unknown> = {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
       path: String(httpAdapter.getRequestUrl(ctx.getRequest())),
@@ -51,10 +56,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : message,
     };
 
+    // If it's a HttpException, merge its custom response object into the body
+    if (exception instanceof HttpException) {
+      const exceptionRes = exception.getResponse();
+      if (typeof exceptionRes === 'object' && exceptionRes !== null) {
+        Object.assign(responseBody, exceptionRes);
+      }
+    }
+
     // Log the error
-    const errorLog = {
+    const errorLog: Record<string, unknown> = {
       status: httpStatus,
-      path: responseBody.path,
+      path: responseBody['path'],
       message: message,
       stack: stack,
       exception: exception,
@@ -63,7 +76,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     this.logger.error(
       `Http Status: ${httpStatus} Error: ${JSON.stringify(
         errorLog,
-        (key, value) => {
+        (key: string, value: unknown) => {
           if (key === 'stack' && typeof value === 'string') {
             return value.split('\n');
           }

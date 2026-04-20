@@ -8,6 +8,7 @@ import SubjectSelectorForm from "./SubjectSelectorForm";
 import { DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import api from "@/lib/api";
+import { useTranslations } from "next-intl";
 
 type LocalFormProps = {
     type: "create" | "update";
@@ -34,6 +35,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
 
     const [localId, setLocalId] = useState<number | null>(null);
     const [showSubjectForm, setShowSubjectForm] = useState(false);
+    const t = useTranslations("local.forms")
 
     const { toast } = useToast();
 
@@ -117,22 +119,22 @@ const LocalForm: React.FC<LocalFormProps> = ({
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="w-full md:w-1/3">
-                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Code</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">{t("code")}</h1>
                                 <Input
                                     value={form.Code}
                                     onChange={(e) => setForm({ ...form, Code: e.target.value })}
-                                    placeholder="Code"
+                                    placeholder={t("code")}
                                     required
                                 />
                             </div>
                             <div className="w-full md:w-2/3">
-                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Local name</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">{t("level_name")}</h1>
                                 <Input
                                     value={form.LocalName}
                                     onChange={(e) =>
                                         setForm({ ...form, LocalName: e.target.value })
                                     }
-                                    placeholder="Local name"
+                                    placeholder={t("level_name")}
                                     required
                                 />
                             </div>
@@ -140,20 +142,20 @@ const LocalForm: React.FC<LocalFormProps> = ({
 
                         <div className="flex flex-col md:flex-row justify-between items-end gap-4">
                             <div className="w-full md:w-1/3">
-                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Num</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">{t("num_class")}</h1>
                                 <Input
                                     type="number"
                                     value={form.NumClass}
                                     onChange={(e) =>
                                         setForm({ ...form, NumClass: e.target.value })
                                     }
-                                    placeholder="Num"
+                                    placeholder={t("num_class")}
                                     required
                                 />
                             </div>
 
                             <div className="w-full md:w-1/3">
-                                <h1 className="text-sm text-gray-600 dark:text-slate-400">Student Capacity (Size)</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">{t("student_capacity")}</h1>
                                 <Input
                                     type="number"
                                     value={form.size}
@@ -166,7 +168,7 @@ const LocalForm: React.FC<LocalFormProps> = ({
                             </div>
 
                             <div className="w-full md:w-1/3">
-                                <h1 className="text-sm text-gray-600 dark:text-slate-400">حجم الساعي (ساعة/أسبوع)</h1>
+                                <h1 className="text-sm text-gray-600 dark:text-slate-400">{t("Number_of_hours_worked")}</h1>
                                 <Input
                                     type="number"
                                     min={1}

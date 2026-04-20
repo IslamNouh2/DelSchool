@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv';
+// Load environment variables early
 dotenv.config();
 
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';

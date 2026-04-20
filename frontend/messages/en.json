@@ -1,4 +1,20 @@
 {
+  "landing": {
+    "title": "Empowering Education with delSchool",
+    "subtitle": "The most modern and secure school management system for excellence.",
+    "login": "Login to Portal",
+    "register": "Join delSchool",
+    "blocked_title": "Subscription Status",
+    "blocked_message": "Your school's access is currently restricted due to an expired or suspended subscription.",
+    "contact_support": "Contact Support",
+    "features_title": "Why Choose delSchool?",
+    "feature_1_title": "Smart Management",
+    "feature_1_desc": "Automate attendance, grading, and scheduling with ease.",
+    "feature_2_title": "Financial Control",
+    "feature_2_desc": "Track fees, expenses, and payroll in one central dashboard.",
+    "feature_3_title": "Secure & Fast",
+    "feature_3_desc": "Industry-standard security protecting your school's data."
+  },
   "common": {
     "title": "Del School",
     "dashboard": "Dashboard",
@@ -994,6 +1010,56 @@
       "load_accounts_error": "Failed to load accounts",
       "select_treasury_error": "Please select a treasury account",
       "select_employee_error": "Please select an employee"
+    }
+  },
+  "local": {
+    "title": "Locals",
+    "subtitle": "Manage school rooms and locations",
+    "add_local": "Add Local",
+    "search_placeholder": "Search by name or code...",
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "capacity": "Capacity",
+      "actions": "Actions",
+      "select_columns": "Columns"
+    },
+    "forms": {
+      "add_title": "Add New Local",
+      "update_title": "Update Local Details",
+      "Number_of_hours_worked": "Weekly Hours (h/w)",
+      "student_capacity": "Student Capacity",
+      "num_class": "Room Number / Capacity",
+      "level_name": "Local Name",
+      "code": "Code",
+      "create": "Create",
+      "update": "Update",
+      "cancel": "Cancel",
+      "show_subjects": "Show Subjects",
+      "manage_subjects": "Manage Subjects",
+      "selected": "Selected",
+      "available": "Available",
+      "save_changes": "Save Changes",
+      "no_subjects_found": "No subjects found.",
+      "no_subjects_selected": "No subjects selected",
+      "search_subjects": "Search subjects..."
+    },
+    "messages": {
+      "add_local_error": "Please add subjects first.",
+      "fetch_error": "Failed to fetch locals",
+      "delete_success": "Local deleted successfully",
+      "delete_error": "Failed to delete local",
+      "delete_confirm_title": "Are you absolutely sure?",
+      "delete_confirm_desc": "This action cannot be undone. It will permanently remove this local and its associations.",
+      "subjects_updated": "Subjects updated successfully.",
+      "all_fields_required": "All fields are required.",
+      "num_class_numeric": "Capacity must be a number.",
+      "check_subjects_error": "Error checking subjects"
+    },
+    "dialogs": {
+      "go_to_subjects_title": "Go to Subjects?",
+      "go_to_subjects_desc": "You need to add subjects first before creating a local.",
+      "go_to_subjects_action": "Go to Subjects"
     }
   }
 }

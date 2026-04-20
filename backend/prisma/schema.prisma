@@ -25,6 +25,16 @@ model User {
   refreshTokens       RefreshToken[]
   role                Role?            @relation(fields: [roleId], references: [id])
   userPermissions     UserPermission[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId, username])
+  @@index([tenantId, createdAt])
+
+  @@index([username])
+  @@index([email])
+  @@index([status])
+  @@index([lockUntil])
+  @@index([deletedAt])
 }
 
 model Role {

@@ -8,11 +8,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 @Module({
   imports: [PrismaModule],
   controllers: [SubscriptionController],
-  providers: [
-    SubscriptionService, 
-    SubscriptionGuard,
-    SubscriptionExpiryCron,
-  ],
+  providers: [SubscriptionService, SubscriptionGuard, SubscriptionExpiryCron],
   exports: [SubscriptionService],
 })
 export class SubscriptionModule {}

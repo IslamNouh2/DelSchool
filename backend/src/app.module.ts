@@ -41,15 +41,25 @@ import { DashboardModule } from './dashboard/dashboard.module';
 
 import { SubscriptionModule } from './subscription/subscription.module';
 import { SubscriptionGuard } from './subscription/subscription.guard';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { TenantModule } from './tenant/tenant.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+
+    CacheModule.register({
+      isGlobal: true,
     }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
@@ -95,7 +105,9 @@ import { APP_GUARD } from '@nestjs/core';
     SubscriptionModule,
     TenantModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
@@ -103,6 +115,10 @@ import { APP_GUARD } from '@nestjs/core';
     {
       provide: APP_GUARD,
       useClass: SubscriptionGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PerformanceInterceptor,
     },
   ],
 })

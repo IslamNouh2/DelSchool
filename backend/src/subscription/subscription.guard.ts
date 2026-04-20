@@ -4,11 +4,9 @@ import {
   Injectable,
   ForbiddenException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { SubscriptionService } from './subscription.service';
 import { SubscriptionStatus } from '@prisma/client';
 import { Request } from 'express';
-import { IS_PUBLIC_KEY } from '../common/decorators/public.decorator';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -20,29 +18,14 @@ interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
-  constructor(
-    private readonly subscriptionService: SubscriptionService,
-    private reflector: Reflector,
-  ) {}
+  constructor(private readonly subscriptionService: SubscriptionService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (isPublic) return true;
-
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const { url, user } = request;
 
-    // Manual overlaps for routes that might not be tagged but should be skipped
-    const skipPaths = [
-      '/auth',
-      '/health',
-      '/tenants/register',
-      '/subscriptions/check',
-    ];
+    // SKIP paths
+    const skipPaths = ['/auth', '/health', '/tenants/register'];
     const isSkip =
       skipPaths.some((path) => url.includes(path)) ||
       (url.includes('/subscriptions/') && url.endsWith('/renew'));
@@ -61,7 +44,8 @@ export class SubscriptionGuard implements CanActivate {
     }
 
     try {
-      const subscription = await this.subscriptionService.findByTenant(tenantId);
+      const subscription =
+        await this.subscriptionService.findByTenant(tenantId);
 
       if (!subscription) {
         throw new ForbiddenException({

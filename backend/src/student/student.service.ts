@@ -609,7 +609,7 @@ export class StudentService {
           photoFileName: true,
           studentClasses: {
             where: { isCurrent: true },
-            include: {
+            select: {
               Class: {
                 select: {
                   ClassName: true,
@@ -618,7 +618,12 @@ export class StudentService {
             },
           },
           fees: {
-            include: { payments: true },
+            select: {
+              title: true,
+              amount: true,
+              dueDate: true,
+              payments: { select: { amount: true } },
+            },
           },
         },
         orderBy: { lastName: 'asc' },
@@ -674,7 +679,7 @@ export class StudentService {
             photoFileName: true,
             studentClasses: {
               where: { isCurrent: true },
-              include: {
+              select: {
                 Class: {
                   select: {
                     ClassName: true,
@@ -683,7 +688,12 @@ export class StudentService {
               },
             },
             fees: {
-              include: { payments: true },
+              select: {
+                title: true,
+                amount: true,
+                dueDate: true,
+                payments: { select: { amount: true } },
+              },
             },
           },
         }),

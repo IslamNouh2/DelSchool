@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import LocalForm from "@/components/forms/LocalForm";
 import { useSocket } from "@/providers/SocketProvider";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 
 interface Local {
@@ -51,7 +54,11 @@ export default function LocalListPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formType, setFormType] = useState<"create" | "update">("create");
     const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
+    const [countSubject, setcountSubject] = useState(0);
     const { refreshKey } = useSocket();
+    const ter = useTranslations("local");
+    const router = useRouter();
+    const [openDialog, setOpenDialog] = useState(false);
 
 
     useEffect(() => {
@@ -126,6 +133,23 @@ export default function LocalListPage() {
         setColumnVisibility((prev) => ({ ...prev, [column]: !prev[column] }));
     }, []);
 
+    const handleAddLocalClick = async () => {
+        try {
+            const response = await api.get("/subject/count");
+            const count = response.data;
+            //console.log(count);
+
+            if (!count || count === 0) {
+                toast.error(ter("messages.add_local_error"));
+                setOpenDialog(true);
+                return;
+            }
+
+            handleAddLocal();
+        } catch (error) {
+            toast.error("Error checking subjects");
+        }
+    };
     const columns = useMemo(() => [
         {
             header: "Code",
@@ -182,13 +206,14 @@ export default function LocalListPage() {
                         Manage school rooms and locations
                     </p>
                 </div>
-                <Button 
-                    onClick={handleAddLocal}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
-                >
-                    <Plus className="w-5 h-5" />
-                    <span>Add Local</span>
-                </Button>
+                
+                    <Button 
+                        onClick={handleAddLocalClick}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-200 border-none"
+                    >
+                        <Plus className="w-5 h-5" />
+                        <span>Add Local</span>
+                    </Button>
             </div>
 
             {/* Filters */}
@@ -298,6 +323,30 @@ export default function LocalListPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+
+            <AlertDialog open={openDialog} onOpenChange={setOpenDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Go to Subjects?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You need to add subjects first before creating a local.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setOpenDialog(false);
+                                router.push("/list/subjects");
+                            }}
+                        >
+                            Go to Subjects
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

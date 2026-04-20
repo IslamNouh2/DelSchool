@@ -328,7 +328,9 @@ export class SubjectService {
   }
 
   async StubjectCount(tenantId: string) {
-    const count = await this.prisma.subject.count({ where: { tenantId } });
+    const count = await this.prisma.subject.count({
+      where: { tenantId, okBlock: false },
+    });
     return count;
   }
 }

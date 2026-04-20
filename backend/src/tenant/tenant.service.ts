@@ -25,6 +25,16 @@ export class TenantService {
       throw new ConflictException(`Domain ${dto.domain} is already taken.`);
     }
 
+    // 1.1 Check admin email uniqueness
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.adminEmail },
+    });
+    if (existingUser) {
+      throw new ConflictException(
+        `Email ${dto.adminEmail} is already registered.`,
+      );
+    }
+
     // 2. Wrap database operations in a single transaction
     return await this.prisma.$transaction(async (tx) => {
       // Create Tenant

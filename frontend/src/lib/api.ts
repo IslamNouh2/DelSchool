@@ -132,6 +132,24 @@ api.interceptors.response.use(
                 isRefreshing = false;
             }
         }
+        
+        // Handle 403 Forbidden (Subscription Expired/Blocked)
+        if (error.response?.status === 403 && error.response.data?.blocked) {
+            if (typeof window !== 'undefined') {
+                const locale = window.location.pathname.split('/')[1] || 'en';
+                const { reason, tenantName, endDate } = error.response.data;
+                
+                const params = new URLSearchParams();
+                params.set('blocked', 'true');
+                if (reason) params.set('reason', reason);
+                if (tenantName) params.set('tenantName', tenantName);
+                if (endDate) params.set('endDate', endDate);
+                
+                // Redirect to landing page with parameters
+                window.location.replace(`/${locale}/?${params.toString()}`);
+            }
+            return Promise.reject(error);
+        }
 
         return Promise.reject(error);
     }

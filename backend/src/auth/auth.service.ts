@@ -2,11 +2,15 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -29,6 +33,7 @@ export interface UserResult {
 export interface AuthenticatedUser extends UserResult {
   role: string;
   permissions: string[];
+  profileId?: number | null;
 }
 
 type UserWithRole = Prisma.UserGetPayload<{
@@ -41,19 +46,38 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   // ======== PERMISSIONS & ROLE ========
-  private async getUserPermissions(userId: number) {
+  private async getUserPermissions(
+    userId: number,
+  ): Promise<{ role: string; permissions: string[] }> {
+    const cacheKey = `user_permissions:${userId}`;
+    const cached = await this.cacheManager.get<{
+      role: string;
+      permissions: string[];
+    }>(cacheKey);
+    if (cached) return cached;
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        role: { include: { permissions: { include: { permission: true } } } },
-        userPermissions: { include: { permission: true } },
+      select: {
+        role: {
+          select: {
+            name: true,
+            permissions: { select: { permission: { select: { name: true } } } },
+          },
+        },
+        userPermissions: { select: { permission: { select: { name: true } } } },
       },
     });
 
-    if (!user) return { role: 'GUEST', permissions: [] };
+    if (!user) {
+      const result = { role: 'GUEST', permissions: [] };
+      await this.cacheManager.set(cacheKey, result, 300000); // 5 min
+      return result;
+    }
 
     const roleName = user.role?.name || 'GUEST';
     const rolePermissions =
@@ -63,7 +87,35 @@ export class AuthService {
       new Set([...rolePermissions, ...userPermissions]),
     );
 
-    return { role: roleName, permissions: allPermissions };
+    const result = { role: roleName, permissions: allPermissions };
+    await this.cacheManager.set(cacheKey, result, 300000); // 5 min
+    return result;
+  }
+
+  // ======== PROFILE RESOLUTION ========
+  private async resolveProfileId(
+    username: string,
+    roleName: string,
+    tenantId: string | null,
+  ): Promise<number | null> {
+    if (roleName === 'STUDENT') {
+      const student = await this.prisma.student.findFirst({
+        where: { code: username, tenantId: tenantId || undefined },
+        select: { studentId: true },
+      });
+      return student?.studentId || null;
+    } else if (roleName === 'TEACHER') {
+      const employer = await this.prisma.employer.findFirst({
+        where: {
+          code: username,
+          tenantId: tenantId || undefined,
+          type: 'teacher',
+        },
+        select: { employerId: true },
+      });
+      return employer?.employerId || null;
+    }
+    return null;
   }
 
   // ======== TOKEN GENERATION ========
@@ -73,10 +125,13 @@ export class AuthService {
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN', '15m'),
     });
 
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '7d'),
-    });
+    const refreshToken = this.jwtService.sign(
+      { ...payload, jti: crypto.randomUUID() },
+      {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+        expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+      },
+    );
 
     return { accessToken, refreshToken };
   }
@@ -108,7 +163,7 @@ export class AuthService {
 
     if (existingUser) throw new ConflictException('User already exists');
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Hardcode role to STUDENT (3) for public registration to prevent privilege escalation
     const STUDENT_ROLE_ID = 3;
@@ -124,10 +179,22 @@ export class AuthService {
       include: { role: true },
     });
 
+    const { role, permissions } = await this.getUserPermissions(user.id);
+    const profileId = await this.resolveProfileId(
+      user.username,
+      role,
+      user.tenantId,
+    );
+
     const payload: JwtPayload = {
       sub: user.id,
-      role: user.role?.name || 'GUEST',
+      username: user.username,
+      email: user.email,
+      role: role,
+      roleId: user.roleId,
       tenantId: user.tenantId,
+      permissions: permissions,
+      profileId: profileId,
       tokenVersion: user.tokenVersion || 0,
     };
 
@@ -142,10 +209,8 @@ export class AuthService {
       7 * 24 * 60 * 60 * 1000,
     );
 
-    const { role, permissions } = await this.getUserPermissions(user.id);
-
     return {
-      user: { ...user, role, permissions },
+      user: { ...user, role, permissions, profileId },
       accessToken,
       message: 'Registration successful',
     };
@@ -167,11 +232,34 @@ export class AuthService {
       throw new UnauthorizedException('Account locked. Try later.');
     }
 
-    if (await bcrypt.compare(password, user.password)) {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { failedLoginAttempts: 0, lockUntil: null, status: 'ACTIVE' },
-      });
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (isPasswordValid) {
+      const rounds = bcrypt.getRounds(user.password);
+      const updateData: Prisma.UserUpdateInput = {
+        failedLoginAttempts: 0,
+        lockUntil: null,
+        status: 'ACTIVE',
+      };
+
+      let needsUpdate =
+        user.failedLoginAttempts > 0 ||
+        user.lockUntil !== null ||
+        user.status !== 'ACTIVE';
+
+      // Progressive rehash
+      if (rounds < 10) {
+        updateData.password = await bcrypt.hash(password, 10);
+        needsUpdate = true;
+      }
+
+      if (needsUpdate === true) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
+
       return {
         id: user.id,
         email: user.email,
@@ -187,6 +275,7 @@ export class AuthService {
       };
     }
 
+    // Logic for failed login attempt
     const failedAttempts = user.failedLoginAttempts + 1;
     const updateData: Prisma.UserUpdateInput = {
       failedLoginAttempts: failedAttempts,
@@ -205,22 +294,37 @@ export class AuthService {
 
   // ======== LOGIN ========
   async login(user: AuthenticatedUser, response: Response) {
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: user.id },
-    });
-    if (!dbUser) throw new UnauthorizedException('User not found');
-
-    const { role, permissions } = await this.getUserPermissions(user.id);
+    // 🔥 Resolve everything needed for high-performance JWT
+    const [permissionsData, profileId] = await Promise.all([
+      this.getUserPermissions(user.id),
+      this.resolveProfileId(user.username, user.role, user.tenantId),
+    ]);
 
     const payload: JwtPayload = {
       sub: user.id,
-      role,
-      tenantId: dbUser.tenantId,
-      tokenVersion: dbUser.tokenVersion,
+      username: user.username,
+      email: user.email,
+      role: permissionsData.role,
+      roleId: user.roleId,
+      tenantId: user.tenantId,
+      permissions: permissionsData.permissions,
+      profileId: profileId,
+      tokenVersion: user.tokenVersion,
     };
 
     const { accessToken, refreshToken } = this.generateTokens(payload);
-    await this.storeRefreshToken(user.id, refreshToken);
+
+    // 🔥 Don't block response for token storage (IO intensive)
+    this.storeRefreshToken(user.id, refreshToken).catch((err) =>
+      console.error('Failed to store refresh token:', err),
+    );
+
+    // Cache token version for fast validation in strategy
+    await this.cacheManager.set(
+      `token_version:${user.id}`,
+      user.tokenVersion,
+      3600000,
+    );
 
     this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
     this.setCookie(
@@ -235,8 +339,10 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
-        role,
-        permissions,
+        role: permissionsData.role,
+        permissions: permissionsData.permissions,
+        profileId: profileId,
+        tenantId: user.tenantId,
       },
       accessToken,
       message: 'Login successful',
@@ -252,20 +358,44 @@ export class AuthService {
 
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
+        include: { role: true },
       });
       if (!user || user.tokenVersion !== payload.tokenVersion) {
         throw new UnauthorizedException('Invalid token version');
       }
 
-      const activeTokens = await this.prisma.refreshToken.findMany({
-        where: { userId: payload.sub, revoked: false },
+      const hashedIncoming = crypto
+        .createHash('sha256')
+        .update(oldRefreshToken)
+        .digest('hex');
+
+      // 1. Fast path: Direct lookup by SHA-256 hash
+      let matchedToken = await this.prisma.refreshToken.findFirst({
+        where: {
+          token: hashedIncoming,
+          userId: payload.sub,
+          revoked: false,
+        },
       });
 
-      let matchedToken: (typeof activeTokens)[0] | null = null;
-      for (const tokenRecord of activeTokens) {
-        if (await bcrypt.compare(oldRefreshToken, tokenRecord.token)) {
-          matchedToken = tokenRecord;
-          break;
+      // 2. Slow path: Fallback for old bcrypt tokens
+      if (!matchedToken) {
+        const activeTokens = await this.prisma.refreshToken.findMany({
+          where: { userId: payload.sub, revoked: false },
+        });
+
+        for (const tokenRecord of activeTokens) {
+          const isBcrypt =
+            tokenRecord.token.startsWith('$2a$') ||
+            tokenRecord.token.startsWith('$2b$');
+
+          if (
+            isBcrypt &&
+            (await bcrypt.compare(oldRefreshToken, tokenRecord.token))
+          ) {
+            matchedToken = tokenRecord;
+            break;
+          }
         }
       }
 
@@ -278,16 +408,36 @@ export class AuthService {
         data: { revoked: true },
       });
 
-      const { role } = await this.getUserPermissions(payload.sub);
+      const [permissionsInfo, profileId] = await Promise.all([
+        this.getUserPermissions(payload.sub),
+        this.resolveProfileId(
+          user.username,
+          user.role?.name || 'GUEST',
+          user.tenantId,
+        ),
+      ]);
+
       const newPayload: JwtPayload = {
         sub: payload.sub,
-        role,
+        username: user.username,
+        email: user.email,
+        role: permissionsInfo.role,
+        roleId: user.roleId,
         tenantId: user.tenantId,
+        permissions: permissionsInfo.permissions,
+        profileId: profileId,
         tokenVersion: user.tokenVersion,
       };
 
       const { accessToken, refreshToken } = this.generateTokens(newPayload);
       await this.storeRefreshToken(payload.sub, refreshToken);
+
+      // Refresh cache for faster lookup
+      await this.cacheManager.set(
+        `token_version:${user.id}`,
+        user.tokenVersion,
+        3600000,
+      );
 
       this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);
       this.setCookie(
@@ -298,7 +448,8 @@ export class AuthService {
       );
 
       return { message: 'Tokens refreshed', accessToken };
-    } catch {
+    } catch (err) {
+      console.error('Refresh error:', err);
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -316,16 +467,42 @@ export class AuthService {
         data: { revoked: true },
       });
     } else if (refreshToken) {
-      const tokens = await this.prisma.refreshToken.findMany({
-        where: { userId, revoked: false },
+      const hashedIncoming = crypto
+        .createHash('sha256')
+        .update(refreshToken)
+        .digest('hex');
+
+      // 1. Try fast path direct lookup
+      const matchedToken = await this.prisma.refreshToken.findFirst({
+        where: {
+          token: hashedIncoming,
+          userId,
+          revoked: false,
+        },
       });
-      for (const t of tokens) {
-        if (await bcrypt.compare(refreshToken, t.token)) {
-          await this.prisma.refreshToken.update({
-            where: { id: t.id },
-            data: { revoked: true },
-          });
-          break;
+
+      if (matchedToken) {
+        await this.prisma.refreshToken.update({
+          where: { id: matchedToken.id },
+          data: { revoked: true },
+        });
+      } else {
+        // 2. Slow path fallback for bcrypt
+        const tokens = await this.prisma.refreshToken.findMany({
+          where: { userId, revoked: false },
+        });
+
+        for (const t of tokens) {
+          const isBcrypt =
+            t.token.startsWith('$2a$') || t.token.startsWith('$2b$');
+
+          if (isBcrypt && (await bcrypt.compare(refreshToken, t.token))) {
+            await this.prisma.refreshToken.update({
+              where: { id: t.id },
+              data: { revoked: true },
+            });
+            break;
+          }
         }
       }
     }
@@ -338,7 +515,7 @@ export class AuthService {
 
   // ======== STORE REFRESH TOKEN ========
   private async storeRefreshToken(userId: number, token: string) {
-    const hashedToken = await bcrypt.hash(token, 12);
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 

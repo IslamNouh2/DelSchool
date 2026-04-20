@@ -1,4 +1,20 @@
 {
+  "landing": {
+    "title": "Renforcer l'Éducation avec delSchool",
+    "subtitle": "Le système de gestion scolaire le plus moderne et sécurisé pour l'excellence.",
+    "login": "Connexion au Portail",
+    "register": "Rejoindre delSchool",
+    "blocked_title": "Statut de l'Abonnement",
+    "blocked_message": "L'accès de votre école est actuellement restreint en raison d'un abonnement expiré ou suspendu.",
+    "contact_support": "Contacter le Support",
+    "features_title": "Pourquoi choisir delSchool ?",
+    "feature_1_title": "Gestion Intelligente",
+    "feature_1_desc": "Automatisez l'assiduité, les notes et les horaires en toute simplicité.",
+    "feature_2_title": "Contrôle Financier",
+    "feature_2_desc": "Suivez les frais, les dépenses et la paie dans un tableau de bord central.",
+    "feature_3_title": "Sécurisé et Rapide",
+    "feature_3_desc": "Sécurité standard de l'industrie protégeant les données de votre école."
+  },
   "common": {
     "title": "École Del",
     "dashboard": "Tableau de bord",
@@ -983,6 +999,56 @@
       "load_accounts_error": "Échec du chargement des comptes",
       "select_treasury_error": "Veuillez choisir un compte de trésorerie",
       "select_employee_error": "Veuillez choisir un employé"
+    }
+  },
+  "local": {
+    "title": "Locaux",
+    "subtitle": "Gérer les salles et les emplacements de l'école",
+    "add_local": "Ajouter un local",
+    "search_placeholder": "Rechercher par nom ou code...",
+    "columns": {
+      "code": "Code",
+      "name": "Nom",
+      "capacity": "Capacité",
+      "actions": "Actions",
+      "select_columns": "Colonnes"
+    },
+    "forms": {
+      "add_title": "Ajouter un nouveau local",
+      "update_title": "Modifier les détails du local",
+      "Number_of_hours_worked": "Heures hebdomadaires (h/s)",
+      "student_capacity": "Capacité d'étudiants",
+      "num_class": "Numéro de salle / Capacité",
+      "level_name": "Nom du local",
+      "code": "Code",
+      "create": "Créer",
+      "update": "Modifier",
+      "cancel": "Annuler",
+      "show_subjects": "Afficher les matières",
+      "manage_subjects": "Gérer les matières",
+      "selected": "Sélectionné",
+      "available": "Disponible",
+      "save_changes": "Enregistrer les modifications",
+      "no_subjects_found": "Aucune matière trouvée.",
+      "no_subjects_selected": "Aucune matière sélectionnée",
+      "search_subjects": "Rechercher des matières..."
+    },
+    "messages": {
+      "add_local_error": "Veuillez d'abord ajouter des matières.",
+      "fetch_error": "Échec de la récupération des locaux",
+      "delete_success": "Local supprimé avec succès",
+      "delete_error": "Échec de la suppression du local",
+      "delete_confirm_title": "Êtes-vous absolument sûr ?",
+      "delete_confirm_desc": "Cette action ne peut être annulée. Elle supprimera définitivement ce local et ses associations.",
+      "subjects_updated": "Matières mises à jour avec succès.",
+      "all_fields_required": "Tous les champs sont obligatoires.",
+      "num_class_numeric": "La capacité doit être un nombre.",
+      "check_subjects_error": "Erreur lors de la vérification des matières"
+    },
+    "dialogs": {
+      "go_to_subjects_title": "Aller aux matières ?",
+      "go_to_subjects_desc": "Vous devez d'abord ajouter des matières avant de créer un local.",
+      "go_to_subjects_action": "Aller aux matières"
     }
   }
 }
