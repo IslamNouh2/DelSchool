@@ -100,8 +100,10 @@ model RefreshToken {
   updatedAt DateTime @updatedAt
   revoked   Boolean  @default(false)
   deviceId  String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
+   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+   @@index([userId])
+ }
 
 model TokenRevocation {
   id        Int      @id @default(autoincrement())
@@ -148,7 +150,7 @@ model Student {
 
   @@index([firstName, lastName])
   @@index([parentId])
-  @@index([tenantId])
+  @@index([tenantId, gender])
   @@map("students")
 }
 
@@ -465,7 +467,8 @@ model StudentAttendance {
   student      Student          @relation(fields: [studentId], references: [studentId])
 
   @@unique([studentId, date, academicYear])
-  @@index([tenantId])
+  @@index([tenantId, date, status])
+  @@index([tenantId, classId, date])
 }
 
 model EmployerAttendance {
@@ -484,7 +487,7 @@ model EmployerAttendance {
   employer     Employer         @relation(fields: [employerId], references: [employerId])
 
   @@unique([employerId, date, academicYear])
-  @@index([tenantId])
+  @@index([tenantId, date, status])
 }
 
 model Exam {
@@ -673,7 +676,7 @@ model Payment {
   @@index([studentId])
   @@index([employerId])
   @@index([date])
-  @@index([tenantId])
+  @@index([tenantId, status, date])
 }
 
 model Journal {

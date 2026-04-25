@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateSubscriptionDto,
@@ -6,10 +6,22 @@ import {
 } from './subscription.dto';
 import { PLAN_PRICES } from './pricing.constants';
 import { Prisma, SubscriptionStatus, BillingPeriod } from '@prisma/client';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class SubscriptionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
+
+  private async invalidateCache(tenantId: string) {
+    await Promise.all([
+      this.cacheManager.del(`sub_status:${tenantId}`),
+      this.cacheManager.del(`sub_check:${tenantId}`),
+    ]);
+  }
 
   async findByTenant(tenantId: string) {
     const subscription = await this.prisma.subscription.findFirst({
@@ -33,6 +45,15 @@ export class SubscriptionService {
     const endDate = this.computeEndDate(startDate, dto.billingPeriod);
     const price = PLAN_PRICES[dto.plan][dto.billingPeriod];
 
+    // Check if tenant exists to prevent foreign key violation
+    const tenant = await client.tenant.findUnique({
+      where: { id: dto.tenantId },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with ID "${dto.tenantId}" not found`);
+    }
+
     const subscription = await client.subscription.create({
       data: {
         tenantId: dto.tenantId,
@@ -55,6 +76,7 @@ export class SubscriptionService {
       },
     });
 
+    await this.invalidateCache(dto.tenantId);
     return subscription;
   }
 
@@ -81,7 +103,7 @@ export class SubscriptionService {
 
     const price = PLAN_PRICES[plan][billingPeriod];
 
-    return await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.subscription.update({
         where: { id: subscription.id },
         data: {
@@ -103,6 +125,9 @@ export class SubscriptionService {
 
       return updated;
     });
+
+    await this.invalidateCache(tenantId);
+    return result;
   }
 
   async renewNow(tenantId: string) {
@@ -112,10 +137,10 @@ export class SubscriptionService {
 
     if (!subscription) throw new NotFoundException('Subscription not found');
 
-    const startDate = new Date(); // Use UTC by default in JS Date
+    const startDate = new Date();
     const endDate = this.computeEndDate(startDate, subscription.billingPeriod);
 
-    return await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.subscription.update({
         where: { id: subscription.id },
         data: {
@@ -136,6 +161,9 @@ export class SubscriptionService {
 
       return updated;
     });
+
+    await this.invalidateCache(tenantId);
+    return result;
   }
 
   async suspend(tenantId: string) {
@@ -145,7 +173,7 @@ export class SubscriptionService {
 
     if (!subscription) throw new NotFoundException('Subscription not found');
 
-    return await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.subscription.update({
         where: { id: subscription.id },
         data: { status: SubscriptionStatus.SUSPENDED },
@@ -162,6 +190,9 @@ export class SubscriptionService {
 
       return updated;
     });
+
+    await this.invalidateCache(tenantId);
+    return result;
   }
 
   async checkAndExpire() {
@@ -178,7 +209,7 @@ export class SubscriptionService {
         where: { id: sub.id },
         data: { status: SubscriptionStatus.EXPIRED },
       });
-      // Optionally add a history entry for expiration
+      await this.invalidateCache(sub.tenantId);
     }
   }
 
@@ -234,6 +265,16 @@ export class SubscriptionService {
   }
 
   async check(tenantId: string) {
+    const cacheKey = `sub_check:${tenantId}`;
+    interface CheckResult {
+      blocked: boolean;
+      reason: string | null;
+      tenantName: string;
+      endDate?: Date;
+    }
+    const cached = await this.cacheManager.get<CheckResult>(cacheKey);
+    if (cached) return cached;
+
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true, status: true },
@@ -247,11 +288,13 @@ export class SubscriptionService {
     });
 
     if (!subscription) {
-      return {
+      const result = {
         blocked: true,
         reason: 'NO_SUBSCRIPTION',
         tenantName: tenant.name,
       };
+      await this.cacheManager.set(cacheKey, result, 600000);
+      return result;
     }
 
     const isBlocked =
@@ -259,7 +302,7 @@ export class SubscriptionService {
       subscription.status === SubscriptionStatus.SUSPENDED ||
       tenant.status !== 'ACTIVE';
 
-    return {
+    const result = {
       blocked: isBlocked,
       reason: isBlocked
         ? subscription.status === SubscriptionStatus.ACTIVE
@@ -269,6 +312,9 @@ export class SubscriptionService {
       tenantName: tenant.name,
       endDate: subscription.endDate,
     };
+
+    await this.cacheManager.set(cacheKey, result, 600000);
+    return result;
   }
 
   private computeEndDate(startDate: Date, period: BillingPeriod): Date {

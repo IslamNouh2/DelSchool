@@ -3,22 +3,22 @@ export async function checkSubscription(token: string) {
     const raw = process.env.NEXT_PUBLIC_API_URL || '';
     const API_URL = raw.endsWith('/api') ? raw : `${raw.replace(/\/$/, '')}/api`;
 
-    const res = await fetch(`${API_URL}/subscriptions/check`, {
+    console.log(`[SubscriptionCheck] [DEBUG] Calling: ${API_URL}/subscriptions/block-status`);
+    const res = await fetch(`${API_URL}/subscriptions/block-status`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      next: { revalidate: 0 }
     });
 
-    if (res.ok) {
-      return { blocked: false };
-    }
-
-    if (res.status === 403) {
+    console.log(`[SubscriptionCheck] [DEBUG] Status: ${res.status}`);
+    if (res.ok || res.status === 403) {
       const data = await res.json();
+      console.log(`[SubscriptionCheck] [DEBUG] Blocked from server: ${data.blocked}`);
       return {
-        blocked: true,
+        blocked: data.blocked ?? false,
         reason: data.reason,
         tenantName: data.tenantName,
         endDate: data.endDate,
@@ -26,8 +26,8 @@ export async function checkSubscription(token: string) {
     }
 
     return { blocked: false };
-  } catch (error) {
-    console.error('Subscription check error:', error);
+  } catch (error: any) {
+    console.error('[SubscriptionCheck] [ERROR]:', error.message || error);
     return { blocked: false }; // Fail open
   }
 }

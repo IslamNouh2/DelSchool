@@ -72,14 +72,26 @@ export class StudentService {
   }
 
   async GetCountStudent(tenantId: string) {
-    const total = await this.prisma.student.count({ where: { tenantId } });
-    const boys = await this.prisma.student.count({
-      where: { gender: 'Male', tenantId },
+    const counts = await this.prisma.student.groupBy({
+      by: ['gender'],
+      where: { tenantId },
+      _count: true,
     });
-    const girls = await this.prisma.student.count({
-      where: { gender: 'Female', tenantId },
+
+    const stats = {
+      total: 0,
+      boys: 0,
+      girls: 0,
+    };
+
+    counts.forEach((item) => {
+      const count = item._count;
+      stats.total += count;
+      if (item.gender === 'Male') stats.boys = count;
+      if (item.gender === 'Female') stats.girls = count;
     });
-    return { total, boys, girls };
+
+    return stats;
   }
 
   async CreateStudent(

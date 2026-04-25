@@ -10,7 +10,8 @@ import { Plan, BillingPeriod, SubscriptionStatus } from '@prisma/client';
 
 export class CreateSubscriptionDto {
   @IsString()
-  tenantId: string;
+  @IsOptional()
+  tenantId?: string;
 
   @IsEnum(Plan)
   plan: Plan;

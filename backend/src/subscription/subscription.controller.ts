@@ -14,6 +14,7 @@ import {
   UpdateSubscriptionDto,
 } from './subscription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthenticatedUser } from '../auth/type/authenticated-user.type';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -25,9 +26,18 @@ export class SubscriptionController {
     return this.subscriptionService.getStats();
   }
 
-  @Get('check')
-  check(@Request() req: { user: { tenantId: string } }) {
-    return this.subscriptionService.check(req.user.tenantId);
+  @Get('block-status')
+  check(@Request() req: { user: AuthenticatedUser }) {
+    const tenantId = req.user.tenantId;
+    console.log(
+      `[SubscriptionController] block-status called for tenant: ${tenantId}`,
+    );
+    if (!tenantId) {
+      console.error('[SubscriptionController] NO TENANT ID IN REQUEST');
+      // If no tenantId, we can't be blocked by subscription (likely a global user)
+      return { blocked: false };
+    }
+    return this.subscriptionService.check(tenantId);
   }
 
   @Get(':tenantId')

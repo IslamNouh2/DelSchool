@@ -23,7 +23,10 @@ export default async function BlockedPage({ params, searchParams }: BlockedPageP
   };
 
   return (
-    <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
+    <div
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      className="min-h-screen overflow-y-auto flex flex-col items-center justify-start sm:justify-center bg-white px-4 py-10"
+    >
       {/* 1. Inline SVG lock icon */}
       <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="1.5">
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -44,16 +47,24 @@ export default async function BlockedPage({ params, searchParams }: BlockedPageP
       )}
 
       {/* 5. Buttons */}
-      <div className="flex gap-3 mt-8">
+      <div className="flex flex-col sm:flex-row gap-3 mt-8">
+        {(reason === 'EXPIRED' || reason === 'NO_SUBSCRIPTION') && (
+          <a 
+            href={`/${locale}/subscribe`} 
+            className="px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 text-center"
+          >
+            Renew Subscription
+          </a>
+        )}
         <a 
           href="mailto:support@delschool.dz" 
-          className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 text-center"
         >
           Contact support
         </a>
         <a 
           href={`/${locale}/auth/login`} 
-          className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-700"
+          className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-700 text-center"
         >
           Go to login
         </a>

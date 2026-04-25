@@ -307,44 +307,43 @@ export class AttendanceRepository {
   async getStudentWeeklyChartData(tenantId: string, classId: number) {
     const result: { day: string; present: number; absent: number }[] = [];
     const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // Get total students in this class
-    const totalStudents = await this.prisma.studentClass.count({
-      where: {
-        classId,
-        isCurrent: true,
-        Student: { tenantId }, // Enforce tenant (Case sensitive: Student)
-      },
-    });
+    const [totalStudents, records] = await Promise.all([
+      this.prisma.studentClass.count({
+        where: {
+          classId,
+          isCurrent: true,
+          Student: { tenantId },
+        },
+      }),
+      this.prisma.studentAttendance.findMany({
+        where: {
+          tenantId,
+          classId,
+          date: { gte: sevenDaysAgo },
+        },
+        select: { date: true, status: true },
+      }),
+    ]);
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const startOfDay = new Date(d.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(d.setHours(23, 59, 59, 999));
+      const dayStart = new Date(d.setHours(0, 0, 0, 0));
+      const dayEnd = new Date(d.setHours(23, 59, 59, 999));
 
-      const records = await this.prisma.studentAttendance.findMany({
-        where: {
-          tenantId,
-          classId,
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-        },
-        select: { status: true },
-      });
-
-      const nonPresentCount = records.length; // Everyone in DB is not PRESENT
-      const absent = records.filter((r) => r.status === 'ABSENT').length;
+      const dayRecords = records.filter(
+        (r) => r.date >= dayStart && r.date <= dayEnd,
+      );
+      const absent = dayRecords.filter((r) => r.status === 'ABSENT').length;
+      const nonPresentCount = dayRecords.length;
       const present = Math.max(0, totalStudents - nonPresentCount);
 
-      const dayName = startOfDay.toLocaleDateString('en-US', {
-        weekday: 'short',
-      });
-
       result.push({
-        day: dayName,
+        day: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),
         present,
         absent,
       });
@@ -355,39 +354,36 @@ export class AttendanceRepository {
   async getGlobalWeeklyChartData(tenantId: string) {
     const result: { day: string; present: number; absent: number }[] = [];
     const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // Get total students
-    const totalStudents = await this.prisma.student.count({
-      where: { tenantId },
-    });
+    const [totalStudents, records] = await Promise.all([
+      this.prisma.student.count({ where: { tenantId } }),
+      this.prisma.studentAttendance.findMany({
+        where: {
+          tenantId,
+          date: { gte: sevenDaysAgo },
+        },
+        select: { date: true, status: true },
+      }),
+    ]);
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const startOfDay = new Date(d.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(d.setHours(23, 59, 59, 999));
+      const dayStart = new Date(d.setHours(0, 0, 0, 0));
+      const dayEnd = new Date(d.setHours(23, 59, 59, 999));
 
-      const records = await this.prisma.studentAttendance.findMany({
-        where: {
-          tenantId,
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-        },
-        select: { status: true },
-      });
-
-      const nonPresentCount = records.length;
-      const absent = records.filter((r) => r.status === 'ABSENT').length;
+      const dayRecords = records.filter(
+        (r) => r.date >= dayStart && r.date <= dayEnd,
+      );
+      const absent = dayRecords.filter((r) => r.status === 'ABSENT').length;
+      const nonPresentCount = dayRecords.length;
       const present = Math.max(0, totalStudents - nonPresentCount);
 
-      const dayName = startOfDay.toLocaleDateString('en-US', {
-        weekday: 'short',
-      });
-
       result.push({
-        day: dayName,
+        day: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),
         present,
         absent,
       });
@@ -400,23 +396,28 @@ export class AttendanceRepository {
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
-    const [records, totalStudents] = await Promise.all([
-      this.prisma.studentAttendance.findMany({
+    const [statusCounts, totalStudents] = await Promise.all([
+      this.prisma.studentAttendance.groupBy({
+        by: ['status'],
         where: {
           tenantId,
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+          date: { gte: startOfDay, lte: endOfDay },
         },
-        select: { status: true },
+        _count: true,
       }),
       this.prisma.student.count({ where: { tenantId } }),
     ]);
 
-    const nonPresentCount = records.length;
-    const absent = records.filter((r) => r.status === 'ABSENT').length;
-    const late = records.filter((r) => r.status === 'LATE').length;
+    let absent = 0;
+    let late = 0;
+    let nonPresentCount = 0;
+
+    statusCounts.forEach((sc) => {
+      nonPresentCount += sc._count;
+      if (sc.status === 'ABSENT') absent = sc._count;
+      if (sc.status === 'LATE') late = sc._count;
+    });
+
     const present = Math.max(0, totalStudents - nonPresentCount);
 
     return [
@@ -426,7 +427,6 @@ export class AttendanceRepository {
     ];
   }
 
-  // Chart Data: Daily Summary
   async getStudentDailySummaryData(
     tenantId: string,
     classId: number,
@@ -436,30 +436,35 @@ export class AttendanceRepository {
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
-    const [records, totalStudents] = await Promise.all([
-      this.prisma.studentAttendance.findMany({
+    const [statusCounts, totalStudents] = await Promise.all([
+      this.prisma.studentAttendance.groupBy({
+        by: ['status'],
         where: {
           tenantId,
           classId,
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+          date: { gte: startOfDay, lte: endOfDay },
         },
-        select: { status: true },
+        _count: true,
       }),
       this.prisma.studentClass.count({
         where: {
           classId,
           isCurrent: true,
-          Student: { tenantId }, // Enforce tenant (Case sensitive: Student)
+          Student: { tenantId },
         },
       }),
     ]);
 
-    const nonPresentCount = records.length;
-    const absent = records.filter((r) => r.status === 'ABSENT').length;
-    const late = records.filter((r) => r.status === 'LATE').length;
+    let absent = 0;
+    let late = 0;
+    let nonPresentCount = 0;
+
+    statusCounts.forEach((sc) => {
+      nonPresentCount += sc._count;
+      if (sc.status === 'ABSENT') absent = sc._count;
+      if (sc.status === 'LATE') late = sc._count;
+    });
+
     const present = Math.max(0, totalStudents - nonPresentCount);
 
     return [
@@ -479,44 +484,42 @@ export class AttendanceRepository {
   async getEmployerWeeklyChartData(tenantId: string) {
     const result: { day: string; present: number; absent: number }[] = [];
     const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const totalEmployers = await this.prisma.employer.count({
-      where: {
-        tenantId,
-        type: { not: 'teacher' },
-      },
-    });
+    const [totalEmployers, records] = await Promise.all([
+      this.prisma.employer.count({
+        where: {
+          tenantId,
+          type: { not: 'teacher' },
+        },
+      }),
+      this.prisma.employerAttendance.findMany({
+        where: {
+          tenantId,
+          date: { gte: sevenDaysAgo },
+          employer: { type: { not: 'teacher' } },
+        },
+        select: { date: true, status: true },
+      }),
+    ]);
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const startOfDay = new Date(d.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(d.setHours(23, 59, 59, 999));
+      const dayStart = new Date(d.setHours(0, 0, 0, 0));
+      const dayEnd = new Date(d.setHours(23, 59, 59, 999));
 
-      const records = await this.prisma.employerAttendance.findMany({
-        where: {
-          tenantId,
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-          employer: {
-            type: { not: 'teacher' },
-          },
-        },
-        select: { status: true },
-      });
-
-      const nonPresentCount = records.length;
-      const absent = records.filter((r) => r.status === 'ABSENT').length;
+      const dayRecords = records.filter(
+        (r) => r.date >= dayStart && r.date <= dayEnd,
+      );
+      const absent = dayRecords.filter((r) => r.status === 'ABSENT').length;
+      const nonPresentCount = dayRecords.length;
       const present = Math.max(0, totalEmployers - nonPresentCount);
 
-      const dayName = startOfDay.toLocaleDateString('en-US', {
-        weekday: 'short',
-      });
-
       result.push({
-        day: dayName,
+        day: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),
         present,
         absent,
       });
@@ -529,28 +532,33 @@ export class AttendanceRepository {
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
-    const [records, totalEmployers] = await Promise.all([
-      this.prisma.employerAttendance.findMany({
+    const [statusCounts, totalEmployers] = await Promise.all([
+      this.prisma.employerAttendance.groupBy({
+        by: ['status'],
         where: {
           tenantId,
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+          date: { gte: startOfDay, lte: endOfDay },
         },
-        select: { status: true },
+        _count: true,
       }),
       this.prisma.employer.count({ where: { tenantId } }),
     ]);
 
-    const absent = records.filter((r) => r.status === 'ABSENT').length;
-    const late = records.filter((r) => r.status === 'LATE').length;
-    const explicitlyPresent = records.filter(
-      (r) => r.status === 'PRESENT',
-    ).length;
+    let absent = 0;
+    let late = 0;
+    let explicitlyPresent = 0;
+    let totalRecords = 0;
+
+    statusCounts.forEach((sc) => {
+      totalRecords += sc._count;
+      if (sc.status === 'ABSENT') absent = sc._count;
+      if (sc.status === 'LATE') late = sc._count;
+      if (sc.status === 'PRESENT') explicitlyPresent = sc._count;
+    });
+
     const present = Math.max(
       0,
-      totalEmployers - records.length + explicitlyPresent,
+      totalEmployers - totalRecords + explicitlyPresent,
     );
 
     return [

@@ -98,12 +98,18 @@ export class AuthService {
     roleName: string,
     tenantId: string | null,
   ): Promise<number | null> {
+    const cacheKey = `profile_id:${username}:${tenantId || 'global'}`;
+    const cached = await this.cacheManager.get<number>(cacheKey);
+    if (cached !== undefined && cached !== null) return cached;
+
+    let profileId: number | null = null;
+
     if (roleName === 'STUDENT') {
       const student = await this.prisma.student.findFirst({
         where: { code: username, tenantId: tenantId || undefined },
         select: { studentId: true },
       });
-      return student?.studentId || null;
+      profileId = student?.studentId || null;
     } else if (roleName === 'TEACHER') {
       const employer = await this.prisma.employer.findFirst({
         where: {
@@ -113,9 +119,13 @@ export class AuthService {
         },
         select: { employerId: true },
       });
-      return employer?.employerId || null;
+      profileId = employer?.employerId || null;
     }
-    return null;
+
+    if (profileId !== null) {
+      await this.cacheManager.set(cacheKey, profileId, 3600000); // 1 hour
+    }
+    return profileId;
   }
 
   // ======== TOKEN GENERATION ========
@@ -220,8 +230,41 @@ export class AuthService {
   async validateUser(
     username: string,
     password: string,
-  ): Promise<UserResult | null> {
-    const user = await this.prisma.user.findUnique({ where: { username } });
+  ): Promise<AuthenticatedUser | null> {
+    // 🔥 Hydrate EVERYTHING in one query to avoid N+1 and redundant DB roundtrips
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        password: true,
+        status: true,
+        lockUntil: true,
+        failedLoginAttempts: true,
+        tenantId: true,
+        roleId: true,
+        tokenVersion: true,
+        createdAt: true,
+        updatedAt: true,
+        role: {
+          select: {
+            name: true,
+            permissions: {
+              select: {
+                permission: { select: { name: true } },
+              },
+            },
+          },
+        },
+        userPermissions: {
+          select: {
+            permission: { select: { name: true } },
+          },
+        },
+      },
+    });
+
     if (!user) return null;
 
     if (
@@ -235,6 +278,18 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (isPasswordValid) {
+      // Construction of permissions (moved from getUserPermissions to keep logic local)
+      const roleName = user.role?.name || 'GUEST';
+      const rolePermissions =
+        user.role?.permissions.map((p) => p.permission.name) || [];
+      const directUserPermissions = user.userPermissions.map(
+        (p) => p.permission.name,
+      );
+      const allPermissions = Array.from(
+        new Set([...rolePermissions, ...directUserPermissions]),
+      );
+
+      // 🔥 FIRE AND FORGET updates: Don't block the login response for non-critical logging
       const rounds = bcrypt.getRounds(user.password);
       const updateData: Prisma.UserUpdateInput = {
         failedLoginAttempts: 0,
@@ -242,22 +297,28 @@ export class AuthService {
         status: 'ACTIVE',
       };
 
-      let needsUpdate =
+      const needsUpdate =
         user.failedLoginAttempts > 0 ||
         user.lockUntil !== null ||
         user.status !== 'ACTIVE';
 
-      // Progressive rehash
+      // Progressive rehash logic - ONLY if necessary
       if (rounds < 10) {
-        updateData.password = await bcrypt.hash(password, 10);
-        needsUpdate = true;
-      }
-
-      if (needsUpdate === true) {
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: updateData,
+        void bcrypt.hash(password, 10).then((newHash) => {
+          this.prisma.user
+            .update({
+              where: { id: user.id },
+              data: { ...updateData, password: newHash },
+            })
+            .catch((err) => console.error('Failed to rehash password:', err));
         });
+      } else if (needsUpdate) {
+        void this.prisma.user
+          .update({
+            where: { id: user.id },
+            data: updateData,
+          })
+          .catch((err) => console.error('Failed to update user status:', err));
       }
 
       return {
@@ -272,10 +333,12 @@ export class AuthService {
         tokenVersion: user.tokenVersion,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        role: roleName,
+        permissions: allPermissions,
       };
     }
 
-    // Logic for failed login attempt
+    // Logic for failed login attempt (Synchronous as it impacts security/locking)
     const failedAttempts = user.failedLoginAttempts + 1;
     const updateData: Prisma.UserUpdateInput = {
       failedLoginAttempts: failedAttempts,
@@ -294,20 +357,20 @@ export class AuthService {
 
   // ======== LOGIN ========
   async login(user: AuthenticatedUser, response: Response) {
-    // 🔥 Resolve everything needed for high-performance JWT
-    const [permissionsData, profileId] = await Promise.all([
-      this.getUserPermissions(user.id),
-      this.resolveProfileId(user.username, user.role, user.tenantId),
-    ]);
+    // 🔥 Resolved metadata was passed from validateUser via LocalStrategy
+    // Only resolve profileId if not already present (can be cached)
+    const profileId =
+      user.profileId ??
+      (await this.resolveProfileId(user.username, user.role, user.tenantId));
 
     const payload: JwtPayload = {
       sub: user.id,
       username: user.username,
       email: user.email,
-      role: permissionsData.role,
+      role: user.role,
       roleId: user.roleId,
       tenantId: user.tenantId,
-      permissions: permissionsData.permissions,
+      permissions: user.permissions,
       profileId: profileId,
       tokenVersion: user.tokenVersion,
     };
@@ -315,7 +378,7 @@ export class AuthService {
     const { accessToken, refreshToken } = this.generateTokens(payload);
 
     // 🔥 Don't block response for token storage (IO intensive)
-    this.storeRefreshToken(user.id, refreshToken).catch((err) =>
+    void this.storeRefreshToken(user.id, refreshToken).catch((err) =>
       console.error('Failed to store refresh token:', err),
     );
 
@@ -339,8 +402,8 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: permissionsData.role,
-        permissions: permissionsData.permissions,
+        role: user.role,
+        permissions: user.permissions,
         profileId: profileId,
         tenantId: user.tenantId,
       },

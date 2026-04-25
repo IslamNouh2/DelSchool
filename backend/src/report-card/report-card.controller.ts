@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ReportCardService } from './report-card.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthenticatedUser } from '../auth/type/authenticated-user.type';
 import {
   ApiTags,
   ApiOperation,
@@ -30,9 +31,10 @@ export class ReportCardController {
   async getBatchReports(
     @Param('classId') classId: string,
     @Query('semesterId') semesterId: string,
-    @Request() req: any,
+    @Request() req: { user: AuthenticatedUser },
   ) {
     const tenantId = req.user.tenantId;
+    if (!tenantId) return [];
     return this.reportCardService.generateBatchReportCards(
       tenantId,
       parseInt(classId),
@@ -51,9 +53,10 @@ export class ReportCardController {
     @Param('studentId') studentId: string,
     @Query('examId') examId: string,
     @Query('semesterId') semesterId: string,
-    @Request() req: any,
+    @Request() req: { user: AuthenticatedUser },
   ) {
     const tenantId = req.user.tenantId;
+    if (!tenantId) return null;
     return this.reportCardService.generateReportCard(
       tenantId,
       parseInt(studentId),

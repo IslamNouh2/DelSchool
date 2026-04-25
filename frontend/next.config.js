@@ -9,6 +9,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  transpilePackages: ['axios', 'jose', 'next-intl'],
   images: {
     remotePatterns: [
       {

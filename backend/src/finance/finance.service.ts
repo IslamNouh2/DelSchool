@@ -205,48 +205,45 @@ export class FinanceService {
       }
     }
 
-    const payments = await this.prisma.payment.findMany({
-      where: {
-        date: { gte: startDate, lte: endDate },
-        status: 'COMPLETED',
-        tenantId, // Enforce tenant
-      },
-      select: { date: true, amount: true, studentId: true, expenseId: true },
-    });
+    const incomeData = await this.prisma.$queryRaw<{ bucket: Date; total: number }[]>`
+      SELECT DATE_TRUNC(${interval}, date) as bucket, SUM(amount)::float as total
+      FROM "Payment"
+      WHERE "studentId" IS NOT NULL
+        AND "status" = 'COMPLETED'
+        AND "tenantId" = ${tenantId}
+        AND date >= ${startDate}
+        AND date <= ${endDate}
+      GROUP BY bucket
+      ORDER BY bucket ASC
+    `;
 
-    payments.forEach((p) => {
-      const pDate = new Date(p.date);
-      let pointIndex = -1;
+    const expenseData = await this.prisma.$queryRaw<{ bucket: Date; total: number }[]>`
+      SELECT DATE_TRUNC(${interval}, date) as bucket, SUM(amount)::float as total
+      FROM "Payment"
+      WHERE "expenseId" IS NOT NULL
+        AND "status" = 'COMPLETED'
+        AND "tenantId" = ${tenantId}
+        AND date >= ${startDate}
+        AND date <= ${endDate}
+      GROUP BY bucket
+      ORDER BY bucket ASC
+    `;
 
-      if (interval === 'month') {
-        pointIndex = dataPoints.findIndex(
-          (m) =>
-            m.date.getMonth() === pDate.getMonth() &&
-            m.date.getFullYear() === pDate.getFullYear(),
-        );
-      } else if (interval === 'day') {
-        pointIndex = dataPoints.findIndex(
-          (m) =>
-            m.date.getDate() === pDate.getDate() &&
-            m.date.getMonth() === pDate.getMonth() &&
-            m.date.getFullYear() === pDate.getFullYear(),
-        );
-      } else if (interval === 'week') {
-        pointIndex = dataPoints.findIndex((m, idx) => {
-          const nextPoint =
-            dataPoints[idx + 1]?.date || new Date(8640000000000000);
-          return pDate >= m.date && pDate < nextPoint;
-        });
-      } else if (interval === 'year') {
-        pointIndex = dataPoints.findIndex(
-          (m) => m.date.getFullYear() === pDate.getFullYear(),
-        );
-      }
+    // Map DB results to existing dataPoints
+    dataPoints.forEach((dp) => {
+      const inc = incomeData.find((i) => {
+        if (interval === 'month') return i.bucket.getMonth() === dp.date.getMonth() && i.bucket.getFullYear() === dp.date.getFullYear();
+        if (interval === 'day') return i.bucket.toDateString() === dp.date.toDateString();
+        return i.bucket.getTime() === dp.date.getTime();
+      });
+      if (inc) dp.income = inc.total;
 
-      if (pointIndex !== -1) {
-        if (p.studentId) dataPoints[pointIndex].income += Number(p.amount);
-        if (p.expenseId) dataPoints[pointIndex].expense += Number(p.amount);
-      }
+      const exp = expenseData.find((e) => {
+        if (interval === 'month') return e.bucket.getMonth() === dp.date.getMonth() && e.bucket.getFullYear() === dp.date.getFullYear();
+        if (interval === 'day') return e.bucket.toDateString() === dp.date.toDateString();
+        return e.bucket.getTime() === dp.date.getTime();
+      });
+      if (exp) dp.expense = exp.total;
     });
 
     return dataPoints.map((m) => ({
@@ -254,6 +251,7 @@ export class FinanceService {
       income: m.income,
       expense: m.expense,
     }));
+
   }
 
   async getRecentTransactions(tenantId: string, limit: number = 5) {

@@ -11,6 +11,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/auth';
+
 interface HomePageProps {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ blocked?: string; reason?: string; tenantName?: string }>;
@@ -22,6 +25,16 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const t = await getTranslations('landing');
   const commonT = await getTranslations('common');
 
+  // Check auth status for subscription renewal CTA
+  const cookieStore = await cookies();
+  const token = cookieStore.get('accessToken')?.value;
+  let userPayload: any = null;
+  if (token) {
+    userPayload = await verifyToken(token);
+  }
+
+  const isAdmin = userPayload?.role === 'ADMIN';
+  const hasTenant = !!userPayload?.tenantId;
   const isBlocked = blocked === 'true';
 
   return (
@@ -43,11 +56,19 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 {t('login')}
               </Button>
             </Link>
-            <Link href="/register">
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20">
-                {t('register')}
-              </Button>
-            </Link>
+            {isBlocked && isAdmin && hasTenant ? (
+              <Link href={`/subscribe?tenantId=${userPayload?.tenantId}`}>
+                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20">
+                  {t('renew_subscription')}
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/register">
+                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20">
+                  {t('register')}
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -97,12 +118,21 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link href="/register">
-                <Button size="lg" className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                  {t('register')}
-                  <ArrowRight className="ms-2 w-5 h-5" />
-                </Button>
-              </Link>
+              {isBlocked && isAdmin && hasTenant ? (
+                <Link href={`/subscribe?tenantId=${userPayload?.tenantId}`}>
+                  <Button size="lg" className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    {t('renew_subscription')}
+                    <ArrowRight className="ms-2 w-5 h-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/register">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    {t('register')}
+                    <ArrowRight className="ms-2 w-5 h-5" />
+                  </Button>
+                </Link>
+              )}
               <Link href="/login">
                 <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
                   {t('login')}
