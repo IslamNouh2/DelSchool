@@ -34,7 +34,9 @@ export class TenantGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<RequestWithTenant>();
 
-    const cookies = request.cookies as Record<string, string | undefined> | undefined;
+    const cookies = request.cookies as
+      | Record<string, string | undefined>
+      | undefined;
     const authHeader = request.headers.authorization;
 
     const token = cookies?.accessToken || authHeader?.split(' ')[1];
