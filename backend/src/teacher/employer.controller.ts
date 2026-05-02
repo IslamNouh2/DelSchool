@@ -24,6 +24,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import 'multer';
 import { EmployerService } from './employer.service';
 import * as path from 'path';
 import { CreateEmployerDto } from './dto/CreateEmployer.dto';

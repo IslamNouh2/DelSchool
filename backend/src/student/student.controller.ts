@@ -26,6 +26,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import 'multer';
 import { StudentService } from './student.service';
 import { CreateStudentDto } from './dto/CreateStudentDto';
 import { UpdateStudentDto } from './dto/UpdateStudentDto';

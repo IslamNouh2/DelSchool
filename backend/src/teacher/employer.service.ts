@@ -7,6 +7,7 @@ import {
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import 'multer';
 import { SocketGateway } from 'src/socket/socket.gateway';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateEmployerDto } from './dto/CreateEmployer.dto';

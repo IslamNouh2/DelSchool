@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SocketGateway } from 'src/socket/socket.gateway';
+import 'multer';
 
 import { CreateStudentDto } from './dto/CreateStudentDto';
 import { UpdateStudentDto } from './dto/UpdateStudentDto';
