@@ -29,11 +29,8 @@ model User {
   @@unique([tenantId, email])
   @@index([tenantId, username])
   @@index([tenantId, createdAt])
-
-  @@index([username])
+  @@index([tenantId, status])
   @@index([email])
-  @@index([status])
-  @@index([lockUntil])
   @@index([deletedAt])
 }
 
@@ -148,9 +145,11 @@ model Student {
   studentClasses    StudentClass[]
   parent            Parent              @relation(fields: [parentId], references: [parentId], onDelete: Cascade)
 
-  @@index([firstName, lastName])
-  @@index([parentId])
+  @@index([tenantId, lastName, firstName])
+  @@index([tenantId, code])
+  @@index([tenantId, parentId])
   @@index([tenantId, gender])
+  @@index([tenantId, dateCreate])
   @@map("students")
 }
 
@@ -563,7 +562,8 @@ model Compte {
   children          Compte[]            @relation("CompteToParent")
   student           Student?            @relation(fields: [studentId], references: [studentId])
 
-  @@index([tenantId])
+  @@index([tenantId, code])
+  @@index([tenantId, category])
   @@map("comptes")
 }
 
@@ -673,10 +673,11 @@ model Payment {
   fee            Fee?          @relation(fields: [feeId], references: [id])
   student        Student?      @relation(fields: [studentId], references: [studentId])
 
+  @@index([tenantId, status, date])
+  @@index([tenantId, studentId, date])
+  @@index([tenantId, date])
   @@index([studentId])
   @@index([employerId])
-  @@index([date])
-  @@index([tenantId, status, date])
 }
 
 model Journal {

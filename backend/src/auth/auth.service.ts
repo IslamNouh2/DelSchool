@@ -415,62 +415,47 @@ export class AuthService {
   // ======== REFRESH TOKEN ========
   async refresh(oldRefreshToken: string, response: Response) {
     try {
+      // 1. Verify signature and extract payload first (Security)
       const payload = this.jwtService.verify<JwtPayload>(oldRefreshToken, {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        include: { role: true },
-      });
-      if (!user || user.tokenVersion !== payload.tokenVersion) {
-        throw new UnauthorizedException('Invalid token version');
-      }
-
+      // 2. Fast SHA-256 lookup
       const hashedIncoming = crypto
         .createHash('sha256')
         .update(oldRefreshToken)
         .digest('hex');
 
-      // 1. Fast path: Direct lookup by SHA-256 hash
-      let matchedToken = await this.prisma.refreshToken.findFirst({
+      const matchedToken = await this.prisma.refreshToken.findFirst({
         where: {
           token: hashedIncoming,
           userId: payload.sub,
           revoked: false,
         },
+        include: {
+          user: {
+            include: { role: true },
+          },
+        },
       });
-
-      // 2. Slow path: Fallback for old bcrypt tokens
-      if (!matchedToken) {
-        const activeTokens = await this.prisma.refreshToken.findMany({
-          where: { userId: payload.sub, revoked: false },
-        });
-
-        for (const tokenRecord of activeTokens) {
-          const isBcrypt =
-            tokenRecord.token.startsWith('$2a$') ||
-            tokenRecord.token.startsWith('$2b$');
-
-          if (
-            isBcrypt &&
-            (await bcrypt.compare(oldRefreshToken, tokenRecord.token))
-          ) {
-            matchedToken = tokenRecord;
-            break;
-          }
-        }
-      }
 
       if (!matchedToken || matchedToken.expiresAt < new Date()) {
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
 
+      // Check if user token version matches (for global logout/revoke)
+      if (matchedToken.user.tokenVersion !== payload.tokenVersion) {
+        throw new UnauthorizedException('Invalid token version');
+      }
+
+      // 3. Mark old token as revoked
       await this.prisma.refreshToken.update({
         where: { id: matchedToken.id },
         data: { revoked: true },
       });
 
+      // 4. Resolve permissions and profile in parallel
+      const user = matchedToken.user;
       const [permissionsInfo, profileId] = await Promise.all([
         this.getUserPermissions(payload.sub),
         this.resolveProfileId(
@@ -493,13 +478,15 @@ export class AuthService {
       };
 
       const { accessToken, refreshToken } = this.generateTokens(newPayload);
+
+      // Store new token (Fire and forget if we trust DB, but here we wait for consistency)
       await this.storeRefreshToken(payload.sub, refreshToken);
 
       // Refresh cache for faster lookup
-      await this.cacheManager.set(
+      void this.cacheManager.set(
         `token_version:${user.id}`,
         user.tokenVersion,
-        3600000,
+        3600,
       );
 
       this.setCookie(response, 'accessToken', accessToken, 15 * 60 * 1000);

@@ -28,7 +28,7 @@ export class EmployerService {
     void this.ensureUploadDirectory();
   }
 
-  async GetCountTeacher(tenantId: string) {
+  async getCountTeacher(tenantId: string) {
     const total = await this.prisma.employer.count({
       where: {
         type: { equals: 'teacher', mode: 'insensitive' },
@@ -38,7 +38,7 @@ export class EmployerService {
     return { total };
   }
 
-  async GetCountStaff(tenantId: string) {
+  async getCountStaff(tenantId: string) {
     const total = await this.prisma.employer.count({
       where: {
         type: {
@@ -111,7 +111,7 @@ export class EmployerService {
     await this.deletePhotoFile(employer.photoFileName);
   }
 
-  async CreateEmployer(
+  async createEmployer(
     tenantId: string,
     dto: CreateEmployerDto,
     photo?: Express.Multer.File,
@@ -267,7 +267,7 @@ export class EmployerService {
     }
   }
 
-  async UpdateEmployer(
+  async updateEmployer(
     tenantId: string,
     id: number,
     dto: UpdateEmployerDto,
@@ -342,7 +342,7 @@ export class EmployerService {
     }
   }
 
-  async GetEmployer(
+  async getEmployers(
     tenantId: string,
     page: number = 1,
     limit: number = 10,
@@ -402,7 +402,7 @@ export class EmployerService {
     };
   }
 
-  async SearchEmployerByName(
+  async searchEmployersByName(
     tenantId: string,
     page: number = 1,
     limit: number = 10,
@@ -482,7 +482,7 @@ export class EmployerService {
     };
   }
 
-  async GetEmployerById(tenantId: string, id: number) {
+  async getEmployerById(tenantId: string, id: number) {
     const employer = await this.prisma.employer.findFirst({
       where: { employerId: id, tenantId },
       select: {
@@ -538,7 +538,7 @@ export class EmployerService {
     };
   }
 
-  async GetEmployerWithName(
+  async getEmployerWithName(
     tenantId: string,
     name: string,
     page: number,

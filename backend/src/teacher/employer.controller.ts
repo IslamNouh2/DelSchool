@@ -56,7 +56,7 @@ export class EmployerController {
     @Query('name') name?: string,
     @Query('type') type?: string,
   ) {
-    return this.employerService.SearchEmployerByName(
+    return this.employerService.searchEmployersByName(
       tenantId,
       page,
       limit,
@@ -83,14 +83,14 @@ export class EmployerController {
       },
     },
   })
-  async getEmployer(
+  async getEmployers(
     @TenantId() tenantId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('type') type?: string,
     @Query('search') search?: string,
   ) {
-    return this.employerService.GetEmployer(
+    return this.employerService.getEmployers(
       tenantId,
       page,
       limit,
@@ -123,7 +123,7 @@ export class EmployerController {
     @Body() dto: CreateEmployerDto,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return this.employerService.CreateEmployer(tenantId, dto, photo);
+    return this.employerService.createEmployer(tenantId, dto, photo);
   }
 
   @Put(':id')
@@ -134,7 +134,7 @@ export class EmployerController {
     @Body() dto: UpdateEmployerDto,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return this.employerService.UpdateEmployer(tenantId, id, dto, photo);
+    return this.employerService.updateEmployer(tenantId, id, dto, photo);
   }
 
   @Delete(':id')
@@ -161,7 +161,7 @@ export class EmployerController {
     @TenantId() tenantId: string,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.employerService.GetEmployerById(tenantId, id);
+    return this.employerService.getEmployerById(tenantId, id);
   }
 
   @Get('')
@@ -171,7 +171,7 @@ export class EmployerController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('name') name: string,
   ) {
-    return this.employerService.GetEmployerWithName(
+    return this.employerService.getEmployerWithName(
       tenantId,
       name || '',
       page,
@@ -228,13 +228,13 @@ export class EmployerController {
   @ApiOperation({ summary: 'Get total teacher count' })
   @ApiResponse({ status: 200, description: 'Returns the count of teachers' })
   async getCountTeacher(@TenantId() tenantId: string) {
-    return this.employerService.GetCountTeacher(tenantId);
+    return this.employerService.getCountTeacher(tenantId);
   }
 
   @Get('count/staff')
   @ApiOperation({ summary: 'Get total staff count' })
   @ApiResponse({ status: 200, description: 'Returns the count of staff' })
   async getCountStaff(@TenantId() tenantId: string) {
-    return this.employerService.GetCountStaff(tenantId);
+    return this.employerService.getCountStaff(tenantId);
   }
 }

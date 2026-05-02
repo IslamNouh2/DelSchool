@@ -147,63 +147,91 @@ export class FeeService {
       });
       if (!template) throw new NotFoundException('Template not found');
 
+      // 1. Fetch all students who DON'T already have this fee
+      const existingSubscribers = await tx.fee.findMany({
+        where: { title: template.title, tenantId, studentId: { not: null } },
+        select: { studentId: true },
+      });
+      const existingIds = new Set(existingSubscribers.map((s) => s.studentId));
+
       const students = await tx.student.findMany({
-        where: { tenantId },
+        where: {
+          tenantId,
+          studentId: { notIn: Array.from(existingIds) },
+        },
         select: { studentId: true },
       });
 
-      const results: Fee[] = [];
-      for (const student of students) {
-        const studentFee = await tx.fee.create({
-          data: {
-            title: template.title,
-            amount: template.amount,
-            dueDate: new Date(dueDate),
-            description: template.description,
-            studentId: student.studentId,
-            compteId: template.compteId,
-            dateStartConsommation: template.dateStartConsommation,
-            dateEndConsommation: template.dateEndConsommation,
-            tenantId,
-          },
-        });
+      if (students.length === 0) return [];
 
-        await tx.journalEntry.create({
-          data: {
-            journalId: this.GENERAL_JOURNAL_ID,
-            entryNumber: `BULK-${studentFee.id}-${Date.now()}`,
-            referenceType: 'STUDENT_FEE',
-            referenceId: studentFee.id,
-            description: `Bulk Fee: ${template.title} for Student #${student.studentId}`,
-            totalDebit: template.amount,
-            totalCredit: template.amount,
-            status: JournalEntryStatus.POSTED,
-            createdBy: 1,
-            tenantId,
-            lines: {
-              create: [
-                {
-                  lineNumber: 1,
-                  compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
-                  debit: template.amount,
-                  credit: 0,
-                  tenantId,
-                },
-                {
-                  lineNumber: 2,
-                  compteId: template.compteId || this.INCOME_ACCOUNT_ID,
-                  debit: 0,
-                  credit: template.amount,
-                  tenantId,
-                },
-              ],
-            },
-          },
+      // 2. Batch Create Fees (Prisma 6 supports createManyAndReturn)
+      const feeData = students.map((student) => ({
+        title: template.title,
+        amount: template.amount,
+        dueDate: new Date(dueDate),
+        description: template.description,
+        studentId: student.studentId,
+        compteId: template.compteId,
+        dateStartConsommation: template.dateStartConsommation,
+        dateEndConsommation: template.dateEndConsommation,
+        tenantId,
+      }));
+
+      // Since createManyAndReturn is best for performance but might have limits in batch size,
+      // we'll use it to get the IDs for journal entries.
+      const createdFees = await tx.fee.createManyAndReturn({
+        data: feeData,
+      });
+
+      // 3. Prepare Bulk Journal Entries
+      // Note: journalEntry doesn't support createMany with nested lines in Prisma,
+      // so we create the entries first, then the lines.
+      const now = Date.now();
+      const journalEntriesData = createdFees.map((fee) => ({
+        journalId: this.GENERAL_JOURNAL_ID,
+        entryNumber: `BULK-${fee.id}-${now}`,
+        referenceType: 'STUDENT_FEE',
+        referenceId: fee.id,
+        description: `Bulk Fee: ${template.title} for Student #${fee.studentId}`,
+        totalDebit: template.amount,
+        totalCredit: template.amount,
+        status: JournalEntryStatus.POSTED,
+        createdBy: 1,
+        tenantId,
+      }));
+
+      // Create journal entries in one hit
+      const createdEntries = await tx.journalEntry.createManyAndReturn({
+        data: journalEntriesData,
+      });
+
+      // 4. Batch Create Journal Lines
+      const linesData: any[] = [];
+      createdEntries.forEach((entry) => {
+        linesData.push({
+          entryId: entry.id,
+          lineNumber: 1,
+          compteId: this.STUDENT_RECEIVABLE_ACCOUNT_ID,
+          debit: template.amount,
+          credit: 0,
+          tenantId,
         });
-        results.push(studentFee);
-      }
+        linesData.push({
+          entryId: entry.id,
+          lineNumber: 2,
+          compteId: template.compteId || this.INCOME_ACCOUNT_ID,
+          debit: 0,
+          credit: template.amount,
+          tenantId,
+        });
+      });
+
+      await tx.journalLine.createMany({
+        data: linesData,
+      });
+
       this.socketGateway.emitRefresh();
-      return results;
+      return createdFees;
     });
   }
 

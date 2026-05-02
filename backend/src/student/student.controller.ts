@@ -64,14 +64,14 @@ export class StudentController {
   @ApiOperation({ summary: 'Get total student count' })
   @ApiResponse({ status: 200, description: 'Returns the count of students' })
   async getCountStudent(@TenantId() tenantId: string) {
-    return this.studentService.GetCountStudent(tenantId);
+    return this.studentService.getStudentStats(tenantId);
   }
 
   @Get('counts-by-gender')
   @ApiOperation({ summary: 'Get student counts by gender' })
   @ApiResponse({ status: 200, description: 'Returns counts by gender' })
   async getCountsByGender(@TenantId() tenantId: string) {
-    return this.studentService.GetCountStudent(tenantId);
+    return this.studentService.getStudentStats(tenantId);
   }
 
   @Post('create')
@@ -101,7 +101,7 @@ export class StudentController {
     @Body() dto: CreateStudentDto,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return this.studentService.CreateStudent(tenantId, dto, photo);
+    return this.studentService.createStudent(tenantId, dto, photo);
   }
 
   @Put('update/:id')
@@ -129,15 +129,12 @@ export class StudentController {
     @Body() dto: UpdateStudentDto,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return this.studentService.UpdateStudent(tenantId, id, dto, photo);
+    return this.studentService.updateStudent(tenantId, id, dto, photo);
   }
 
   @Delete('delete/:id')
-  async deleteStudent(
-    @TenantId() tenantId: string,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
-    return this.studentService.DeleteStudent(tenantId, id);
+  async DeleteStudent(tenantId: string, id: number) {
+    return this.studentService.deleteStudent(tenantId, id);
   }
 
   @Get('list')
@@ -167,7 +164,7 @@ export class StudentController {
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
-    return this.studentService.GetStudent(
+    return this.studentService.getStudents(
       tenantId,
       page,
       limit,
@@ -182,7 +179,7 @@ export class StudentController {
     @TenantId() tenantId: string,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.studentService.GetStudentById(tenantId, id);
+    return this.studentService.getStudentById(tenantId, id);
   }
 
   @Get('search')
@@ -192,7 +189,7 @@ export class StudentController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    return this.studentService.GetStudentWithName(tenantId, name, page, limit);
+    return this.studentService.getStudentWithName(tenantId, name, page, limit);
   }
 
   @Public()

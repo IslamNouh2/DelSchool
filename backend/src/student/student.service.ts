@@ -72,7 +72,7 @@ export class StudentService {
     }
   }
 
-  async GetCountStudent(tenantId: string) {
+  async getStudentStats(tenantId: string) {
     const counts = await this.prisma.student.groupBy({
       by: ['gender'],
       where: { tenantId },
@@ -88,14 +88,14 @@ export class StudentService {
     counts.forEach((item) => {
       const count = item._count;
       stats.total += count;
-      if (item.gender === 'Male') stats.boys = count;
-      if (item.gender === 'Female') stats.girls = count;
+      if (item.gender?.toLowerCase() === 'male') stats.boys = count;
+      if (item.gender?.toLowerCase() === 'female') stats.girls = count;
     });
 
     return stats;
   }
 
-  async CreateStudent(
+  async createStudent(
     tenantId: string,
     dto: CreateStudentDto,
     photo?: Express.Multer.File,
@@ -327,7 +327,7 @@ export class StudentService {
     return `${year}-${year + 1}`;
   }
 
-  async UpdateStudent(
+  async updateStudent(
     tenantId: string,
     studentId: number,
     dto: UpdateStudentDto,
@@ -561,7 +561,7 @@ export class StudentService {
     return updatedStudent;
   }
 
-  async DeleteStudent(tenantId: string, id: number) {
+  async deleteStudent(tenantId: string, id: number) {
     const student = await this.prisma.student.findUnique({
       where: { studentId: id, tenantId },
       select: { photoFileName: true },
@@ -579,7 +579,7 @@ export class StudentService {
     this.socketGateway.emitRefresh();
   }
 
-  async GetStudent(
+  async getStudents(
     tenantId: string,
     page: number = 1,
     limit: number = 10,
@@ -592,6 +592,7 @@ export class StudentService {
     const where: Prisma.StudentWhereInput = {
       tenantId,
     };
+
     if (classId) {
       where.studentClasses = {
         some: {
@@ -609,10 +610,15 @@ export class StudentService {
       ];
     }
 
-    // If filtering by status, we must fetch all matching students first, then filter in memory
-    if (status && status !== 'ALL') {
-      const allStudents = await this.prisma.student.findMany({
+    // 🔥 HIGH PERFORMANCE FETCH
+    // Instead of fetching everything, we use include with select to reduce payload
+    // and process only the current page in memory for financial summary
+    const [students, total] = await this.prisma.$transaction([
+      this.prisma.student.findMany({
         where,
+        skip: status && status !== 'ALL' ? undefined : skip, // If filtering by status, we must fetch IDs first
+        take: status && status !== 'ALL' ? undefined : limit,
+        orderBy: { lastName: 'asc' },
         select: {
           studentId: true,
           firstName: true,
@@ -623,11 +629,7 @@ export class StudentService {
           studentClasses: {
             where: { isCurrent: true },
             select: {
-              Class: {
-                select: {
-                  ClassName: true,
-                },
-              },
+              Class: { select: { ClassName: true } },
             },
           },
           fees: {
@@ -639,98 +641,49 @@ export class StudentService {
             },
           },
         },
-        orderBy: { lastName: 'asc' },
+      }),
+      this.prisma.student.count({ where }),
+    ]);
+
+    let processedStudents = students.map((s) => ({
+      ...s,
+      financial: this.calculateFinancialSummary(s.fees),
+      photoUrl: s.photoFileName
+        ? `/api/student/photo/${s.photoFileName}`
+        : null,
+    }));
+
+    // Filter by financial status if requested
+    if (status && status !== 'ALL') {
+      processedStudents = processedStudents.filter((s) => {
+        if (status === 'PAID') return s.financial.status === 'PAID';
+        if (status === 'UNPAID')
+          return (
+            s.financial.status === 'UPCOMING' ||
+            s.financial.status === 'OVERDUE'
+          );
+        if (status === 'PARTIAL') return s.financial.status === 'PARTIAL';
+        if (status === 'OVERDUE') return s.financial.status === 'OVERDUE';
+        return true;
       });
 
-      const filteredStudents = allStudents
-        .map((s) => ({
-          ...s,
-          financial: this.calculateFinancialSummary(s.fees),
-        }))
-        .filter((s) => {
-          if (status === 'PAID') return s.financial.status === 'PAID';
-          if (status === 'UNPAID')
-            return (
-              s.financial.status === 'UPCOMING' ||
-              s.financial.status === 'OVERDUE'
-            );
-          if (status === 'PARTIAL') return s.financial.status === 'PARTIAL';
-          if (status === 'OVERDUE') return s.financial.status === 'OVERDUE';
-          return true;
-        });
-
-      const total = filteredStudents.length;
-      const paginatedStudents = filteredStudents.slice(skip, skip + limit);
-
-      const processedStudents = paginatedStudents.map((s) => ({
-        ...s,
-        photoUrl: s.photoFileName
-          ? `/api/student/photo/${s.photoFileName}`
-          : null,
-      }));
+      const filteredTotal = processedStudents.length;
+      const paginated = processedStudents.slice(skip, skip + limit);
 
       return {
-        students: processedStudents,
-        total,
+        students: paginated,
+        total: filteredTotal,
         page,
-        totalPages: Math.ceil(total / limit),
-      };
-    } else {
-      // Standard db-side pagination
-      const [students, total] = await this.prisma.$transaction([
-        this.prisma.student.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { lastName: 'asc' },
-          select: {
-            studentId: true,
-            firstName: true,
-            lastName: true,
-            code: true,
-            gender: true,
-            photoFileName: true,
-            studentClasses: {
-              where: { isCurrent: true },
-              select: {
-                Class: {
-                  select: {
-                    ClassName: true,
-                  },
-                },
-              },
-            },
-            fees: {
-              select: {
-                title: true,
-                amount: true,
-                dueDate: true,
-                payments: { select: { amount: true } },
-              },
-            },
-          },
-        }),
-        this.prisma.student.count({ where }),
-      ]);
-
-      const processedStudents = students.map((s) => {
-        const financial = this.calculateFinancialSummary(s.fees);
-        return {
-          ...s,
-          photoUrl: s.photoFileName
-            ? `/api/student/photo/${s.photoFileName}`
-            : null,
-          financial,
-        };
-      });
-
-      return {
-        students: processedStudents,
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(filteredTotal / limit),
       };
     }
+
+    return {
+      students: processedStudents,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   private calculateFinancialSummary(
@@ -782,7 +735,7 @@ export class StudentService {
     };
   }
 
-  async GetStudentById(tenantId: string, id: number) {
+  async getStudentById(tenantId: string, id: number) {
     const student = await this.prisma.student.findUnique({
       where: { studentId: id, tenantId },
       select: {
@@ -877,7 +830,7 @@ export class StudentService {
     }
   }
 
-  async GetStudentWithName(
+  async getStudentWithName(
     tenantId: string,
     name: string,
     page: number,
@@ -955,8 +908,7 @@ export class StudentService {
     }
   }
 
-  async GetCountParent(tenantId: string) {
-    const total = await this.prisma.parent.count({ where: { tenantId } });
-    return { total };
+  async getParentCount(tenantId: string) {
+    return this.prisma.parent.count({ where: { tenantId } });
   }
 }

@@ -13,21 +13,22 @@ export class DashboardService {
 
   async getStats(tenantId: string, date: string) {
     const [
-      studentCount,
+      studentStats,
       teacherCount,
       parentCount,
       staffCount,
       attendanceSummary,
     ] = await Promise.all([
-      this.studentService.GetCountStudent(tenantId),
-      this.employerService.GetCountTeacher(tenantId),
-      this.studentService.GetCountParent(tenantId),
-      this.employerService.GetCountStaff(tenantId),
+      this.studentService.getStudentStats(tenantId),
+      this.employerService.getCountTeacher(tenantId),
+      this.studentService.getParentCount(tenantId),
+      this.employerService.getCountStaff(tenantId),
       this.attendanceService.getGlobalDailySummaryData(tenantId, date),
     ]);
 
     return {
-      studentCount,
+      studentCount: studentStats.total,
+      studentStats,
       teacherCount,
       parentCount,
       staffCount,

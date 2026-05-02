@@ -6,7 +6,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+
+interface RequestWithTenant extends Request {
+  tenantId?: string;
+  user?: JwtPayload;
+}
 
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -25,37 +32,34 @@ export class TenantGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const token =
-      request.cookies?.accessToken ||
-      request.headers.authorization?.split(' ')[1];
+    const request = context.switchToHttp().getRequest<RequestWithTenant>();
+
+    const cookies = request.cookies as
+      | Record<string, string | undefined>
+      | undefined;
+    const authHeader = request.headers.authorization;
+
+    const token = cookies?.accessToken || authHeader?.split(' ')[1];
 
     if (!token) {
-      // Let other guards (like JwtAuthGuard) handle the "no token" case.
-      // TenantGuard should only enforce tenant logic if a token is actually present.
+      // JwtAuthGuard will handle the 401 if not public
       return true;
     }
 
     try {
-      const payload = this.jwtService.decode(token);
+      // Verify signature to prevent spoofing before reading payload
+      const payload = this.jwtService.verify<JwtPayload>(token);
 
-      // If we can't decode it, or it doesn't have a tenantId, we might be in transition.
-      // In a strict multi-tenant system, we should throw.
-      // For now, we'll attach 'default-tenant' or let it pass if we want to be lenient.
       if (payload && payload.tenantId) {
         request.tenantId = payload.tenantId;
         request.user = payload;
-      } else {
-        // Log warning or handle transition
-        console.warn(
-          'Token present but missing tenantId. Using fallback or passing through.',
-        );
-        request.tenantId = 'default-tenant';
+        return true;
       }
 
-      return true;
-    } catch (e) {
-      // Decode failed, let it pass and let JwtAuthGuard handle the invalidity
+      throw new UnauthorizedException('Tenant context missing in token');
+    } catch {
+      // If verification fails, we don't attach tenantId.
+      // JwtAuthGuard will catch the invalidity later.
       return true;
     }
   }
